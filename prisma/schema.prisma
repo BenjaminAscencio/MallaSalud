@@ -1,0 +1,88 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum EstadoCita {
+  RESERVADA
+  ATENDIDA
+  NO_ASISTE
+  CANCELADA
+}
+
+enum Especialidad {
+  MEDICINA_GENERAL
+  URGENCIA_DENTAL
+  MATRONERIA
+}
+
+enum CanalOrigen {
+  WEB
+  TELEFONO
+  VENTANILLA
+}
+
+enum RolUsuario {
+  ADMIN_SOME
+  MEDICO
+}
+
+// Personal de salud y SOME
+model Funcionario {
+  id           Int          @id @default(autoincrement())
+  rut          String       @unique
+  nombre       String
+  apellido     String
+  rol          RolUsuario
+  especialidad Especialidad?
+  citas        Cita[]       // Citas asignadas al profesional
+}
+
+// Datos base del paciente en el CESFAM
+model Paciente {
+  rut             String    @id // Ej: "12345678-9"
+  nombre          String
+  apellido        String
+  fechaNacimiento DateTime  // Permite calcular +60 años en tiempo real
+  telefono        String?
+  correo          String?
+  citas           Cita[]
+}
+
+// Horarios habilitados por el SOME para la jornada
+model Cupo {
+  id              Int          @id @default(autoincrement())
+  fechaHora       DateTime
+  especialidad    Especialidad
+  esPrioritario   Boolean      @default(false) // Cupo reservado para adulto mayor
+
+  // Control de retención temporal (5 minutos mientras confirma)
+  bloqueadoHasta  DateTime?
+  bloqueadoPorRut String?
+
+  cita            Cita?
+  creadoEn        DateTime     @default(now())
+}
+
+// Registro final de la reserva y control en Box
+model Cita {
+  id            Int          @id @default(autoincrement())
+  
+  cupoId        Int          @unique
+  cupo          Cupo         @relation(fields: [cupoId], references: [id])
+  
+  pacienteRut   String
+  paciente      Paciente     @relation(fields: [pacienteRut], references: [rut])
+  
+  funcionarioId Int?
+  funcionario   Funcionario? @relation(fields: [funcionarioId], references: [id])
+  
+  canal         CanalOrigen
+  estado        EstadoCita   @default(RESERVADA)
+  observaciones String?
+  creadaEn      DateTime     @default(now())
+}
