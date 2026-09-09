@@ -66,6 +66,9 @@ model Cupo {
 
   cita            Cita?
   creadoEn        DateTime     @default(now())
+
+  @@index([fechaHora, especialidad])
+  @@index([especialidad, esPrioritario])
 }
 
 // Registro final de la reserva y control en Box
@@ -85,4 +88,8 @@ model Cita {
   estado        EstadoCita   @default(RESERVADA)
   observaciones String?
   creadaEn      DateTime     @default(now())
+
+  @@index([pacienteRut])
+  @@index([funcionarioId])
+  @@index([estado])
 }

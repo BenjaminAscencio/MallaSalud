@@ -1,5 +1,5 @@
 {
-  "name": "citamed",
+  "name": "mallasalud",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,7 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma generate",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:build": "docker compose up --build",
+    "docker:db": "docker compose up postgres -d",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio --port 5555 --hostname 0.0.0.0"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

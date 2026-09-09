@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mallasalud_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mallasalud_password}
+      POSTGRES_DB: ${DB_NAME:-mallasalud_db}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - mallasalud_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-mallasalud_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mallasalud_network
+
+  app:
+    container_name: mallasalud_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+      - "${STUDIO_PORT:-5555}:5555"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-mallasalud_password}@postgres:5432/${DB_NAME:-mallasalud_db}?schema=public
+      NODE_ENV: development
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mallasalud_network
+
+volumes:
+  mallasalud_pgdata:
+
+networks:
+  mallasalud_network:
+    driver: bridge
