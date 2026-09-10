@@ -37,9 +37,9 @@ docker compose up --build
 ### 4. Crear tablas y cargar datos de prueba
 En **otra terminal** (dentro de `mallasalud`):
 ```bash
-docker compose exec app npx prisma db push
-docker compose exec app npm run db:seed
+docker compose exec app npm run db:setup
 ```
+*(O por separado: `docker compose exec app npx prisma db push` y luego `docker compose exec app npm run db:seed`)*.
 
 ---
 
@@ -60,14 +60,17 @@ docker compose exec app npm run db:seed
 
 ## 👥 Datos de Demostración (`seed`)
 
-El sistema incluye datos chilenos precargados:
+El sistema incluye datos chilenos precargados y listos para evaluación:
 
 * **Administrativo SOME:** `15432890-K` (Carolina Soto)
 * **Médico General:** `16789452-3` (Matías Valenzuela)
 * **Urgencia Dental:** `14238910-5` (Valeria Rojas)
 * **Matronería:** `17890123-1` (Fernanda Morales)
-* **Pacientes:** 15 adultos mayores (cupos prioritarios) y 25 adultos generales.
-* **Cupos:** Agendas creadas para mañana de 08:00 a 16:00 hrs.
+* **Pacientes:** 15 adultos mayores (cupos prioritarios) y 25 adultos generales con RUTs chilenos válidos.
+* **Cupos y Citas (Hoy y Mañana):**
+  - 🟢 **Disponibles:** Horas libres listas para ser reservadas.
+  - 🟡 **En proceso de tomarse (Inactivas / Retenidas temporalmente):** Cupos con `bloqueadoHasta` y `bloqueadoPorRut` que simulan pacientes en pleno flujo de confirmación.
+  - 🔴 **Tomadas:** Citas confirmadas en Box (`RESERVADA` y `ATENDIDA`) asociadas al profesional de salud, paciente y observaciones clínicas.
 
 ---
 

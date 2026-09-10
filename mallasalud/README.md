@@ -19,9 +19,8 @@ cp .env.example .env    # En Windows CMD: copy .env.example .env
 # 2. Iniciar contenedores
 docker compose up --build
 
-# 3. Inicializar Base de Datos y datos de prueba (en otra terminal)
-docker compose exec app npx prisma db push
-docker compose exec app npm run db:seed
+# 3. Inicializar Base de Datos y datos de prueba en un solo comando (en otra terminal)
+docker compose exec app npm run db:setup
 
 # 4. (Opcional) Abrir interfaz visual de la base de datos
 docker compose exec app npm run db:studio
@@ -36,13 +35,17 @@ docker compose exec app npm run db:studio
 
 ---
 
-## 👥 Cuentas de Prueba
+## 👥 Cuentas y Datos de Prueba (`seed`)
 
-- **Administrador SOME:** `15432890-K`
-- **Médico General:** `16789452-3`
-- **Urgencia Dental:** `14238910-5`
-- **Matronería:** `17890123-1`
-- **40 Pacientes** y cupos asignados para el día siguiente.
+- **Administrador SOME:** `15432890-K` (Carolina Soto)
+- **Médico General:** `16789452-3` (Matías Valenzuela)
+- **Urgencia Dental:** `14238910-5` (Valeria Rojas)
+- **Matronería:** `17890123-1` (Fernanda Morales)
+- **40 Pacientes chilenos:** 15 adultos mayores (+60 años para cupos prioritarios) y 25 adultos generales.
+- **Cupos y Citas:**
+  - 🟢 **Disponibles:** Cupos libres para que cualquier usuario pueda tomarlos.
+  - 🟡 **En proceso (Inactivas):** Cupos retenidos temporalmente con `bloqueadoHasta` y `bloqueadoPorRut` simulando pacientes en el proceso de reserva.
+  - 🔴 **Tomadas:** Citas confirmadas en Box (`RESERVADA` y `ATENDIDA`) con funcionario, paciente, canal de origen (Web/Teléfono/Ventanilla) y observaciones clínicas.
 
 ---
 
