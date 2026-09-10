@@ -1,19 +1,19 @@
-# 🏥 MallaSalud
+# MallaSalud
 
 Sistema de gestión y asignación de horas médicas para Centros de Salud Pública Primaria (CESFAM).
 
 ---
 
-## 💻 Requisito Único en el PC
+## Requisito Único en el PC
 
 Para ejecutar el proyecto solo se necesita tener instalado y abierto:
 * **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** *(Compatible con Windows, Mac y Linux)*.
 
-> ℹ️ *No requiere instalar Node.js ni PostgreSQL en la máquina.*
+>  *No requiere instalar Node.js ni PostgreSQL en la máquina.*
 
 ---
 
-## 🚀 Paso a Paso para Ejecutar
+##  Paso a Paso para Ejecutar
 
 ### 1. Entrar a la carpeta del proyecto
 Abra una terminal en la raíz y ejecute:
@@ -43,7 +43,7 @@ docker compose exec app npm run db:setup
 
 ---
 
-## 🌐 Enlaces de Acceso
+##  Enlaces de Acceso
 
 | Servicio | Enlace | Descripción |
 | :--- | :--- | :--- |
@@ -58,7 +58,7 @@ docker compose exec app npm run db:setup
 
 ---
 
-## 👥 Datos de Demostración (`seed`)
+##  Datos de Demostración (`seed`)
 
 El sistema incluye datos chilenos precargados y listos para evaluación:
 
@@ -68,13 +68,13 @@ El sistema incluye datos chilenos precargados y listos para evaluación:
 * **Matronería:** `17890123-1` (Fernanda Morales)
 * **Pacientes:** 15 adultos mayores (cupos prioritarios) y 25 adultos generales con RUTs chilenos válidos.
 * **Cupos y Citas (Hoy y Mañana):**
-  - 🟢 **Disponibles:** Horas libres listas para ser reservadas.
-  - 🟡 **En proceso de tomarse (Inactivas / Retenidas temporalmente):** Cupos con `bloqueadoHasta` y `bloqueadoPorRut` que simulan pacientes en pleno flujo de confirmación.
-  - 🔴 **Tomadas:** Citas confirmadas en Box (`RESERVADA` y `ATENDIDA`) asociadas al profesional de salud, paciente y observaciones clínicas.
+  - **Disponibles:** Horas libres listas para ser reservadas.
+  - **En proceso de tomarse (Inactivas / Retenidas temporalmente):** Cupos con `bloqueadoHasta` y `bloqueadoPorRut` que simulan pacientes en pleno flujo de confirmación.
+  - **Tomadas:** Citas confirmadas en Box (`RESERVADA` y `ATENDIDA`) asociadas al profesional de salud, paciente y observaciones clínicas.
 
 ---
 
-## 🛑 Detener la aplicación
+## Detener la aplicación
 
 Presione `Ctrl + C` en la terminal o ejecute:
 ```bash
