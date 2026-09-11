@@ -13,14 +13,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MallaSalud - Sistema de Gestión de Citas CESFAM",
-  description: "Plataforma de asignación y gestión de horas médicas en centros de salud familiar",
+  title: "Telemedicina - MallaSalud",
+  description: "Plataforma de gestión y agendamiento de citas médicas",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

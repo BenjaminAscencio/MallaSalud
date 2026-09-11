@@ -1,0 +1,508 @@
+/* ============================================================
+   ESTILOS DE LA PÁGINA PRINCIPAL FRONT (front.module.css)
+   ============================================================ */
+
+.pageWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bodySection {
+  flex: 1;
+  width: 100%;
+  background-color: #f8fafc;
+  transition: background-color 0.25s ease;
+}
+
+:global(.dark) .bodySection {
+  background-color: #081513;
+}
+
+/* ============================================================
+   1. HERO PRINCIPAL (Fundido con el Header en scroll = 0)
+   ============================================================ */
+.heroSection {
+  position: relative;
+  background: linear-gradient(180deg, #092622 0%, #0d3832 60%, #114c44 100%);
+  color: #ffffff;
+  padding: 4rem 1.5rem 6rem 1.5rem;
+  text-align: center;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(45, 212, 191, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.heroContent {
+  position: relative;
+  max-width: 58rem;
+  margin: 0 auto;
+  z-index: 1;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  border-radius: 9999px;
+  background-color: rgba(45, 212, 191, 0.15);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  color: #5eead4;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.heroTitle {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .heroTitle {
+    font-size: 3.25rem;
+  }
+}
+
+.heroHighlight {
+  color: #5eead4;
+}
+
+.heroSubtitle {
+  font-size: 1.15rem;
+  color: #ccfbf1;
+  margin: 0 0 2.5rem 0;
+  font-weight: 400;
+}
+
+/* Botón grande del Hero para reservar cita */
+.heroCtaButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  padding: 1.1rem 2.75rem;
+  border-radius: 9999px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-decoration: none;
+  border: 1.5px solid rgba(94, 234, 212, 0.6);
+  box-shadow: 0 8px 25px rgba(13, 148, 136, 0.45);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.heroCtaButton:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  border-color: #5eead4;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(13, 148, 136, 0.55);
+}
+
+.heroCtaButton:active {
+  transform: translateY(0);
+}
+
+/* ============================================================
+   2. SECCIÓN BUSCADOR DE HORAS (100% dentro del fondo blanco)
+   ============================================================ */
+.searchSection {
+  max-width: 58rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem 1.5rem 1.5rem;
+}
+
+.searchCard {
+  background-color: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2.25rem 2rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+:global(.dark) .searchCard {
+  background-color: #122824;
+  border-color: #1a423b;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35);
+}
+
+.searchHeader {
+  text-align: center;
+}
+
+.searchTitle {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.4rem 0;
+}
+
+:global(.dark) .searchTitle {
+  color: #f8fafc;
+}
+
+.searchSubtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+:global(.dark) .searchSubtitle {
+  color: #94a3b8;
+}
+
+.searchForm {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .searchForm {
+    grid-template-columns: 1.2fr 1.2fr auto;
+  }
+}
+
+.searchSelect {
+  width: 100%;
+  padding: 0.9rem 1.1rem;
+  border-radius: 0.65rem;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.searchSelect:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+:global(.dark) .searchSelect {
+  background-color: #0b1a17;
+  border-color: #24584e;
+  color: #f1f5f9;
+}
+
+:global(.dark) .searchSelect:focus {
+  border-color: #5eead4;
+}
+
+.searchButton {
+  padding: 0.9rem 2.25rem;
+  border-radius: 0.65rem;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  font-size: 0.98rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.searchButton:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.45);
+}
+
+/* ============================================================
+   3. PROCESO DE RESERVA (TIMELINE LIMPIO SIN TARJETAS)
+   ============================================================ */
+.processSection {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 3.5rem 1.5rem 3rem 1.5rem;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.sectionPretitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #0d9488;
+  margin: 0 0 0.5rem 0;
+}
+
+:global(.dark) .sectionPretitle {
+  color: #5eead4;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+:global(.dark) .sectionTitle {
+  color: #f8fafc;
+}
+
+.timelineGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .timelineGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+.timelineItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+
+.timelineStepBadge {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background-color: #0d9488;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 10px rgba(13, 148, 136, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.timelineItem:hover .timelineStepBadge {
+  transform: scale(1.1);
+  background-color: #0f766e;
+}
+
+:global(.dark) .timelineStepBadge {
+  background-color: #14b8a6;
+  color: #042f2e;
+}
+
+.timelineTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.65rem 0;
+}
+
+:global(.dark) .timelineTitle {
+  color: #f1f5f9;
+}
+
+.timelineText {
+  font-size: 0.88rem;
+  color: #64748b;
+  line-height: 1.55;
+  margin: 0;
+}
+
+:global(.dark) .timelineText {
+  color: #94a3b8;
+}
+
+.patientDataTags {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #0f766e;
+}
+
+:global(.dark) .patientDataTags {
+  color: #5eead4;
+}
+
+/* ============================================================
+   4. ÚNICAS 3 CARDS DE LA PÁGINA (Servicios Principales)
+   ============================================================ */
+.cardsSection {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 4.5rem 1.5rem;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+}
+
+@media (min-width: 860px) {
+  .cardsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.mainCard {
+  background-color: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2.25rem 1.75rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mainCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0d9488, #5eead4);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.mainCard:hover {
+  transform: translateY(-4px);
+  border-color: #99f6e4;
+  box-shadow: 0 15px 30px -5px rgba(13, 148, 136, 0.15);
+}
+
+.mainCard:hover::before {
+  opacity: 1;
+}
+
+:global(.dark) .mainCard {
+  background-color: #112622;
+  border-color: #1a423b;
+  box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.3);
+}
+
+.cardIconCircle {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  background-color: rgba(13, 148, 136, 0.12);
+  color: #0d9488;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+:global(.dark) .cardIconCircle {
+  background-color: rgba(94, 234, 212, 0.15);
+  color: #5eead4;
+}
+
+.cardTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.75rem 0;
+}
+
+:global(.dark) .cardTitle {
+  color: #f8fafc;
+}
+
+.cardDescription {
+  font-size: 0.92rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+:global(.dark) .cardDescription {
+  color: #94a3b8;
+}
+
+/* ============================================================
+   5. BANNER CTA FINAL
+   ============================================================ */
+.ctaSection {
+  background: linear-gradient(135deg, #092622 0%, #114c44 100%);
+  color: #ffffff;
+  padding: 4rem 1.5rem;
+  text-align: center;
+}
+
+.ctaContent {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.ctaTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0 0 0.75rem 0;
+}
+
+.ctaPhone {
+  color: #5eead4;
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin-top: 0.5rem;
+  display: inline-block;
+}
+
+.ctaButton {
+  margin-top: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #5eead4;
+  color: #042f2e;
+  padding: 0.85rem 2.5rem;
+  border-radius: 9999px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 15px rgba(94, 234, 212, 0.35);
+  transition: all 0.15s ease;
+}
+
+.ctaButton:hover {
+  background-color: #ffffff;
+  transform: translateY(-2px);
+}

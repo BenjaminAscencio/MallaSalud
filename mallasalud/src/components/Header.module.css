@@ -1,0 +1,332 @@
+/* ============================================================
+   ESTILOS PARA EL COMPONENTE HEADER CON EFECTO SCROLL Y MENÚ RESPONSIVO
+   (Header.module.css)
+   ============================================================ */
+
+.header {
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Estado inicial: integrado arriba */
+  background-color: #092622;
+  border-bottom: 1px solid transparent;
+  box-shadow: none;
+}
+
+:global(.dark) .header {
+  background-color: #061715;
+}
+
+/* Estado cuando el usuario hace scroll hacia abajo (se separa) */
+.headerScrolled {
+  background-color: rgba(9, 38, 34, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(45, 212, 191, 0.25);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+:global(.dark) .headerScrolled {
+  background-color: rgba(6, 23, 21, 0.94);
+  border-bottom-color: rgba(45, 212, 191, 0.2);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0.9rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: nowrap; /* Siempre en una sola línea compacta */
+  transition: padding 0.25s ease;
+}
+
+.headerScrolled .container {
+  padding: 0.75rem 1.5rem;
+}
+
+/* --- LOGO --- */
+.logoLink {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logoIconWrapper {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background-color: rgba(45, 212, 191, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5eead4;
+  transition: transform 0.2s ease;
+}
+
+.logoLink:hover .logoIconWrapper {
+  transform: scale(1.05);
+}
+
+.logoIcon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.logoSubtext {
+  font-weight: 500;
+  color: #5eead4;
+  font-size: 0.85rem;
+}
+
+/* --- NAVEGACIÓN DE ESCRITORIO --- */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2.25rem;
+  justify-content: center;
+}
+
+.navLink {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ccfbf1;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 0.25rem 0.2rem;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.navLink:hover {
+  color: #5eead4;
+}
+
+/* --- ZONA DE ACCIONES DERECHA --- */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+/* Botón agrandar letra */
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0 0.75rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background-color: rgba(13, 148, 136, 0.25);
+  color: #ccfbf1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+.textButton:hover {
+  background-color: rgba(45, 212, 191, 0.3);
+  color: #ffffff;
+}
+
+.textButtonActive {
+  background-color: #0d9488 !important;
+  color: #ffffff !important;
+  border-color: #5eead4 !important;
+}
+
+/* Botón modo oscuro */
+.themeButton {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background-color: rgba(13, 148, 136, 0.25);
+  color: #ccfbf1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+.themeButton:hover {
+  background-color: rgba(45, 212, 191, 0.3);
+  color: #ffffff;
+}
+
+.themeIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Botón Reservar Cita (Desktop) */
+.ctaButton {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  padding: 0.625rem 1.35rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  border: 1px solid rgba(94, 234, 212, 0.4);
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+  transition: all 0.15s ease;
+}
+
+.ctaButton:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  border-color: #5eead4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+}
+
+/* --- BOTÓN HAMBURGUESA (3 Líneas) --- */
+.hamburgerButton {
+  display: none; /* Oculto en pantallas grandes */
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.5rem;
+  background-color: rgba(45, 212, 191, 0.15);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  color: #5eead4;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.hamburgerButton:hover {
+  background-color: rgba(45, 212, 191, 0.25);
+  color: #ffffff;
+}
+
+.hamburgerIcon {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+/* --- MENÚ DESPLEGABLE MÓVIL --- */
+.mobileMenu {
+  display: none;
+  width: 100%;
+  background-color: #092622;
+  border-top: 1px solid rgba(45, 212, 191, 0.2);
+  border-bottom: 2px solid #0d9488;
+  padding: 1.25rem 1.5rem 1.75rem 1.5rem;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.45);
+  animation: slideDown 0.2s ease-out forwards;
+}
+
+:global(.dark) .mobileMenu {
+  background-color: #071917;
+  border-top-color: rgba(45, 212, 191, 0.15);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobileNavList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem 0;
+}
+
+.mobileNavLink {
+  display: block;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ccfbf1;
+  text-decoration: none;
+  background-color: rgba(13, 148, 136, 0.1);
+  border: 1px solid rgba(45, 212, 191, 0.15);
+  transition: all 0.15s ease;
+}
+
+.mobileNavLink:hover,
+.mobileNavLink:active {
+  background-color: #0d9488;
+  color: #ffffff;
+  border-color: #5eead4;
+  padding-left: 1.25rem;
+}
+
+.mobileCtaButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid rgba(94, 234, 212, 0.4);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+}
+
+/* ============================================================
+   RESPONSIVIDAD (<= 960px)
+   ============================================================ */
+@media (max-width: 960px) {
+  /* Ocultar menú largo horizontal de escritorio */
+  .nav {
+    display: none;
+  }
+
+  /* Ocultar botón CTA en la barra para no saturar */
+  .ctaButton {
+    display: none;
+  }
+
+  /* Mostrar botón de las 3 líneas */
+  .hamburgerButton {
+    display: inline-flex;
+  }
+
+  /* Mostrar menú desplegable cuando está abierto */
+  .mobileMenuOpen {
+    display: block;
+  }
+
+  /* Ajustar tamaño del subtítulo del logo */
+  .logoSubtext {
+    display: none;
+  }
+}
