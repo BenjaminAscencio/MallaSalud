@@ -60,7 +60,7 @@ El sistema proporciona una plataforma omnicanal que sincroniza en tiempo real la
 
 El equipo adoptó un marco de trabajo ágil basado en **Scrumban**, combinando la estructura por ciclos de **Scrum** con la flexibilidad y control de flujo continuo de **Kanban**:
 
-* **Gestión Visual y Flujo (Kanban):** Seguimiento del ciclo de desarrollo mediante un tablero en GitHub Projects, dividiendo las tareas en Backlog, Por Hacer, En Progreso, Revisión y Terminado, con límites de trabajo en curso (WIP) para evitar cuellos de botella.
+* **Gestión Visual y Flujo (Kanban):** Seguimiento del ciclo de desarrollo mediante un tablero, dividiendo las tareas en Backlog, Por Hacer, En Progreso, Revisión y Terminado, con límites de trabajo en curso para evitar cuellos de botella.
 * **Planificación y Estimación:** Uso de sesiones de *Poker Planning* bajo la escala Fibonacci para dimensionar la complejidad e incertidumbre de cada funcionalidad del backlog.
 * **Fases del Proyecto (18 Semanas):**
   * **Fase 1 (Definición):** Levantamiento de requisitos, diseño de la arquitectura del sistema, modelado de la base de datos y validación de reglas de negocio.
