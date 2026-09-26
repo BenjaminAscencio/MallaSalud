@@ -58,69 +58,35 @@ El sistema proporciona una plataforma omnicanal que sincroniza en tiempo real la
 
 ## Metodología de Trabajo
 
-El equipo implementa un marco de trabajo **Scrumban**, combinando la flexibilidad iterativa de **Scrum** con la eficiencia y visibilidad del flujo continuo de **Kanban**:
+El equipo adoptó un marco de trabajo ágil basado en **Scrumban**, combinando la estructura por ciclos de **Scrum** con la flexibilidad y control de flujo continuo de **Kanban**:
 
-```mermaid
-flowchart LR
-    A[Product Backlog<br>57 Story Points] --> B[Sprint Planning<br>Poker Planning]
-    B --> C[Tablero Kanban<br>WIP Limits]
-    C --> D[Daily Sync & Inspección]
-    D --> E[Incremento de Software<br>Fase Entregable]
-```
-
-### Principales Prácticas Metodológicas:
-1. **Sprints Iterativos e Incrementales:** Ciclos enfocados en entregas funcionales de valor y pruebas continuas.
-2. **Tablero Kanban (GitHub Projects):** Control visual del flujo de trabajo dividido en *Backlog, To Do, In Progress, Review* y *Done*, controlando el límite de trabajo en curso (WIP).
-3. **Poker Planning:** Estimación colaborativa de esfuerzo, complejidad e incertidumbre basada en la secuencia Fibonacci, totalizando **57 Puntos de Historia / Función** repartidos en 14 actividades técnicas de alta cohesión.
-4. **Plan de Trabajo en 3 Fases (18 Semanas):**
-   * **Fase 1 (Semanas 1 a 4) - Definición:** Requisitos, diseño arquitectónico, esquemas relacionales 3FN y validación de reglas de negocio.
-   * **Fase 2 (Semanas 5 a 15) - Desarrollo:** Construcción concurrente de Frontend, Backend/APIs, Consola SOME, Portal Pacientes y canal telefónico de voz.
-   * **Fase 3 (Semanas 16 a 18) - Pruebas y Cierre:** Pruebas de estrés y concurrencia, CI/CD, manuales técnicos de despliegue y cierre formal.
+* **Gestión Visual y Flujo (Kanban):** Seguimiento del ciclo de desarrollo mediante un tablero en GitHub Projects, dividiendo las tareas en Backlog, Por Hacer, En Progreso, Revisión y Terminado, con límites de trabajo en curso (WIP) para evitar cuellos de botella.
+* **Planificación y Estimación:** Uso de sesiones de *Poker Planning* bajo la escala Fibonacci para dimensionar la complejidad e incertidumbre de cada funcionalidad del backlog.
+* **Fases del Proyecto (18 Semanas):**
+  * **Fase 1 (Definición):** Levantamiento de requisitos, diseño de la arquitectura del sistema, modelado de la base de datos y validación de reglas de negocio.
+  * **Fase 2 (Desarrollo):** Construcción modular de las interfaces (portal de pacientes, SOME y box médico), lógica de backend, control de concurrencia e integración del canal de voz.
+  * **Fase 3 (Pruebas y Cierre):** Pruebas de estrés y concurrencia ante alta demanda de reservas, despliegue continuo (CI/CD), elaboración de manuales y entrega final.
 
 ---
 
 ## Arquitectura de la Solución
 
-MALLASALUD implementa una **arquitectura omnicanal desacoplada y modular** diseñada para atender múltiples puntos de contacto simultáneos sobre un núcleo transaccional unificado:
+MALLASALUD está estructurado bajo una **arquitectura omnicanal modular desacoplada**, diseñada para que múltiples canales de atención operen de forma sincronizada sobre un núcleo transaccional unificado:
 
-```mermaid
-graph TD
-    subgraph Canales [" Canales de Atención (Omnicanal) "]
-        A["Portal Web Pacientes<br>(Autogestión / RUT)"]
-        B["Consola SOME<br>(Administración y Agendas)"]
-        C["Panel Box Clínico<br>(Control de Asistencia)"]
-        D["Asistente Telefónico Voz<br>(IVR / Adultos Mayores)"]
-    end
+* **1. Capa de Canales (Presentación y Acceso):**
+  * **Portal Web Pacientes:** Permite la búsqueda y reserva directa de citas médicas validando el RUT y aplicando cupos prioritarios.
+  * **Consola SOME (Ventanilla):** Interfaz para personal administrativo encargada de la apertura de turnos y gestión de cuotas protegidas.
+  * **Panel Box Clínico:** Vista para el profesional de salud para registrar asistencia médica y liberar de inmediato cupos no utilizados.
+  * **Canal Telefónico (Asistente de Voz):** Servicio automatizado pensado en adultos mayores o personas sin acceso a internet, que interactúa vía webhook con la plataforma central.
 
-    subgraph AppLayer [" Capa de Aplicación (Next.js Fullstack) "]
-        E["Next.js Server Actions / API Routes"]
-        F["Motor de Reglas de Negocio<br>(Validación RUT Módulo 11 + Cuotas Prioritarias)"]
-        G["Manejador de Concurrencia<br>(Bloqueo temporal 2 min)"]
-    end
+* **2. Capa de Aplicación y Lógica de Negocio (Next.js):**
+  * Centraliza las reglas del sistema mediante Server Actions y API Routes en TypeScript.
+  * Valida la identidad y formato de RUT mediante el algoritmo chileno Módulo 11.
+  * Incorpora un motor de concurrencia que aplica un **bloqueo temporal de 2 minutos** sobre el cupo seleccionado mientras el paciente confirma, evitando que dos personas tomen la misma hora desde canales distintos.
 
-    subgraph DataLayer [" Capa de Persistencia "]
-        H["Prisma ORM"]
-        I[("Base de Datos PostgreSQL<br>(Transacciones ACID - 3FN)")]
-    end
-
-    A --> E
-    B --> E
-    C --> E
-    D --> E
-    E --> F
-    F --> G
-    G --> H
-    H --> I
-```
-
-### Capas del Sistema:
-* **Capa de Canales (Presentación):**
-  * *Portal Pacientes:* Búsqueda ágil y reserva de citas con validación de RUT y cuotas prioritarias (+60 años).
-  * *Consola SOME:* Apertura vespertina y distribución dinámica de cupos protegidos.
-  * *Panel Box Médico:* Marcado de asistencia clínica (`ATENDIDA` o `NO_ASISTE`) y liberación inmediata de cupos ociosos.
-  * *Canal Telefónico de Voz:* Microservicio/Webhook para reservas telefónicas automatizadas sin requerir smartphone.
-* **Capa de Lógica y Servicios (Next.js Server):** Procesamiento de reglas de negocio, validación criptográfica de identidad y temporizador de bloqueo de cupos para evitar colisiones entre canales.
-* **Capa de Datos:** PostgreSQL en tercera forma normal (3FN) con aislamiento transaccional para operaciones críticas de asignación de horas médicas.
+* **3. Capa de Datos y Persistencia (PostgreSQL y Prisma ORM):**
+  * Modelo de datos relacional normalizado con integridad referencial.
+  * Manejo de transacciones ACID para asegurar consistencia absoluta durante la asignación simultánea de citas médicas.
 
 ---
 
