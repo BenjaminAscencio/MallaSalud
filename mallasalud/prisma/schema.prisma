@@ -7,89 +7,148 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum EstadoCita {
-  RESERVADA
-  ATENDIDA
-  NO_ASISTE
-  CANCELADA
-}
-
 enum Especialidad {
   MEDICINA_GENERAL
-  URGENCIA_DENTAL
+  DENTAL
   MATRONERIA
+}
+
+enum EstadoBloque {
+  DISPONIBLE
+  BLOQUEO_TEMPORAL
+  RESERVADO
+  BLOQUEADO_SOME
+}
+
+enum EstadoCita {
+  AGENDADA
+  CANCELADA_OPORTUNA
+  ATENDIDA
+  NO_ASISTE
 }
 
 enum CanalOrigen {
   WEB
-  TELEFONO
-  VENTANILLA
+  VOZ_IVR
+  VENTANILLA_SOME
 }
 
-enum RolUsuario {
-  ADMIN_SOME
-  MEDICO
-}
-
-// Personal de salud y SOME
-model Funcionario {
-  id           Int          @id @default(autoincrement())
-  rut          String       @unique
-  nombre       String
-  apellido     String
-  rol          RolUsuario
-  especialidad Especialidad?
-  citas        Cita[]       // Citas asignadas al profesional
-}
-
-// Datos base del paciente en el CESFAM
 model Paciente {
-  rut             String    @id // Ej: "12345678-9"
-  nombre          String
-  apellido        String
-  fechaNacimiento DateTime  // Permite calcular +60 años en tiempo real
-  telefono        String?
-  correo          String?
-  citas           Cita[]
+  id                    String    @id @default(uuid())
+  rut                   String    @unique
+  nombres               String
+  apellidos             String
+  fecha_nacimiento      DateTime  @map("fecha_nacimiento")
+  telefono              String
+  estado_inscripcion    Boolean   @default(true) @map("estado_inscripcion")
+  contador_inasistencias Int      @default(0) @map("contador_inasistencias")
+  created_at            DateTime  @default(now()) @map("created_at")
+
+  citas                 Cita[]
+
+  @@map("pacientes")
 }
 
-// Horarios habilitados por el SOME para la jornada
-model Cupo {
-  id              Int          @id @default(autoincrement())
-  fechaHora       DateTime
-  especialidad    Especialidad
-  esPrioritario   Boolean      @default(false) // Cupo reservado para adulto mayor
+model Profesional {
+  id           String        @id @default(uuid())
+  rut          String        @unique
+  nombres      String
+  apellidos    String
+  especialidad Especialidad
+  activo       Boolean       @default(true)
 
-  // Control de retención temporal (5 minutos mientras confirma)
-  bloqueadoHasta  DateTime?
-  bloqueadoPorRut String?
+  agendas      AgendaMedica[]
+  citas        Cita[]
 
-  cita            Cita?
-  creadoEn        DateTime     @default(now())
-
-  @@index([fechaHora, especialidad])
-  @@index([especialidad, esPrioritario])
+  @@map("profesionales")
 }
 
-// Registro final de la reserva y control en Box
+model Box {
+  id           String        @id @default(uuid())
+  numero       String        @unique
+  especialidad Especialidad
+  activo       Boolean       @default(true)
+
+  agendas      AgendaMedica[]
+
+  @@map("boxes")
+}
+
+model AgendaMedica {
+  id                  String         @id @default(uuid())
+  profesional_id      String         @map("profesional_id")
+  box_id              String         @map("box_id")
+  especialidad        Especialidad
+  fecha               DateTime
+  hora_inicio         String         @map("hora_inicio")
+  hora_fin            String         @map("hora_fin")
+  duracion_bloque_min Int            @map("duracion_bloque_min")
+  activa              Boolean        @default(true)
+  created_at          DateTime       @default(now()) @map("created_at")
+
+  profesional         Profesional    @relation(fields: [profesional_id], references: [id])
+  box                 Box            @relation(fields: [box_id], references: [id])
+  bloques             BloqueHorario[]
+
+  @@index([profesional_id])
+  @@index([box_id])
+  @@index([fecha, especialidad])
+  @@map("agendas_medicas")
+}
+
+model BloqueHorario {
+  id                    String        @id @default(uuid())
+  agenda_id             String        @map("agenda_id")
+  hora_inicio           DateTime      @map("hora_inicio")
+  hora_fin              DateTime      @map("hora_fin")
+  estado_bloque         EstadoBloque  @default(DISPONIBLE) @map("estado_bloque")
+  es_cuota_adulto_mayor Boolean       @default(false) @map("es_cuota_adulto_mayor")
+  bloqueado_hasta       DateTime?     @map("bloqueado_hasta")
+  bloqueado_por_rut     String?       @map("bloqueado_por_rut")
+
+  agenda                AgendaMedica  @relation(fields: [agenda_id], references: [id], onDelete: Cascade)
+  cita                  Cita?
+
+  @@index([agenda_id, estado_bloque])
+  @@index([hora_inicio, hora_fin])
+  @@index([estado_bloque, es_cuota_adulto_mayor])
+  @@map("bloques_horarios")
+}
+
 model Cita {
-  id            Int          @id @default(autoincrement())
-  
-  cupoId        Int          @unique
-  cupo          Cupo         @relation(fields: [cupoId], references: [id])
-  
-  pacienteRut   String
-  paciente      Paciente     @relation(fields: [pacienteRut], references: [rut])
-  
-  funcionarioId Int?
-  funcionario   Funcionario? @relation(fields: [funcionarioId], references: [id])
-  
-  canal         CanalOrigen
-  estado        EstadoCita   @default(RESERVADA)
-  observaciones String?
-  creadaEn      DateTime     @default(now())
+  id             String        @id @default(uuid())
+  codigo_reserva String        @unique @map("codigo_reserva")
+  paciente_id    String        @map("paciente_id")
+  profesional_id String        @map("profesional_id")
+  bloque_id      String        @unique @map("bloque_id")
+  especialidad   Especialidad
+  estado_cita    EstadoCita    @default(AGENDADA) @map("estado_cita")
+  canal_origen   CanalOrigen   @map("canal_origen")
+  hora_atencion  DateTime?     @map("hora_atencion")
+  created_at     DateTime      @default(now()) @map("created_at")
 
-  @@index([pacienteRut])
-  @@index([funcionarioId])
-  @@index([estado])
+  paciente       Paciente      @relation(fields: [paciente_id], references: [id])
+  profesional    Profesional   @relation(fields: [profesional_id], references: [id])
+  bloque         BloqueHorario @relation(fields: [bloque_id], references: [id])
+  registro_sms   RegistroSms[]
+
+  @@index([paciente_id])
+  @@index([profesional_id])
+  @@index([estado_cita])
+  @@map("citas")
+}
+
+model RegistroSms {
+  id                 String    @id @default(uuid())
+  cita_id            String    @map("cita_id")
+  telefono_destino   String    @map("telefono_destino")
+  cuerpo_mensaje     String    @map("cuerpo_mensaje")
+  longitud_caracteres Int      @map("longitud_caracteres")
+  estado_envio       String    @map("estado_envio")
+  timestamp          DateTime  @default(now())
+
+  cita               Cita      @relation(fields: [cita_id], references: [id], onDelete: Cascade)
+
+  @@index([cita_id])
+  @@map("registro_sms")
 }

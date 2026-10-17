@@ -1,315 +1,288 @@
-import {
-    PrismaClient,
-    Especialidad,
-    RolUsuario,
-    CanalOrigen,
-    EstadoCita,
-} from '@prisma/client';
-import { fakerES_MX as faker } from '@faker-js/faker';
+import { PrismaClient, Especialidad, EstadoBloque } from "@prisma/client";
+import { fakerES_MX as faker } from "@faker-js/faker";
 
 const prisma = new PrismaClient();
 
-// Función auxiliar para calcular el Dígito Verificador (Módulo 11 chileno)
 function calcularDV(cuerpo: number): string {
-    let suma = 0;
-    let multiplo = 2;
-    let valor = cuerpo;
+  let suma = 0;
+  let multiplo = 2;
+  let valor = cuerpo;
 
-    while (valor > 0) {
-        suma += (valor % 10) * multiplo;
-        valor = Math.floor(valor / 10);
-        multiplo = multiplo === 7 ? 2 : multiplo + 1;
-    }
+  while (valor > 0) {
+    suma += (valor % 10) * multiplo;
+    valor = Math.floor(valor / 10);
+    multiplo = multiplo === 7 ? 2 : multiplo + 1;
+  }
 
-    const resto = 11 - (suma % 11);
-    if (resto === 11) return '0';
-    if (resto === 10) return 'K';
-    return resto.toString();
+  const resto = 11 - (suma % 11);
+  if (resto === 11) return "0";
+  if (resto === 10) return "K";
+  return resto.toString();
 }
 
-function generarRUTChileno(esAdultoMayor: boolean): string {
-    // Adultos mayores: RUTs entre 4 y 12 millones | Jóvenes/Adultos: entre 13 y 21 millones
-    const cuerpo = esAdultoMayor
-        ? faker.number.int({ min: 4000000, max: 12000000 })
-        : faker.number.int({ min: 13000000, max: 21000000 });
-    const dv = calcularDV(cuerpo);
-    return `${cuerpo}-${dv}`;
+function generarRutValido(min: number, max: number): string {
+  const num = faker.number.int({ min, max });
+  const dv = calcularDV(num);
+  return `${num}-${dv}`;
 }
-
-// Observaciones clínicas realistas para el contexto CESFAM
-const observacionesPorEspecialidad: Record<Especialidad, string[]> = {
-    [Especialidad.MEDICINA_GENERAL]: [
-        'Control crónico de hipertensión arterial y diabetes mellitus.',
-        'Paciente refiere cuadro respiratorio de 4 días de evolución con tos.',
-        'Chequeo médico preventivo del adulto (EMPA).',
-        'Dolor lumbar persistente sin irradiación tras esfuerzo físico.',
-        'Renovación de recetas médicas y evaluación general.',
-    ],
-    [Especialidad.URGENCIA_DENTAL]: [
-        'Dolor agudo en molar inferior derecho, refiere molestia al frío.',
-        'Urgencia por fractura coronal de pieza dental anterior.',
-        'Inflamación gingival y dolor localizado de 48 horas.',
-        'Molestia intensa al masticar en zona premolar.',
-    ],
-    [Especialidad.MATRONERIA]: [
-        'Control prenatal de rutina (semana 24 de gestación).',
-        'Ingreso a control de salud sexual y reproductiva.',
-        'Toma de Papanicolaou (PAP) y examen ginecológico preventivo.',
-        'Orientación sobre métodos anticonceptivos y revisión de implante.',
-    ],
-};
 
 async function main() {
-    console.log('Limpiando base de datos previa...');
-    await prisma.cita.deleteMany();
-    await prisma.cupo.deleteMany();
-    await prisma.paciente.deleteMany();
-    await prisma.funcionario.deleteMany();
+  console.log("=================================================");
+  console.log("   INICIANDO SEEDING MALLASALUD (POSTGRESQL)   ");
+  console.log("=================================================");
 
-    console.log('Creando funcionarios (Médicos y Administrativos)...');
-    const funcionariosData = [
-        {
-            rut: '15432890-K',
-            nombre: 'Carolina',
-            apellido: 'Soto',
-            rol: RolUsuario.ADMIN_SOME,
-            especialidad: null,
-        },
-        {
-            rut: '16789452-3',
-            nombre: 'Matías',
-            apellido: 'Valenzuela',
-            rol: RolUsuario.MEDICO,
-            especialidad: Especialidad.MEDICINA_GENERAL,
-        },
-        {
-            rut: '14238910-5',
-            nombre: 'Valeria',
-            apellido: 'Rojas',
-            rol: RolUsuario.MEDICO,
-            especialidad: Especialidad.URGENCIA_DENTAL,
-        },
-        {
-            rut: '17890123-1',
-            nombre: 'Fernanda',
-            apellido: 'Morales',
-            rol: RolUsuario.MEDICO,
-            especialidad: Especialidad.MATRONERIA,
-        },
-    ];
+  // 1. Limpieza idempotente en orden estricto de claves foráneas
+  console.log("Limpiando datos preexistentes...");
+  await prisma.registroSms.deleteMany();
+  await prisma.cita.deleteMany();
+  await prisma.bloqueHorario.deleteMany();
+  await prisma.agendaMedica.deleteMany();
+  await prisma.box.deleteMany();
+  await prisma.profesional.deleteMany();
+  await prisma.paciente.deleteMany();
+  console.log("Tablas limpiadas correctamente.");
 
-    const funcionarios = [];
-    for (const f of funcionariosData) {
-        const func = await prisma.funcionario.create({ data: f });
-        funcionarios.push(func);
-    }
+  // 2. Insertar Pacientes Fijos de Prueba (Coherencia Demográfica Chilena)
+  console.log("Creando pacientes de prueba con correlativo demográfico...");
 
-    // Mapa de médicos por especialidad para asignar citas
-    const medicoPorEspecialidad: Record<Especialidad, number> = {
-        [Especialidad.MEDICINA_GENERAL]: funcionarios.find(
-            (f) => f.especialidad === Especialidad.MEDICINA_GENERAL
-        )!.id,
-        [Especialidad.URGENCIA_DENTAL]: funcionarios.find(
-            (f) => f.especialidad === Especialidad.URGENCIA_DENTAL
-        )!.id,
-        [Especialidad.MATRONERIA]: funcionarios.find(
-            (f) => f.especialidad === Especialidad.MATRONERIA
-        )!.id,
-    };
+  const pacientesFijos = [
+    {
+      rut: "21111111-1",
+      nombres: "Ignacio Andrés",
+      apellidos: "Morales Soto",
+      fecha_nacimiento: new Date("2002-04-15T00:00:00Z"), // 24 años
+      telefono: "+56921111111",
+      estado_inscripcion: true,
+      contador_inasistencias: 0,
+    },
+    {
+      rut: "5555555-5",
+      nombres: "Elena Rosa",
+      apellidos: "Valenzuela Castro",
+      fecha_nacimiento: new Date("1951-03-20T00:00:00Z"), // 75 años (Adulto Mayor >= 60)
+      telefono: "+56955555555",
+      estado_inscripcion: true,
+      contador_inasistencias: 0,
+    },
+    {
+      rut: "16666666-6",
+      nombres: "Matías Sebastián",
+      apellidos: "Rojas Herrera",
+      fecha_nacimiento: new Date("1988-08-10T00:00:00Z"), // 38 años
+      telefono: "+56916666666",
+      estado_inscripcion: true,
+      contador_inasistencias: 2, // 2 inasistencias NSP para probar modal educativo
+    },
+  ];
 
-    console.log('Generando pacientes chilenos...');
-    const pacientesAdultosMayores = [];
-    const pacientesGenerales = [];
+  for (const p of pacientesFijos) {
+    await prisma.paciente.create({ data: p });
+  }
 
-    // 15 Pacientes Adultos Mayores (+60 años para cupos prioritarios)
-    for (let i = 0; i < 15; i++) {
-        pacientesAdultosMayores.push({
-            rut: generarRUTChileno(true),
-            nombre: faker.person.firstName(),
-            apellido: `${faker.person.lastName()} ${faker.person.lastName()}`,
-            fechaNacimiento: faker.date.birthdate({ min: 61, max: 88, mode: 'age' }),
-            telefono: `+569${faker.string.numeric(8)}`,
-            correo: faker.internet.email().toLowerCase(),
-        });
-    }
+  // 10 pacientes adicionales generados con Faker con coherencia demográfica:
+  // 3 Adultos Mayores (RUT 4M-9M, nacidos 1945-1964)
+  console.log("Generando 3 adultos mayores adicionales (RUT 4M-9M)...");
+  for (let i = 0; i < 3; i++) {
+    const añoNac = faker.number.int({ min: 1945, max: 1964 });
+    const mesNac = faker.number.int({ min: 1, max: 12 });
+    const diaNac = faker.number.int({ min: 1, max: 28 });
+    const rut = generarRutValido(4500000, 9500000);
 
-    // 25 Pacientes Adultos Generales (<60 años)
-    for (let i = 0; i < 25; i++) {
-        pacientesGenerales.push({
-            rut: generarRUTChileno(false),
-            nombre: faker.person.firstName(),
-            apellido: `${faker.person.lastName()} ${faker.person.lastName()}`,
-            fechaNacimiento: faker.date.birthdate({ min: 18, max: 59, mode: 'age' }),
-            telefono: `+569${faker.string.numeric(8)}`,
-            correo: faker.internet.email().toLowerCase(),
-        });
-    }
-
-    await prisma.paciente.createMany({
-        data: [...pacientesAdultosMayores, ...pacientesGenerales],
+    await prisma.paciente.create({
+      data: {
+        rut,
+        nombres: faker.person.firstName(),
+        apellidos: `${faker.person.lastName()} ${faker.person.lastName()}`,
+        fecha_nacimiento: new Date(`${añoNac}-${String(mesNac).padStart(2, "0")}-${String(diaNac).padStart(2, "0")}T00:00:00Z`),
+        telefono: `+569${faker.string.numeric(8)}`,
+        estado_inscripcion: true,
+        contador_inasistencias: 0,
+      },
     });
+  }
 
-    // Recuperamos los pacientes con sus RUTs reales
-    const todosLosPacientes = await prisma.paciente.findMany();
-    const mayoresList = todosLosPacientes.filter((p) => {
-        const edad =
-            (Date.now() - new Date(p.fechaNacimiento).getTime()) /
-            (1000 * 60 * 60 * 24 * 365.25);
-        return edad >= 60;
+  // 7 Jóvenes/Adultos (RUT 15M-22M, nacidos 1982-2004)
+  console.log("Generando 7 pacientes jóvenes/adultos adicionales (RUT 15M-22M)...");
+  for (let i = 0; i < 7; i++) {
+    const añoNac = faker.number.int({ min: 1982, max: 2004 });
+    const mesNac = faker.number.int({ min: 1, max: 12 });
+    const diaNac = faker.number.int({ min: 1, max: 28 });
+    const rut = generarRutValido(15000000, 22000000);
+
+    await prisma.paciente.create({
+      data: {
+        rut,
+        nombres: faker.person.firstName(),
+        apellidos: `${faker.person.lastName()} ${faker.person.lastName()}`,
+        fecha_nacimiento: new Date(`${añoNac}-${String(mesNac).padStart(2, "0")}-${String(diaNac).padStart(2, "0")}T00:00:00Z`),
+        telefono: `+569${faker.string.numeric(8)}`,
+        estado_inscripcion: true,
+        contador_inasistencias: faker.helpers.arrayElement([0, 0, 1]),
+      },
     });
-    const generalesList = todosLosPacientes.filter((p) => !mayoresList.includes(p));
+  }
 
-    let pacienteMayorIndex = 0;
-    let pacienteGeneralIndex = 0;
+  // 3. Insertar Boxes Clínicos
+  console.log("Creando boxes clínicos...");
+  const boxes = await Promise.all([
+    prisma.box.create({
+      data: { numero: "Box 101 - Medicina", especialidad: Especialidad.MEDICINA_GENERAL, activo: true },
+    }),
+    prisma.box.create({
+      data: { numero: "Box 102 - Medicina", especialidad: Especialidad.MEDICINA_GENERAL, activo: true },
+    }),
+    prisma.box.create({
+      data: { numero: "Box 201 - Dental", especialidad: Especialidad.DENTAL, activo: true },
+    }),
+    prisma.box.create({
+      data: { numero: "Box 301 - Matronería", especialidad: Especialidad.MATRONERIA, activo: true },
+    }),
+  ]);
 
-    function obtenerSiguientePaciente(esPrioritario: boolean): string {
-        if (esPrioritario && mayoresList.length > 0) {
-            const rut = mayoresList[pacienteMayorIndex % mayoresList.length].rut;
-            pacienteMayorIndex++;
-            return rut;
-        }
-        const rut = generalesList[pacienteGeneralIndex % generalesList.length].rut;
-        pacienteGeneralIndex++;
-        return rut;
-    }
+  // 4. Insertar Profesionales de la Salud
+  console.log("Creando profesionales de la salud...");
+  const profesionales = await Promise.all([
+    prisma.profesional.create({
+      data: {
+        rut: "14258369-7",
+        nombres: "Carlos",
+        apellidos: "Muñoz Valenzuela",
+        especialidad: Especialidad.MEDICINA_GENERAL,
+        activo: true,
+      },
+    }),
+    prisma.profesional.create({
+      data: {
+        rut: "16789456-1",
+        nombres: "Valentina",
+        apellidos: "Silva Osorio",
+        especialidad: Especialidad.MEDICINA_GENERAL,
+        activo: true,
+      },
+    }),
+    prisma.profesional.create({
+      data: {
+        rut: "15321654-K",
+        nombres: "Roberto",
+        apellidos: "Cárdenas Pinto",
+        especialidad: Especialidad.DENTAL,
+        activo: true,
+      },
+    }),
+    prisma.profesional.create({
+      data: {
+        rut: "17896321-4",
+        nombres: "Camila",
+        apellidos: "Fuentes Rivas",
+        especialidad: Especialidad.MATRONERIA,
+        activo: true,
+      },
+    }),
+  ]);
 
-    console.log('Generando cupos y estados de citas...');
+  // 5. Generar Agendas y Bloques Horarios para Hoy y Mañana
+  console.log("Generando agendas y bloques horarios (Hoy y Mañana)...");
+  const hoy = new Date();
+  const mañana = new Date();
+  mañana.setDate(mañana.getDate() + 1);
 
-    const especialidades = [
-        Especialidad.MEDICINA_GENERAL,
-        Especialidad.URGENCIA_DENTAL,
-        Especialidad.MATRONERIA,
+  const dias = [hoy, mañana];
+
+  for (const dia of dias) {
+    const fechaNorm = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), 0, 0, 0, 0);
+
+    const configuraciones = [
+      { prof: profesionales[0], box: boxes[0], esp: Especialidad.MEDICINA_GENERAL, esCuota: true },
+      { prof: profesionales[1], box: boxes[1], esp: Especialidad.MEDICINA_GENERAL, esCuota: true },
+      { prof: profesionales[2], box: boxes[2], esp: Especialidad.DENTAL, esCuota: false },
+      { prof: profesionales[3], box: boxes[3], esp: Especialidad.MATRONERIA, esCuota: false },
     ];
 
-    const canales = [CanalOrigen.WEB, CanalOrigen.TELEFONO, CanalOrigen.VENTANILLA];
-
-    // Días a poblar: Hoy y Mañana
-    const dias = [
-        { label: 'hoy', fecha: new Date() },
-        {
-            label: 'mañana',
-            fecha: (() => {
-                const d = new Date();
-                d.setDate(d.getDate() + 1);
-                return d;
-            })(),
+    for (const conf of configuraciones) {
+      const agenda = await prisma.agendaMedica.create({
+        data: {
+          profesional_id: conf.prof.id,
+          box_id: conf.box.id,
+          especialidad: conf.esp,
+          fecha: fechaNorm,
+          hora_inicio: "08:00",
+          hora_fin: "17:00",
+          duracion_bloque_min: 20,
+          activa: true,
         },
-    ];
+      });
 
-    const horas = [8, 9, 10, 11, 12, 14, 15, 16];
+      // Generación de bloques de 20 minutos excluyendo colación 13:00 - 14:00
+      const bloquesData = [];
+      let currentMinutes = 8 * 60; // 08:00
+      const endMinutes = 17 * 60;  // 17:00
 
-    let totalDisponibles = 0;
-    let totalEnProceso = 0;
-    let totalTomadas = 0;
+      while (currentMinutes + 20 <= endMinutes) {
+        const nextMin = currentMinutes + 20;
 
-    for (const dia of dias) {
-        for (const esp of especialidades) {
-            for (let i = 0; i < horas.length; i++) {
-                const h = horas[i];
-                const fechaCupo = new Date(dia.fecha);
-                fechaCupo.setHours(h, 0, 0, 0);
+        // Excluir colación [13:00, 14:00) => [780, 840)
+        if (!(currentMinutes < 840 && nextMin > 780)) {
+          const hIni = new Date(fechaNorm);
+          hIni.setHours(Math.floor(currentMinutes / 60), currentMinutes % 60, 0, 0);
 
-                const esPrioritario = esp === Especialidad.MEDICINA_GENERAL && h < 10;
+          const hFin = new Date(fechaNorm);
+          hFin.setHours(Math.floor(nextMin / 60), nextMin % 60, 0, 0);
 
-                // Definición del estado del cupo según la hora:
-                // - 08:00, 09:00, 12:00 -> TOMADA (ya reservada con cita confirmada)
-                // - 10:00               -> EN_PROCESO (en proceso de reserva / retenida temporalmente)
-                // - 11:00, 14:00, 15:00, 16:00 -> DISPONIBLE (libre para tomar)
-                let tipoCupo: 'TOMADA' | 'EN_PROCESO' | 'DISPONIBLE';
-
-                if (h === 8 || h === 9 || h === 12) {
-                    tipoCupo = 'TOMADA';
-                } else if (h === 10) {
-                    tipoCupo = 'EN_PROCESO';
-                } else {
-                    tipoCupo = 'DISPONIBLE';
-                }
-
-                if (tipoCupo === 'EN_PROCESO') {
-                    // En proceso de tomarse:
-                    // Retención temporal activa (bloqueada durante 2 minutos mientras confirma la reserva)
-                    const bloqueadoHasta = new Date(Date.now() + 2 * 60 * 1000);
-                    const bloqueadoPorRut = obtenerSiguientePaciente(esPrioritario);
-
-                    await prisma.cupo.create({
-                        data: {
-                            fechaHora: fechaCupo,
-                            especialidad: esp,
-                            esPrioritario,
-                            bloqueadoHasta,
-                            bloqueadoPorRut,
-                        },
-                    });
-
-                    totalEnProceso++;
-                } else if (tipoCupo === 'TOMADA') {
-                    // Cita ya tomada y confirmada:
-                    const pacienteRut = obtenerSiguientePaciente(esPrioritario);
-                    const funcionarioId = medicoPorEspecialidad[esp];
-                    const canal = canales[(i + esp.length) % canales.length];
-
-                    // Si la cita es de hoy y de hora temprana ya pasada, la marcamos como ATENDIDA; si no, RESERVADA
-                    const esPasada = dia.label === 'hoy' && h < new Date().getHours();
-                    const estado = esPasada ? EstadoCita.ATENDIDA : EstadoCita.RESERVADA;
-
-                    const obsList = observacionesPorEspecialidad[esp];
-                    const observaciones = obsList[i % obsList.length];
-
-                    const cupoCreado = await prisma.cupo.create({
-                        data: {
-                            fechaHora: fechaCupo,
-                            especialidad: esp,
-                            esPrioritario,
-                            bloqueadoHasta: null,
-                            bloqueadoPorRut: null,
-                            cita: {
-                                create: {
-                                    pacienteRut,
-                                    funcionarioId,
-                                    canal,
-                                    estado,
-                                    observaciones,
-                                },
-                            },
-                        },
-                    });
-
-                    totalTomadas++;
-                } else {
-                    // Cupo disponible / libre
-                    await prisma.cupo.create({
-                        data: {
-                            fechaHora: fechaCupo,
-                            especialidad: esp,
-                            esPrioritario,
-                            bloqueadoHasta: null,
-                            bloqueadoPorRut: null,
-                        },
-                    });
-
-                    totalDisponibles++;
-                }
-            }
+          bloquesData.push({
+            agenda_id: agenda.id,
+            hora_inicio: hIni,
+            hora_fin: hFin,
+            estado_bloque: EstadoBloque.DISPONIBLE,
+            es_cuota_adulto_mayor: false,
+          });
         }
-    }
+        currentMinutes += 20;
+      }
 
-    console.log('\n======================================================');
-    console.log('¡Base de datos poblada exitosamente!');
-    console.log('======================================================');
-    console.log(`Funcionarios creados : ${funcionarios.length}`);
-    console.log(`Pacientes creados    : ${todosLosPacientes.length} (${mayoresList.length} adultos mayores, ${generalesList.length} generales)`);
-    console.log(`Total cupos creados  : ${totalDisponibles + totalEnProceso + totalTomadas}`);
-    console.log(`Disponibles       : ${totalDisponibles} (listas para tomarse)`);
-    console.log(`En proceso        : ${totalEnProceso} (bloqueadas temporalmente / inactivas)`);
-    console.log(`Tomadas           : ${totalTomadas} (con citas confirmadas en Box)`);
-    console.log('======================================================\n');
+      // Si aplica cuota mayor (Medicina General), marcar 30% de bloques
+      if (conf.esCuota) {
+        const numCuota = Math.round(bloquesData.length * 0.3);
+        for (let b = 0; b < numCuota; b++) {
+          bloquesData[b].es_cuota_adulto_mayor = true;
+        }
+      }
+
+      await prisma.bloqueHorario.createMany({
+        data: bloquesData,
+      });
+    }
+  }
+
+  const [totalPacientes, totalAgendas, totalBloques] = await Promise.all([
+    prisma.paciente.count(),
+    prisma.agendaMedica.count(),
+    prisma.bloqueHorario.count(),
+  ]);
+
+  console.log("=================================================");
+  console.log("             SEED COMPLETADO CON ÉXITO           ");
+  console.log("=================================================");
+  console.log(`- Pacientes registrados : ${totalPacientes}`);
+  console.log(`- Boxes clínicos        : ${boxes.length}`);
+  console.log(`- Profesionales activos : ${profesionales.length}`);
+  console.log(`- Agendas creadas       : ${totalAgendas}`);
+  console.log(`- Bloques generados     : ${totalBloques}`);
+  console.log("-------------------------------------------------");
+  console.log("CASOS DE PRUEBA CONTROLADOS PARA TESTING:");
+  console.log(" 1) [HU-001] Adulto Joven (0 inasistencias)   : RUT 21111111-1 (24 años, 2002)");
+  console.log(" 2) [HU-001] Adulto Mayor >=60 (0 inasist.)  : RUT 5555555-5 (75 años, 1951, 5.555.555-5)");
+  console.log(" 3) [HU-001] Con Inasistencias (NSP = 2)     : RUT 16666666-6 (38 años, 1988, 16.666.666-6)");
+  console.log(" 4) [HU-001/HU-006] No Inscritos en BD (404 / Alta Rápida):");
+  console.log("    - Joven No Inscrito: RUT 21222222-2");
+  console.log("    - Adulto Mayor No Inscrito: RUT 6666666-6");
+  console.log("=================================================");
 }
 
 main()
-    .catch((e) => {
-        console.error(' Error ejecutando el seed:', e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+  .catch((e) => {
+    console.error("Error fatal durante el seeding:", e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

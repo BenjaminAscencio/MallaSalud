@@ -17,7 +17,8 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:setup": "prisma db push && prisma db seed",
-    "db:studio": "prisma studio --port 5555 --hostname 0.0.0.0"
+    "db:studio": "prisma studio --port 5555 --hostname 0.0.0.0 --browser none",
+    "test:api": "prisma db seed && node scripts/test-api.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

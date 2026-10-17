@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import DevNavbar from "@/components/DevNavbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Telemedicina - MallaSalud",
-  description: "Plataforma de gestión y agendamiento de citas médicas",
+  title: "MallaSalud - Sistema de Agendamiento CESFAM",
+  description: "Sistema integral de agendamiento y gestión de citas médicas para CESFAM",
 };
 
 export default function RootLayout({
@@ -27,7 +28,10 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-white text-black font-sans">
+        <DevNavbar />
+        <div className="flex-1">{children}</div>
+      </body>
     </html>
   );
 }
