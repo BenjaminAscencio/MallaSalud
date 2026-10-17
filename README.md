@@ -114,54 +114,72 @@ cd mallasalud
 
 *(O simplemente duplique `.env.example` y renómbrelo como `.env`)*.
 
-### 3. Levantar la aplicación con Docker
+### 3. Levantar los Servicios con Docker
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
-> *Espere 1 a 2 minutos la primera vez mientras se descargan las imágenes y se compila el proyecto.*
+> *Este comando levantará automáticamente los 3 servicios del proyecto:*
+> 1. **`mallasalud_app`**: Servidor Next.js en el puerto `3000`.
+> 2. **`mallasalud_studio`**: Prisma Studio (explorador de BD) activo de forma permanente en el puerto `5555`.
+> 3. **`mallasalud_postgres`**: Base de datos relacional PostgreSQL 16 en el puerto `5433` (interno 5432).
 
-### 4. Crear tablas y cargar datos de prueba (`seed`)
-En **otra terminal** (dentro de la carpeta `mallasalud`):
+### 4. Inicializar Base de Datos y Cargar Datos de Demostración (`seed`)
+Ejecute en la terminal:
 ```bash
 docker compose exec app npm run db:setup
 ```
-*(O manualmente: `docker compose exec app npx prisma db push` y luego `docker compose exec app npm run db:seed`)*.
+*(Aplica las migraciones con `prisma db push` y puebla la base de datos con `prisma db seed`)*.
 
----
-
-## Enlaces de Acceso
-
-| Servicio | Enlace | Descripción |
-| :--- | :--- | :--- |
-| **Aplicación Web** | [http://localhost:3000](http://localhost:3000) | Sistema de reserva y gestión de citas |
-| **Base de Datos (Prisma Studio)** | [http://localhost:5555](http://localhost:5555) | Explorador visual de tablas y registros |
-
-> *Para abrir el explorador de Base de Datos en el navegador, ejecute:*
-> ```bash
-> docker compose exec app npm run db:studio
-> ```
-
----
-
-## Datos de Demostración (`seed`)
-
-El sistema incluye datos chilenos precargados y listos para evaluación:
-
-* **Administrativo SOME:** `15432890-K` (Carolina Soto)
-* **Médico General:** `16789452-3` (Matías Valenzuela)
-* **Urgencia Dental:** `14238910-5` (Valeria Rojas)
-* **Matronería:** `17890123-1` (Fernanda Morales)
-* **Pacientes:** 15 adultos mayores (cupos prioritarios) y 25 adultos generales con RUTs chilenos válidos.
-* **Cupos y Citas (Hoy y Mañana):**
-  - **Disponibles:** Horas libres listas para ser reservadas.
-  - **En proceso de tomarse (Inactivas / Retenidas temporalmente):** Cupos con `bloqueadoHasta` y `bloqueadoPorRut` que simulan pacientes en pleno flujo de confirmación.
-  - **Tomadas:** Citas confirmadas en Box (`RESERVADA` y `ATENDIDA`) asociadas al profesional de salud, paciente y observaciones clínicas.
-
----
-
-## Detener la aplicación
-
-Presione `Ctrl + C` en la terminal o ejecute:
+### 5. (Opcional) Ejecutar Suite de Pruebas Automatizadas E2E
+Para comprobar que todas las historias de usuario y reglas de negocio funcionan al 100%:
 ```bash
-docker compose down
+docker compose exec app npm run test:api
 ```
+
+---
+
+## Enlaces de Acceso a las Interfaces (Sprint 1)
+
+| Módulo / Historia | Enlace | Descripción y Alcance |
+| :--- | :--- | :--- |
+| **HU-001: Portal Paciente** | [http://localhost:3000](http://localhost:3000) | Identificación por RUT (Módulo 11), detección de padrón, aviso educativo NSP y cupos por especialidad. |
+| **HU-005: Calendario SOME** | [http://localhost:3000/some/agendas](http://localhost:3000/some/agendas) | Matriz diaria por boxes, horario semanal, colación 13:00-14:00, cuota 60+ y bloqueo por ausencias. |
+| **HU-006: Ventanilla SOME** | [http://localhost:3000/some/ventanilla](http://localhost:3000/some/ventanilla) | Mesón presencial, Alta Rápida de pacientes, cupos liberados por cancelación y emisión de ticket térmico. |
+| **Base de Datos (Prisma Studio)** | [http://localhost:5555](http://localhost:5555) | Explorador visual permanente de tablas, relaciones y citas registradas. |
+
+---
+
+## Datos de Demostración Controlados (`seed`)
+
+El sistema incluye casos de prueba chilenos prediseñados para validar cada regla de negocio:
+
+### 1. Pacientes de Prueba (HU-001 y HU-006)
+* **Adulto Joven (0 inasistencias):** `21.111.111-1` — Ignacio Andrés Morales Soto (24 años). Acceso regular a cupos generales.
+* **Adulto Mayor ($\ge 60$ años):** `5.555.555-5` — Elena Rosa Valenzuela Castro (75 años, serie 5M). Insignia 60+ y acceso a cupos protegidos por ley.
+* **Paciente con Inasistencias Previas (NSP = 2):** `16.666.666-6` — Matías Sebastián Rojas (38 años). Despliega modal educativo de compromiso asistencial en 1 clic sin bloqueo punitivo.
+* **Paciente No Inscrito en Padrón (Caso 404):** `21.222.222-2` (Joven) y `6.666.666-6` (Adulto Mayor). Permite probar el Alta Rápida en Ventanilla SOME.
+* **RUT Inválido (Error de Formato Módulo 11):** `12.345.678-0`.
+
+### 2. Profesionales y Boxes Clínicos (HU-005)
+* **Box 101 - Medicina General:** Dr. Carlos Muñoz Valenzuela (`14258369-7`).
+* **Box 102 - Medicina General:** Dra. Valentina Silva Osorio (`16789456-1`).
+* **Box 201 - Dental:** Dr. Roberto Cárdenas Pinto (`15321654-K`).
+* **Box 301 - Matronería:** Dra. Camila Fuentes Rivas (`17896321-4`).
+
+---
+
+## Comandos de Mantenimiento
+
+* **Reiniciar datos de prueba limpios:**
+  ```bash
+  docker compose exec app npm run db:seed
+  ```
+* **Verificar calidad de código:**
+  ```bash
+  docker compose exec app npm run lint
+  docker compose exec app npm run build
+  ```
+* **Detener los contenedores:**
+  ```bash
+  docker compose down
+  ```
