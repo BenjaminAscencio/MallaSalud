@@ -3,6 +3,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { formatearRut, limpiarRut } from "@/lib/utils/rut";
 import { estimarFechaNacimientoPorRut } from "@/lib/utils/edad";
+import {
+  MagnifyingGlassIcon,
+  UserPlusIcon,
+  PrinterIcon,
+  ExclamationTriangleIcon,
+  IdentificationIcon,
+  ArrowPathIcon,
+} from "@heroicons/react/24/outline";
 
 interface PacienteFicha {
   id: string;
@@ -120,10 +128,8 @@ export default function VentanillaSomePage() {
       const data = await res.json();
 
       if (res.status === 404) {
-        // No existe en padrón local -> Abrir formulario de Alta Rápida
         setPaciente(null);
         setMostrarAltaRapida(true);
-        // Estimar fecha de nacimiento coherente según RUT
         const fechaEstimada = estimarFechaNacimientoPorRut(rutTarget);
         setAltaFechaNac(fechaEstimada.toISOString().split("T")[0]);
         setAltaNombres("");
@@ -248,35 +254,38 @@ export default function VentanillaSomePage() {
   }, [paciente, cargarCupos]);
 
   // Agendamiento en Ventanilla
-  const handleAgendar = useCallback(async (bloqueId: string) => {
-    if (!paciente) return;
-    setAgendandoId(bloqueId);
-    setErrorAgendamiento(null);
+  const handleAgendar = useCallback(
+    async (bloqueId: string) => {
+      if (!paciente) return;
+      setAgendandoId(bloqueId);
+      setErrorAgendamiento(null);
 
-    try {
-      const res = await fetch("/api/v1/some/citas/agendar-ventanilla", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paciente_id: paciente.id,
-          bloque_id: bloqueId,
-        }),
-      });
+      try {
+        const res = await fetch("/api/v1/some/citas/agendar-ventanilla", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paciente_id: paciente.id,
+            bloque_id: bloqueId,
+          }),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "No fue posible agendar la cita.");
+        if (!res.ok) {
+          throw new Error(data.error || "No fue posible agendar la cita.");
+        }
+
+        setComprobante(data.comprobante);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error al agendar cita";
+        setErrorAgendamiento(msg);
+      } finally {
+        setAgendandoId(null);
       }
-
-      setComprobante(data.comprobante);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error al agendar cita";
-      setErrorAgendamiento(msg);
-    } finally {
-      setAgendandoId(null);
-    }
-  }, [paciente]);
+    },
+    [paciente]
+  );
 
   const handleNuevaAtencion = useCallback(() => {
     setComprobante(null);
@@ -293,7 +302,6 @@ export default function VentanillaSomePage() {
   // Atajos de teclado para atención ágil (< 45s por usuario, DoD HU-006)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // F2: Enfocar búsqueda de RUT
       if (e.key === "F2") {
         e.preventDefault();
         rutInputRef.current?.focus();
@@ -301,14 +309,12 @@ export default function VentanillaSomePage() {
         return;
       }
 
-      // Alt + N: Nueva Atención
       if (e.altKey && (e.key === "n" || e.key === "N")) {
         e.preventDefault();
         handleNuevaAtencion();
         return;
       }
 
-      // Alt + 1..9: Asignación rápida de cupos por índice
       if (e.altKey && !isNaN(Number(e.key))) {
         const num = Number(e.key);
         if (num >= 1 && num <= 9 && paciente && cupos.length >= num) {
@@ -326,349 +332,398 @@ export default function VentanillaSomePage() {
   }, [paciente, cupos, agendandoId, handleNuevaAtencion, handleAgendar]);
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 font-sans space-y-6">
+      
       {/* Encabezado (oculto en impresión) */}
-      <div className="border-b-2 border-black pb-4 mb-8 print:hidden">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono text-xs uppercase px-2 py-0.5 bg-neutral-200 text-black border border-black font-bold">
-            HU-006
-          </span>
-          <span className="text-xs font-mono text-neutral-600">
-            Sprint 1 • Atención Presencial SOME
-          </span>
+      <div className="print:hidden bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md space-y-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] border border-[#A7E3D4] dark:border-[#2A534B]">
+              HU-006 • Mesón SOME
+            </span>
+            <span className="text-xs font-medium text-[#355C56] dark:text-[#9CC2BC]">
+              Atención Presencial Ágil (&lt; 45s por paciente)
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#132A26] dark:text-[#E8F5F2]">
+            Ventanilla de Agendamiento Presencial
+          </h1>
+          <p className="text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC] mt-1">
+            Búsqueda en padrón comunal, alta rápida inmediata para nuevos vecinos, asignación de horas y emisión de ticket térmico.
+          </p>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-black uppercase">
-          Ventanilla de Agendamiento Presencial
-        </h1>
-        <p className="text-sm text-neutral-600 mt-1">
-          Búsqueda de paciente, alta rápida en padrón local, asignación de cupos y emisión de comprobante oficial.
-        </p>
 
-        {/* Barra de Atajos de Teclado Ventanilla (DoD HU-006: atención ágil < 45s) */}
-        <div className="mt-4 bg-neutral-100 border border-black px-3 py-1.5 text-[11px] font-mono text-neutral-700 flex flex-wrap items-center justify-between gap-2">
-          <span className="font-bold uppercase text-black">Atajos de Teclado:</span>
+        {/* Barra de Atajos de Teclado Ventanilla */}
+        <div className="bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] rounded-2xl px-4 py-2.5 text-xs text-[#355C56] dark:text-[#9CC2BC] flex flex-wrap items-center justify-between gap-2">
+          <span className="font-extrabold uppercase text-[#0F766E] dark:text-[#A7E3D4]">
+            Atajos Rápidos de Teclado:
+          </span>
           <div className="flex flex-wrap gap-3">
-            <span><kbd className="px-1.5 py-0.5 bg-white border border-black font-bold">F2</kbd> Buscar RUT</span>
-            <span><kbd className="px-1.5 py-0.5 bg-white border border-black font-bold">Alt + 1..9</kbd> Asignar Cupo</span>
-            <span><kbd className="px-1.5 py-0.5 bg-white border border-black font-bold">Alt + N</kbd> Nueva Atención</span>
-            <span><kbd className="px-1.5 py-0.5 bg-white border border-black font-bold">Ctrl + P</kbd> Imprimir Ticket</span>
+            <span>
+              <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] font-mono font-bold text-[#132A26] dark:text-white">
+                F2
+              </kbd>{" "}
+              Buscar RUT
+            </span>
+            <span>
+              <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] font-mono font-bold text-[#132A26] dark:text-white">
+                Alt + 1..9
+              </kbd>{" "}
+              Asignar Cupo
+            </span>
+            <span>
+              <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] font-mono font-bold text-[#132A26] dark:text-white">
+                Alt + N
+              </kbd>{" "}
+              Nueva Atención
+            </span>
+            <span>
+              <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] font-mono font-bold text-[#132A26] dark:text-white">
+                Ctrl + P
+              </kbd>{" "}
+              Imprimir Ticket
+            </span>
           </div>
         </div>
       </div>
 
       {/* Si hay comprobante emitido, mostrar vista de Comprobante Imprimible */}
       {comprobante ? (
-        <div className="max-w-md mx-auto my-4">
+        <div className="max-w-md mx-auto my-4 animate-fadeIn">
           {/* Botones de acción (ocultos al imprimir) */}
           <div className="flex items-center justify-between gap-3 mb-6 print:hidden">
             <button
+              type="button"
               onClick={() => window.print()}
-              className="flex-1 bg-black text-white hover:bg-neutral-800 border-2 border-black py-2.5 text-xs font-mono uppercase font-bold tracking-wider transition-colors"
+              className="flex-1 bg-[#0F766E] hover:bg-[#115E59] text-white py-3 px-4 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
-              Imprimir Comprobante (PDF / Térmica)
+              <PrinterIcon className="w-4 h-4" />
+              <span>Imprimir Ticket (PDF / Térmica)</span>
             </button>
             <button
+              type="button"
               onClick={handleNuevaAtencion}
-              className="border-2 border-black px-4 py-2.5 text-xs font-mono uppercase hover:bg-neutral-100 transition-colors"
+              className="border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] text-[#132A26] dark:text-[#D9F5EF] px-4 py-3 rounded-xl text-xs sm:text-sm font-bold hover:bg-[#F4FAF8] transition-colors cursor-pointer"
             >
               Nueva Atención [Alt+N]
             </button>
           </div>
 
           {/* Ticket Comprobante Oficial CESFAM */}
-          <div className="print-ticket-container border-2 border-dashed border-black p-6 bg-white font-mono text-xs text-black space-y-4 shadow-sm">
-            <div className="text-center border-b-2 border-black pb-3">
-              <span className="font-bold text-sm uppercase block tracking-wider">
+          <div className="print-ticket-container border-2 border-dashed border-[#0F766E] dark:border-[#5BB9A6] rounded-3xl p-6 bg-white dark:bg-[#122420] font-mono text-xs text-[#132A26] dark:text-[#E8F5F2] space-y-4 shadow-lg">
+            <div className="text-center border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
+              <span className="font-extrabold text-sm uppercase block tracking-wider text-[#0F766E] dark:text-[#A7E3D4]">
                 CESFAM MALLASALUD
               </span>
-              <span className="text-[10px] text-neutral-600 uppercase block">
-                Comprobante de Reserva de Hora Médica
+              <span className="text-[10px] text-[#355C56] dark:text-[#9CC2BC] uppercase block">
+                Comprobante Oficial de Hora Médica
               </span>
-              <span className="text-[10px] text-neutral-500 block mt-1">
+              <span className="text-[10px] text-slate-400 block mt-1">
                 Canal: {comprobante.canal_origen}
               </span>
             </div>
 
-            {/* Código de Reserva Destacado */}
-            <div className="border border-black bg-neutral-100 p-3 text-center">
-              <span className="text-[10px] uppercase text-neutral-600 block">
+            <div className="rounded-2xl border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] p-3.5 text-center">
+              <span className="text-[10px] uppercase text-[#355C56] dark:text-[#9CC2BC] block">
                 Código Único de Reserva
               </span>
-              <span className="text-2xl font-bold tracking-widest text-black">
+              <span className="text-2xl font-black tracking-widest text-[#0F766E] dark:text-[#A7E3D4]">
                 {comprobante.codigo_reserva}
               </span>
             </div>
 
-            {/* Datos de la Cita */}
-            <div className="space-y-1.5 border-b border-black pb-3 text-[11px]">
+            <div className="space-y-1.5 border-b border-[#CDECE5] dark:border-[#21403A] pb-3 text-[11px]">
               <div className="flex justify-between">
-                <span className="text-neutral-600">Fecha:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Fecha:</span>
                 <strong>{comprobante.horario.fecha}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Hora de Atención:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Hora de Atención:</span>
                 <strong>{comprobante.horario.hora_inicio} hrs</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Especialidad:</span>
-                <strong>{comprobante.profesional.especialidad}</strong>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Especialidad:</span>
+                <strong>{comprobante.profesional.especialidad.replace("_", " ")}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Box Asignado:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Box Asignado:</span>
                 <strong>{comprobante.box.numero}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Profesional:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Profesional:</span>
                 <strong>{comprobante.profesional.nombre_completo}</strong>
               </div>
             </div>
 
-            {/* Datos del Paciente */}
-            <div className="space-y-1.5 border-b border-black pb-3 text-[11px]">
+            <div className="space-y-1.5 border-b border-[#CDECE5] dark:border-[#21403A] pb-3 text-[11px]">
               <div className="flex justify-between">
-                <span className="text-neutral-600">Paciente:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Paciente:</span>
                 <strong>{comprobante.paciente.nombre_completo}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">RUT:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">RUT:</span>
                 <strong>{comprobante.paciente.rut_formateado}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Teléfono Notificación:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Teléfono SMS:</span>
                 <strong>{comprobante.paciente.telefono}</strong>
               </div>
             </div>
 
-            {/* Confirmación SMS */}
-            <div className="text-[10px] text-neutral-600 border border-neutral-300 p-2">
-              <span className="font-bold block uppercase mb-0.5">Notificación SMS Enviada:</span>
+            <div className="text-[10px] text-[#355C56] dark:text-[#9CC2BC] rounded-xl border border-[#CDECE5] dark:border-[#264E46] p-2.5">
+              <span className="font-bold block uppercase mb-0.5 text-[#0F766E] dark:text-[#A7E3D4]">
+                ✓ Notificación SMS Enviada:
+              </span>
               <p className="italic leading-tight">{comprobante.notificacion_sms.mensaje}</p>
             </div>
 
-            {/* Indicaciones al Paciente */}
-            <div className="text-[10px] text-neutral-600 text-center pt-2 space-y-1">
-              <p className="font-bold uppercase">Presentarse 15 minutos antes</p>
+            <div className="text-[10px] text-[#355C56] dark:text-[#9CC2BC] text-center pt-1 space-y-1">
+              <p className="font-bold uppercase text-[#132A26] dark:text-white">
+                Presentarse 15 minutos antes
+              </p>
               <p>Con su Cédula de Identidad en la sala de espera correspondiente.</p>
-              <p className="text-[9px] text-neutral-400">Emisión: {new Date().toLocaleString("es-CL")}</p>
+              <p className="text-[9px] text-slate-400">
+                Emisión: {new Date().toLocaleString("es-CL")}
+              </p>
             </div>
           </div>
         </div>
       ) : (
         /* Flujo Regular de Ventanilla SOME */
-        <div className="space-y-8">
+        <div className="space-y-6">
+          
           {/* SECCIÓN 1: Búsqueda de Paciente */}
-          <div className="border-2 border-black p-6 bg-white">
-            <h2 className="text-base font-bold uppercase tracking-tight text-black mb-1 font-mono">
-              1. Identificación del Paciente en Ventanilla
-            </h2>
-            <p className="text-xs text-neutral-600 mb-4 font-mono">
-              Consulte el RUT del usuario en el padrón del establecimiento.
-            </p>
+          <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md space-y-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-[#132A26] dark:text-[#E8F5F2]">
+                1. Identificación del Paciente en Mesón
+              </h2>
+              <p className="text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC]">
+                Consulte el RUT en el padrón del CESFAM. Si no está inscrito, se habilitará el formulario de Alta Rápida.
+              </p>
+            </div>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 buscarPaciente();
               }}
-              className="flex flex-wrap gap-2 max-w-xl"
+              className="flex flex-wrap gap-3 max-w-xl"
             >
-              <input
-                ref={rutInputRef}
-                type="text"
-                value={rutBusqueda}
-                onChange={(e) => {
-                  const limpio = limpiarRut(e.target.value);
-                  if (limpio.length <= 9) {
-                    setRutBusqueda(formatearRut(limpio));
-                  }
-                  setErrorBusqueda(null);
-                }}
-                placeholder="RUT: 21.111.111-1 o 5.555.555-5 [F2]"
-                className="flex-1 min-w-[200px] border-2 border-black px-3 py-2 text-sm font-mono tracking-wider focus:outline-none"
-              />
+              <div className="relative flex-1 min-w-[220px]">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <IdentificationIcon className="w-5 h-5 text-[#0F766E] dark:text-[#5BB9A6]" />
+                </div>
+                <input
+                  ref={rutInputRef}
+                  type="text"
+                  value={rutBusqueda}
+                  onChange={(e) => {
+                    const limpio = limpiarRut(e.target.value);
+                    if (limpio.length <= 9) {
+                      setRutBusqueda(formatearRut(limpio));
+                    }
+                    setErrorBusqueda(null);
+                  }}
+                  placeholder="RUT: 5.555.555-5 o 21.111.111-1 [F2]"
+                  className="w-full pl-11 pr-4 py-3 bg-[#F4FAF8] dark:bg-[#0B1715] border-2 border-[#CDECE5] dark:border-[#264E46] rounded-xl text-sm font-mono font-bold text-[#132A26] dark:text-white tracking-wider focus:outline-none focus:border-[#0F766E]"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={buscando}
-                className="bg-black text-white hover:bg-neutral-800 border-2 border-black px-4 py-2 text-xs font-mono uppercase font-bold tracking-wider disabled:opacity-50"
+                className="bg-[#0F766E] hover:bg-[#115E59] text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
               >
-                {buscando ? "Buscando..." : "Buscar Paciente"}
+                <MagnifyingGlassIcon className="w-4 h-4" />
+                <span>{buscando ? "Buscando..." : "Buscar Paciente"}</span>
               </button>
             </form>
 
             {/* Botones Rápidos de Prueba */}
-            <div className="mt-4 pt-4 border-t border-neutral-300">
-              <span className="block text-[11px] font-mono text-neutral-500 uppercase font-bold mb-2">
-                Accesos Directos de Prueba (SOME):
+            <div className="pt-3 border-t border-[#CDECE5] dark:border-[#21403A]">
+              <span className="block text-[11px] text-[#355C56] dark:text-[#9CC2BC] uppercase font-extrabold mb-2">
+                Perfiles de Prueba Rápida (Mesón SOME):
               </span>
-              <div className="flex flex-wrap gap-2 text-xs font-mono">
-                <button
-                  type="button"
-                  onClick={() => seleccionarRutPrueba("21111111-1")}
-                  className="border border-black px-2.5 py-1 hover:bg-neutral-100"
-                >
-                  Joven: <strong>21.111.111-1</strong>
-                </button>
+              <div className="flex flex-wrap gap-2 text-xs">
                 <button
                   type="button"
                   onClick={() => seleccionarRutPrueba("5555555-5")}
-                  className="border border-black px-2.5 py-1 hover:bg-neutral-100"
+                  className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
                 >
-                  60+: <strong>5.555.555-5</strong>
+                  ★ 60+: <strong className="font-mono">5.555.555-5</strong>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => seleccionarRutPrueba("21111111-1")}
+                  className="px-3 py-1.5 rounded-xl bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] text-[#132A26] dark:text-[#D9F5EF] hover:border-[#0F766E] transition-colors cursor-pointer"
+                >
+                  Joven: <strong className="font-mono">21.111.111-1</strong>
                 </button>
                 <button
                   type="button"
                   onClick={() => seleccionarRutPrueba("16666666-6")}
-                  className="border border-black px-2.5 py-1 hover:bg-neutral-100"
+                  className="px-3 py-1.5 rounded-xl bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] text-[#132A26] dark:text-[#D9F5EF] hover:border-[#0F766E] transition-colors cursor-pointer"
                 >
-                  NSP: <strong>16.666.666-6</strong>
+                  Con NSP: <strong className="font-mono">16.666.666-6</strong>
                 </button>
                 <button
                   type="button"
                   onClick={() => seleccionarRutPrueba("21222222-2")}
-                  className="border border-black px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200"
+                  className="px-3 py-1.5 rounded-xl bg-[#D9F5EF]/50 dark:bg-[#1E3F3B]/60 border border-[#5BB9A6] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#D9F5EF] transition-colors cursor-pointer"
                 >
-                  No Inscrito (Joven): <strong>21.222.222-2</strong>
+                  + Alta Rápida (Joven): <strong className="font-mono">21.222.222-2</strong>
                 </button>
                 <button
                   type="button"
                   onClick={() => seleccionarRutPrueba("6666666-6")}
-                  className="border border-black px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200"
+                  className="px-3 py-1.5 rounded-xl bg-[#D9F5EF]/50 dark:bg-[#1E3F3B]/60 border border-[#5BB9A6] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#D9F5EF] transition-colors cursor-pointer"
                 >
-                  No Inscrito (60+): <strong>6.666.666-6</strong>
+                  + Alta Rápida (60+): <strong className="font-mono">6.666.666-6</strong>
                 </button>
               </div>
             </div>
 
-            {/* Error de Búsqueda */}
             {errorBusqueda && (
-              <div className="mt-4 border border-black bg-neutral-100 p-3 text-xs font-mono">
-                [!] {errorBusqueda}
+              <div className="bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800 p-3.5 rounded-2xl text-xs text-red-800 dark:text-red-200 font-semibold">
+                {errorBusqueda}
               </div>
             )}
 
             {/* Paciente Encontrado */}
             {paciente && (
-              <div className="mt-6 border-2 border-black p-4 bg-neutral-50 space-y-2">
+              <div className="mt-4 border-2 border-[#5BB9A6] dark:border-[#2A534B] rounded-2xl p-5 bg-[#F4FAF8] dark:bg-[#0B1715] space-y-2 animate-fadeIn">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono uppercase px-2 py-0.5 bg-black text-white font-bold">
-                      Paciente Seleccionado
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#0F766E] text-white">
+                      ✓ Paciente Verificado
                     </span>
                     {paciente.es_adulto_mayor && (
-                      <span className="text-xs font-mono uppercase px-2 py-0.5 border border-black bg-neutral-200 font-bold">
-                        ★ ADULTO MAYOR (&gt;= 60 AÑOS)
+                      <span className="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-full border border-amber-400 bg-amber-100 text-amber-900">
+                        ★ Adulto Mayor (&gt;= 60 Años)
                       </span>
                     )}
                     {paciente.contador_inasistencias > 0 && (
-                      <span className="text-xs font-mono uppercase px-2 py-0.5 border border-black">
+                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-300">
                         NSP Registradas: {paciente.contador_inasistencias}
                       </span>
                     )}
                   </div>
                   <button
+                    type="button"
                     onClick={() => setPaciente(null)}
-                    className="text-[11px] font-mono uppercase underline hover:no-underline"
+                    className="text-xs font-bold text-[#355C56] dark:text-[#9CC2BC] hover:text-red-600 underline cursor-pointer"
                   >
                     Cambiar Paciente
                   </button>
                 </div>
 
-                <div className="text-lg font-bold uppercase tracking-tight text-black">
+                <div className="text-xl font-black text-[#132A26] dark:text-white">
                   {paciente.nombres} {paciente.apellidos}
                 </div>
 
-                <div className="flex flex-wrap gap-4 text-xs font-mono text-neutral-600">
-                  <span>RUT: <strong>{paciente.rut_formateado}</strong></span>
-                  <span>Edad: <strong>{paciente.edad} años</strong></span>
-                  <span>F. Nac: <strong>{paciente.fecha_nacimiento}</strong></span>
-                  <span>Tel: <strong>{paciente.telefono}</strong></span>
+                <div className="flex flex-wrap gap-4 text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC]">
+                  <span>
+                    RUT: <strong className="font-mono text-[#132A26] dark:text-white">{paciente.rut_formateado}</strong>
+                  </span>
+                  <span>
+                    Edad: <strong className="text-[#132A26] dark:text-white">{paciente.edad} años</strong>
+                  </span>
+                  <span>
+                    F. Nac: <strong className="font-mono text-[#132A26] dark:text-white">{paciente.fecha_nacimiento}</strong>
+                  </span>
+                  <span>
+                    Teléfono: <strong className="font-mono text-[#132A26] dark:text-white">{paciente.telefono}</strong>
+                  </span>
                 </div>
               </div>
             )}
 
             {/* Formulario de Alta Rápida (cuando no está inscrito) */}
             {mostrarAltaRapida && (
-              <div className="mt-6 border-2 border-black p-5 bg-white space-y-4">
-                <div className="border-b border-black pb-2">
-                  <span className="text-xs font-mono uppercase px-2 py-0.5 bg-black text-white font-bold inline-block mb-1">
-                    Alta Rápida en Padrón Local SOME
+              <div className="mt-4 border-2 border-amber-400 dark:border-amber-600 rounded-2xl p-5 sm:p-6 bg-amber-50/40 dark:bg-[#0B1715] space-y-4 animate-fadeIn">
+                <div className="border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
+                  <span className="text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-amber-500 text-white inline-flex items-center gap-1 mb-1">
+                    <UserPlusIcon className="w-3.5 h-3.5" />
+                    <span>Alta Rápida en Padrón Local SOME</span>
                   </span>
-                  <h3 className="text-sm font-bold uppercase tracking-tight text-black">
+                  <h3 className="text-base font-extrabold text-[#132A26] dark:text-white">
                     Inscripción Inmediata de Paciente Nuevo
                   </h3>
-                  <p className="text-xs text-neutral-600 font-mono">
-                    El paciente no figura en la base local. Complete los datos básicos para enrolarlo y permitir el agendamiento.
+                  <p className="text-xs text-[#355C56] dark:text-[#9CC2BC]">
+                    El RUT no figura en la base local. Complete los datos básicos para enrolarlo y pasar directamente a asignarle hora.
                   </p>
                 </div>
 
                 {errorAlta && (
-                  <div className="border border-black bg-neutral-100 p-2 text-xs font-mono">
-                    [!] {errorAlta}
+                  <div className="bg-red-50 border border-red-300 p-3 rounded-xl text-xs text-red-800 font-semibold">
+                    {errorAlta}
                   </div>
                 )}
 
-                <form onSubmit={handleAltaRapidaSubmit} className="space-y-3 text-xs font-mono">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <form onSubmit={handleAltaRapidaSubmit} className="space-y-3.5 text-xs sm:text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="block font-bold uppercase mb-1">RUT</label>
+                      <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">RUT</label>
                       <input
                         type="text"
                         value={rutBusqueda}
                         readOnly
-                        className="w-full border-2 border-black px-3 py-2 bg-neutral-100 font-bold"
+                        className="w-full border border-[#CDECE5] dark:border-[#264E46] rounded-xl px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 font-mono font-bold"
                       />
                     </div>
                     <div>
-                      <label className="block font-bold uppercase mb-1">Teléfono Contacto</label>
+                      <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                        Teléfono Contacto (SMS)
+                      </label>
                       <input
                         type="text"
                         value={altaTelefono}
                         onChange={(e) => setAltaTelefono(e.target.value)}
                         placeholder="+56912345678"
-                        className="w-full border-2 border-black px-3 py-2"
+                        className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] rounded-xl px-3.5 py-2.5 font-mono"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="block font-bold uppercase mb-1">Nombres</label>
+                      <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">Nombres</label>
                       <input
                         type="text"
                         value={altaNombres}
                         onChange={(e) => setAltaNombres(e.target.value)}
                         placeholder="Ej: Juan Carlos"
-                        className="w-full border-2 border-black px-3 py-2"
+                        className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] rounded-xl px-3.5 py-2.5"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block font-bold uppercase mb-1">Apellidos</label>
+                      <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">Apellidos</label>
                       <input
                         type="text"
                         value={altaApellidos}
                         onChange={(e) => setAltaApellidos(e.target.value)}
                         placeholder="Ej: Pérez González"
-                        className="w-full border-2 border-black px-3 py-2"
+                        className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] rounded-xl px-3.5 py-2.5"
                         required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block font-bold uppercase mb-1">
+                    <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
                       Fecha de Nacimiento (Sugerida según serie del RUT)
                     </label>
                     <input
                       type="date"
                       value={altaFechaNac}
                       onChange={(e) => setAltaFechaNac(e.target.value)}
-                      className="w-full border-2 border-black px-3 py-2"
+                      className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] rounded-xl px-3.5 py-2.5 font-mono"
                       required
                     />
-                    <span className="text-[10px] text-neutral-500 italic block mt-0.5">
-                      * Auto-calculada preliminarmente según los millones del RUT. Puede corregirse si difiere del carnet.
+                    <span className="text-[11px] text-[#355C56] dark:text-[#9CC2BC] italic block mt-1">
+                      * Calculada preliminarmente según los millones del RUT para agilizar la atención en mesón.
                     </span>
                   </div>
 
@@ -676,14 +731,14 @@ export default function VentanillaSomePage() {
                     <button
                       type="submit"
                       disabled={guardandoAlta}
-                      className="flex-1 bg-black text-white hover:bg-neutral-800 border-2 border-black py-2.5 text-xs font-mono uppercase font-bold tracking-wider disabled:opacity-50"
+                      className="flex-1 bg-[#0F766E] hover:bg-[#115E59] text-white py-3 rounded-xl font-bold shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       {guardandoAlta ? "Registrando en Padrón..." : "Inscribir Paciente y Proceder a Agendar →"}
                     </button>
                     <button
                       type="button"
                       onClick={() => setMostrarAltaRapida(false)}
-                      className="border-2 border-black px-4 py-2.5 text-xs font-mono uppercase hover:bg-neutral-100"
+                      className="px-4 py-3 rounded-xl border border-[#CDECE5] dark:border-[#264E46] font-bold hover:bg-slate-100 dark:hover:bg-[#17302B] cursor-pointer"
                     >
                       Cancelar
                     </button>
@@ -695,34 +750,31 @@ export default function VentanillaSomePage() {
 
           {/* SECCIÓN 2: Asignación de Cupos Disponibles */}
           {paciente && (
-            <div className="border-2 border-black p-6 bg-white space-y-4">
-              <div className="border-b border-black pb-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h2 className="text-base font-bold uppercase tracking-tight text-black font-mono">
-                      2. Selección y Asignación de Cupo
-                    </h2>
-                    <p className="text-xs text-neutral-600 font-mono">
-                      Cupos disponibles en tiempo real respetando cuota de Adulto Mayor.
-                    </p>
-                  </div>
-                  <span className="text-xs font-mono text-neutral-500">
-                    Paciente activo: <strong>{paciente.nombres} {paciente.apellidos}</strong> (
-                    {paciente.es_adulto_mayor ? "60+ Preferente" : "General"})
-                  </span>
+            <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md space-y-5 animate-fadeIn">
+              <div className="border-b border-[#CDECE5] dark:border-[#21403A] pb-4 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-extrabold text-[#132A26] dark:text-[#E8F5F2]">
+                    2. Selección y Asignación de Cupo Disponible
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC]">
+                    Use los botones o presione <kbd className="font-mono font-bold">Alt + 1..9</kbd> para asignar de inmediato.
+                  </p>
                 </div>
+                <span className="text-xs font-bold bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] px-3 py-1.5 rounded-xl">
+                  Paciente: {paciente.nombres} {paciente.apellidos} ({paciente.es_adulto_mayor ? "★ 60+ Preferente" : "General"})
+                </span>
               </div>
 
               {/* Filtros de Especialidad y Fecha */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-mono font-bold uppercase mb-1">
+                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
                     Especialidad Médica
                   </label>
                   <select
                     value={filtroEspecialidad}
                     onChange={(e) => setFiltroEspecialidad(e.target.value)}
-                    className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none"
+                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#0F766E]"
                   >
                     <option value="">Todas las especialidades</option>
                     <option value="MEDICINA_GENERAL">Medicina General</option>
@@ -732,104 +784,101 @@ export default function VentanillaSomePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-bold uppercase mb-1">
+                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
                     Fecha de Atención
                   </label>
                   <input
                     type="date"
                     value={filtroFecha}
                     onChange={(e) => setFiltroFecha(e.target.value)}
-                    className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none"
+                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#0F766E]"
                   />
                 </div>
               </div>
 
-              {/* Error de Agendamiento (ej: duplicidad en la misma fecha) */}
               {errorAgendamiento && (
-                <div className="border-2 border-black bg-neutral-100 p-3 text-xs font-mono">
-                  <span className="font-bold uppercase">[!] RECHAZO DE NEGOCIO:</span> {errorAgendamiento}
+                <div className="flex items-center gap-2 bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800 p-4 rounded-2xl text-xs sm:text-sm text-red-800 dark:text-red-200 font-semibold">
+                  <ExclamationTriangleIcon className="w-5 h-5 text-red-600 flex-shrink-0" />
+                  <span>{errorAgendamiento}</span>
                 </div>
               )}
 
               {/* Tabla de Cupos Disponibles */}
               {cargandoCupos ? (
-                <div className="py-12 text-center text-xs font-mono text-neutral-500">
-                  Consultando disponibilidad de cupos...
+                <div className="py-12 text-center text-sm text-[#355C56] dark:text-[#9CC2BC] flex flex-col items-center gap-2">
+                  <ArrowPathIcon className="w-7 h-7 animate-spin text-[#0F766E]" />
+                  <span>Consultando disponibilidad de cupos...</span>
                 </div>
               ) : cupos.length === 0 ? (
-                <div className="py-12 text-center text-xs font-mono text-neutral-500 border border-dashed border-neutral-300">
+                <div className="py-12 text-center text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC] border border-dashed border-[#CDECE5] dark:border-[#264E46] rounded-2xl">
                   No hay cupos disponibles para los filtros seleccionados.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs font-mono border-collapse">
+                  <table className="w-full text-left text-xs sm:text-sm border-collapse">
                     <thead>
-                      <tr className="border-b-2 border-black bg-neutral-100">
-                        <th className="py-2 px-2 uppercase font-bold">Hora</th>
-                        <th className="py-2 px-2 uppercase font-bold">Especialidad</th>
-                        <th className="py-2 px-2 uppercase font-bold">Profesional</th>
-                        <th className="py-2 px-2 uppercase font-bold">Box</th>
-                        <th className="py-2 px-2 uppercase font-bold text-center">Tipo Cupo</th>
-                        <th className="py-2 px-2 uppercase font-bold text-right">Acción</th>
+                      <tr className="border-b border-[#CDECE5] dark:border-[#21403A] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#1E4640] dark:text-[#A7E3D4]">
+                        <th className="py-3 px-3 font-bold">Hora</th>
+                        <th className="py-3 px-3 font-bold">Especialidad</th>
+                        <th className="py-3 px-3 font-bold">Profesional</th>
+                        <th className="py-3 px-3 font-bold">Box</th>
+                        <th className="py-3 px-3 font-bold text-center">Tipo Cupo</th>
+                        <th className="py-3 px-3 font-bold text-right">Acción</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-neutral-300">
+                    <tbody className="divide-y divide-[#CDECE5]/60 dark:divide-[#21403A]">
                       {cupos.map((c, idx) => (
                         <tr
                           key={c.id}
-                          className={`hover:bg-neutral-50 transition-colors ${
-                            c.es_cancelacion_reciente ? "bg-neutral-100 font-bold" : ""
+                          className={`hover:bg-[#F4FAF8]/80 dark:hover:bg-[#152B26]/60 transition-colors ${
+                            c.es_cancelacion_reciente ? "bg-amber-50/40 dark:bg-amber-950/20" : ""
                           }`}
                         >
-                          <td className="py-2.5 px-2 font-bold whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
+                          <td className="py-3 px-3 font-mono font-bold whitespace-nowrap">
+                            <div className="flex items-center gap-2">
                               {idx < 9 && (
-                                <span className="text-[10px] bg-neutral-200 border border-neutral-400 px-1 text-neutral-700 font-normal">
-                                  #{idx + 1}
+                                <span className="text-[10px] bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] px-1.5 py-0.5 rounded font-mono font-bold">
+                                  Alt+{idx + 1}
                                 </span>
                               )}
-                              <span>{c.hora_inicio} hrs</span>
+                              <span className="text-[#132A26] dark:text-white">{c.hora_inicio} hrs</span>
                             </div>
                           </td>
-                          <td className="py-2.5 px-2 whitespace-nowrap">
-                            {c.especialidad}
+                          <td className="py-3 px-3 whitespace-nowrap font-semibold">
+                            {c.especialidad.replace("_", " ")}
                           </td>
-                          <td className="py-2.5 px-2">
+                          <td className="py-3 px-3 text-[#132A26] dark:text-[#E8F5F2]">
                             {c.profesional.nombre_completo}
                           </td>
-                          <td className="py-2.5 px-2 whitespace-nowrap">
+                          <td className="py-3 px-3 whitespace-nowrap font-semibold">
                             {c.box.numero}
                           </td>
-                          <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                            {c.es_cancelacion_reciente ? (
-                              <span className="px-1.5 py-0.5 border-2 border-black bg-black text-white text-[10px] font-bold inline-flex items-center gap-1">
-                                <span>⚡ REASIGNACIÓN EN SALA (CANCELADO)</span>
-                              </span>
-                            ) : c.es_cuota_adulto_mayor ? (
-                              <span className="px-1.5 py-0.5 border border-black bg-neutral-200 text-black text-[10px] font-bold">
-                                ★ CUOTA 60+
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-neutral-500">
-                                General
-                              </span>
-                            )}
+                          <td className="py-3 px-3 text-center whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1">
+                              {c.es_cuota_adulto_mayor ? (
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-400 text-[11px] font-extrabold">
+                                  ★ Cuota 60+
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+                                  General
+                                </span>
+                              )}
+                              {c.es_cancelacion_reciente && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                  ⚡ Liberado
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="py-2.5 px-2 text-right whitespace-nowrap">
+                          <td className="py-3 px-3 text-right whitespace-nowrap">
                             <button
                               type="button"
                               disabled={agendandoId === c.id}
                               onClick={() => handleAgendar(c.id)}
-                              className="bg-black text-white hover:bg-neutral-800 border border-black px-3 py-1 text-xs font-mono uppercase font-bold tracking-wider transition-colors disabled:opacity-50"
-                              title={idx < 9 ? `Atajo rápido: Alt + ${idx + 1}` : undefined}
+                              className="bg-[#0F766E] hover:bg-[#115E59] text-white px-4 py-2 rounded-xl text-xs font-bold shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                              {agendandoId === c.id ? (
-                                "Asignando..."
-                              ) : (
-                                <span>
-                                  Asignar Hora {idx < 9 && <span className="opacity-70 text-[10px] font-normal">[Alt+{idx + 1}]</span>} →
-                                </span>
-                              )}
+                              {agendandoId === c.id ? "Asignando..." : "Asignar Hora →"}
                             </button>
                           </td>
                         </tr>
@@ -842,6 +891,6 @@ export default function VentanillaSomePage() {
           )}
         </div>
       )}
-    </main>
+    </div>
   );
 }

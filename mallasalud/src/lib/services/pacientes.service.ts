@@ -105,7 +105,15 @@ export async function obtenerPacientePorRut(rutInput: string) {
         take: 5,
         include: {
           profesional: true,
-          bloque: true,
+          bloque: {
+            include: {
+              agenda: {
+                include: {
+                  box: true,
+                },
+              },
+            },
+          },
         },
       },
     },

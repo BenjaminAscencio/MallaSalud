@@ -1,6 +1,20 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  CalendarDaysIcon,
+  PlusIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ArrowPathIcon,
+  PauseCircleIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  XMarkIcon,
+  Squares2X2Icon,
+  TableCellsIcon,
+  ClockIcon,
+} from "@heroicons/react/24/outline";
 
 // Tipos de Dominio
 type EspecialidadEnum = "MEDICINA_GENERAL" | "DENTAL" | "MATRONERIA";
@@ -98,6 +112,9 @@ export default function AgendasPage() {
     agenda: AgendaMedica;
   } | null>(null);
 
+  // Modal de Confirmación para Pausar Agenda
+  const [agendaPorPausar, setAgendaPorPausar] = useState<AgendaMedica | null>(null);
+
   // Modal de Creación de Agenda
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [nuevoProfId, setNuevoProfId] = useState("");
@@ -122,9 +139,8 @@ export default function AgendasPage() {
       const params = new URLSearchParams();
 
       if (modoVista === "semanal") {
-        // Calcular inicio y fin de la semana (Lunes a Sábado)
         const d = new Date(fechaSeleccionada + "T00:00:00");
-        const dayOfWeek = d.getDay(); // 0: Dom, 1: Lun, ...
+        const dayOfWeek = d.getDay();
         const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
         const lunes = new Date(d);
         lunes.setDate(d.getDate() + diffToMonday);
@@ -248,7 +264,8 @@ export default function AgendasPage() {
       curr += nuevaDuracionMin;
     }
 
-    const cuota = nuevaEsp === "MEDICINA_GENERAL" ? Math.round((count * nuevoPorcentajeCuota) / 100) : 0;
+    const cuota =
+      nuevaEsp === "MEDICINA_GENERAL" ? Math.round((count * nuevoPorcentajeCuota) / 100) : 0;
     return { total: count, cuota, colacionOmitida: colacionCount };
   }, [nuevaHoraInicio, nuevaHoraFin, nuevaDuracionMin, nuevoPorcentajeCuota, nuevaEsp]);
 
@@ -286,7 +303,7 @@ export default function AgendasPage() {
       }
 
       setMensajeExito(
-        `Agenda creada con éxito: ${data.total_bloques} cupos generados (${data.bloques_cuota_mayor} cuota 60+).`
+        `Agenda publicada exitosamente: ${data.total_bloques} bloques generados (${data.bloques_cuota_mayor} cupos protegidos 60+).`
       );
       setModalCrearAbierto(false);
       setFechaSeleccionada(nuevaFecha);
@@ -300,10 +317,9 @@ export default function AgendasPage() {
   };
 
   // Pausar agenda
-  const handlePausarAgenda = async (id: string) => {
-    if (!confirm("¿Está seguro de pausar esta agenda médica? Los cupos disponibles se bloquearán.")) {
-      return;
-    }
+  const confirmarPausaAgenda = async () => {
+    if (!agendaPorPausar) return;
+    const id = agendaPorPausar.id;
 
     setAlertaPausa(null);
     try {
@@ -314,10 +330,12 @@ export default function AgendasPage() {
       if (!res.ok) throw new Error(data.error || "Error al pausar");
 
       setAlertaPausa(data.mensaje);
+      setAgendaPorPausar(null);
       await cargarAgendas();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al pausar agenda";
-      alert(msg);
+      setAlertaPausa(msg);
+      setAgendaPorPausar(null);
     }
   };
 
@@ -368,21 +386,22 @@ export default function AgendasPage() {
   }, [fechaSeleccionada, modoVista]);
 
   return (
-    <main className="max-w-[1440px] mx-auto px-4 py-6 font-sans">
-      {/* 1. Header del Calendario y Controles */}
-      <div className="border-2 border-black bg-white p-5 mb-6 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b-2 border-black pb-4 mb-4">
+    <div className="max-w-[1540px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans space-y-6">
+      
+      {/* 1. Cabecera Institucional de Consola SOME */}
+      <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#CDECE5] dark:border-[#21403A] pb-5">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono text-xs uppercase px-2 py-0.5 bg-black text-white font-bold">
-                HU-005
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] border border-[#A7E3D4] dark:border-[#2A534B]">
+                HU-005 • Consola SOME
               </span>
-              <span className="text-xs font-mono text-neutral-600">
-                Consola SOME • Vista Calendario Interactivo
+              <span className="text-xs font-medium text-[#355C56] dark:text-[#9CC2BC]">
+                Gestión de Bloques y Parametrización de Cuota 60+
               </span>
             </div>
-            <h1 className="text-2xl font-bold uppercase tracking-tight text-black font-mono">
-              Programación y Control de Agendas
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#132A26] dark:text-[#E8F5F2]">
+              Programación y Control de Agendas Médicas
             </h1>
           </div>
 
@@ -390,48 +409,52 @@ export default function AgendasPage() {
           <button
             type="button"
             onClick={() => abrirModalCrear()}
-            className="bg-black text-white hover:bg-neutral-800 border-2 border-black px-5 py-2.5 text-xs font-mono uppercase font-bold tracking-wider transition-colors shadow-sm self-start lg:self-auto flex items-center gap-2"
+            className="bg-[#0F766E] hover:bg-[#115E59] text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all self-start lg:self-auto flex items-center gap-2 cursor-pointer"
           >
-            <span>+ Publicar Nueva Agenda</span>
+            <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+            <span>Publicar Nueva Agenda</span>
           </button>
         </div>
 
         {/* Barra de Navegación y Filtros */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-xs font-mono">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-xs">
           {/* Selector de Modo de Vista */}
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5 bg-[#F4FAF8] dark:bg-[#0B1715] p-1.5 rounded-xl border border-[#CDECE5] dark:border-[#264E46]">
             <button
               type="button"
               onClick={() => setModoVista("matriz")}
-              className={`px-3 py-1.5 border transition-colors ${
+              className={`px-3.5 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 modoVista === "matriz"
-                  ? "bg-black text-white border-black font-bold"
-                  : "bg-white text-black border-neutral-300 hover:border-black"
+                  ? "bg-[#0F766E] text-white shadow-2xs"
+                  : "text-[#355C56] dark:text-[#9CC2BC] hover:text-[#132A26] dark:hover:text-white"
               }`}
             >
-              1. Matriz Diaria por Boxes
+              <Squares2X2Icon className="w-4 h-4" />
+              <span>1. Matriz Diaria por Boxes</span>
             </button>
             <button
               type="button"
               onClick={() => setModoVista("semanal")}
-              className={`px-3 py-1.5 border transition-colors ${
+              className={`px-3.5 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 modoVista === "semanal"
-                  ? "bg-black text-white border-black font-bold"
-                  : "bg-white text-black border-neutral-300 hover:border-black"
+                  ? "bg-[#0F766E] text-white shadow-2xs"
+                  : "text-[#355C56] dark:text-[#9CC2BC] hover:text-[#132A26] dark:hover:text-white"
               }`}
             >
-              2. Horario Semanal (Lun - Sáb)
+              <CalendarDaysIcon className="w-4 h-4" />
+              <span>2. Horario Semanal (Lun - Sáb)</span>
             </button>
             <button
               type="button"
               onClick={() => setModoVista("tabla")}
-              className={`px-3 py-1.5 border transition-colors ${
+              className={`px-3.5 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 modoVista === "tabla"
-                  ? "bg-black text-white border-black font-bold"
-                  : "bg-white text-black border-neutral-300 hover:border-black"
+                  ? "bg-[#0F766E] text-white shadow-2xs"
+                  : "text-[#355C56] dark:text-[#9CC2BC] hover:text-[#132A26] dark:hover:text-white"
               }`}
             >
-              3. Lista Resumen (Tabla)
+              <TableCellsIcon className="w-4 h-4" />
+              <span>3. Lista Resumen</span>
             </button>
           </div>
 
@@ -440,38 +463,40 @@ export default function AgendasPage() {
             <button
               type="button"
               onClick={() => cambiarDia(-1)}
-              className="border border-black px-2.5 py-1 hover:bg-neutral-100"
+              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#D9F5EF] px-3 py-2 rounded-xl font-bold hover:border-[#0F766E] transition-colors flex items-center gap-1 cursor-pointer"
               title="Día anterior"
             >
-              &lt; Anterior
+              <ChevronLeftIcon className="w-3.5 h-3.5" />
+              <span>Anterior</span>
             </button>
             <button
               type="button"
               onClick={irAHoy}
-              className="border border-black px-2.5 py-1 hover:bg-neutral-100 font-bold"
+              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#0F766E] dark:text-[#A7E3D4] px-3 py-2 rounded-xl font-extrabold hover:border-[#0F766E] transition-colors cursor-pointer"
             >
               Hoy
             </button>
             <button
               type="button"
               onClick={irAMañana}
-              className="border border-black px-2.5 py-1 hover:bg-neutral-100"
+              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#D9F5EF] px-3 py-2 rounded-xl font-bold hover:border-[#0F766E] transition-colors cursor-pointer"
             >
               Mañana
             </button>
             <button
               type="button"
               onClick={() => cambiarDia(1)}
-              className="border border-black px-2.5 py-1 hover:bg-neutral-100"
+              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#D9F5EF] px-3 py-2 rounded-xl font-bold hover:border-[#0F766E] transition-colors flex items-center gap-1 cursor-pointer"
               title="Día siguiente"
             >
-              Siguiente &gt;
+              <span>Siguiente</span>
+              <ChevronRightIcon className="w-3.5 h-3.5" />
             </button>
             <input
               type="date"
               value={fechaSeleccionada}
               onChange={(e) => setFechaSeleccionada(e.target.value)}
-              className="border-2 border-black px-2 py-0.5 text-xs font-mono bg-white focus:outline-none"
+              className="border-2 border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#0B1715] text-[#132A26] dark:text-[#E8F5F2] px-3 py-1.5 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#0F766E]"
             />
           </div>
 
@@ -480,7 +505,7 @@ export default function AgendasPage() {
             <select
               value={filtroEspecialidad}
               onChange={(e) => setFiltroEspecialidad(e.target.value)}
-              className="border border-black px-2 py-1 bg-white text-xs font-mono"
+              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#E8F5F2] px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0F766E]"
             >
               <option value="">Todas las Especialidades</option>
               <option value="MEDICINA_GENERAL">Medicina General</option>
@@ -491,7 +516,7 @@ export default function AgendasPage() {
             <select
               value={filtroBoxId}
               onChange={(e) => setFiltroBoxId(e.target.value)}
-              className="border border-black px-2 py-1 bg-white text-xs font-mono"
+              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#E8F5F2] px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0F766E]"
             >
               <option value="">Todos los Boxes</option>
               {boxes.map((b) => (
@@ -504,7 +529,7 @@ export default function AgendasPage() {
             <select
               value={filtroProfesionalId}
               onChange={(e) => setFiltroProfesionalId(e.target.value)}
-              className="border border-black px-2 py-1 bg-white text-xs font-mono"
+              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#E8F5F2] px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0F766E]"
             >
               <option value="">Todos los Profesionales</option>
               {profesionales.map((p) => (
@@ -516,126 +541,133 @@ export default function AgendasPage() {
           </div>
         </div>
 
-        {/* Leyenda de Estados en Blanco y Negro */}
-        <div className="mt-4 pt-3 border-t border-neutral-300 flex flex-wrap items-center gap-4 text-[11px] font-mono text-neutral-600">
-          <span className="font-bold uppercase text-black">Leyenda:</span>
+        {/* Leyenda de Estados */}
+        <div className="pt-3 border-t border-[#CDECE5] dark:border-[#21403A] flex flex-wrap items-center gap-4 text-xs text-[#355C56] dark:text-[#9CC2BC]">
+          <span className="font-extrabold uppercase text-[#132A26] dark:text-white">Leyenda:</span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 border border-black bg-white inline-block"></span>
+            <span className="w-3.5 h-3.5 rounded border border-[#CDECE5] bg-[#F4FAF8] inline-block" />
             <span>Disponible General</span>
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 border-2 border-black bg-white inline-block"></span>
-            <span className="font-bold text-black">★ Cuota 60+ (Protegido)</span>
+            <span className="w-3.5 h-3.5 rounded border-2 border-amber-400 bg-amber-50 inline-block" />
+            <span className="font-bold text-amber-800 dark:text-amber-300">★ Cuota 60+ (Protegido)</span>
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 bg-neutral-900 inline-block"></span>
-            <span className="text-black font-semibold">Reservado / Paciente</span>
+            <span className="w-3.5 h-3.5 rounded bg-[#0F766E] inline-block" />
+            <span className="text-[#0F766E] dark:text-[#5BB9A6] font-bold">Reservado / Con Paciente</span>
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 bg-neutral-200 border border-neutral-400 inline-block line-through"></span>
+            <span className="w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-800 border border-slate-400 inline-block" />
             <span>Bloqueado SOME</span>
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 bg-neutral-100 border border-dashed border-black inline-block"></span>
-            <span>13:00 - 14:00 Colación (Sin atención)</span>
+            <span className="w-3.5 h-3.5 rounded bg-slate-100 dark:bg-slate-900 border border-dashed border-slate-400 inline-block" />
+            <span>13:00 - 14:00 Pausa de Colación</span>
           </span>
         </div>
       </div>
 
       {/* Alertas Globales */}
       {mensajeExito && (
-        <div className="border-2 border-black bg-neutral-100 p-3 mb-4 text-xs font-mono">
-          <span className="font-bold">[✓] OPERACIÓN EXITOSA:</span> {mensajeExito}
+        <div className="flex items-center gap-2.5 bg-[#D9F5EF] dark:bg-[#1E3F3B] border border-[#5BB9A6] p-4 rounded-2xl text-xs sm:text-sm text-[#132A26] dark:text-[#E8F5F2] font-bold animate-fadeIn">
+          <CheckCircleIcon className="w-5 h-5 text-[#0F766E] dark:text-[#5BB9A6] flex-shrink-0" />
+          <span>{mensajeExito}</span>
         </div>
       )}
 
       {alertaPausa && (
-        <div className="border-2 border-black bg-white p-3 mb-4 text-xs font-mono">
-          <span className="font-bold">[!] ALERTA SOME:</span> {alertaPausa}
+        <div className="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 p-4 rounded-2xl text-xs sm:text-sm text-amber-900 dark:text-amber-200 font-semibold animate-fadeIn">
+          <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <span>{alertaPausa}</span>
         </div>
       )}
 
       {/* CONTENIDO PRINCIPAL SEGÚN EL MODO DE VISTA */}
       {cargando ? (
-        <div className="border-2 border-black p-12 text-center text-xs font-mono text-neutral-500 bg-white">
-          Cargando agendas médicas y bloques horarios...
+        <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-14 text-center text-sm text-[#355C56] dark:text-[#9CC2BC] flex flex-col items-center justify-center gap-3">
+          <ArrowPathIcon className="w-8 h-8 animate-spin text-[#0F766E] dark:text-[#5BB9A6]" />
+          <span className="font-bold">Cargando agendas médicas y matriz de bloques...</span>
         </div>
       ) : modoVista === "matriz" ? (
         /* ========================================================================= */
-        /* PESTAÑA 1: Matriz Diaria por Boxes (Estilo Google Calendar de Recursos)   */
+        /* PESTAÑA 1: Matriz Diaria por Boxes                                        */
         /* ========================================================================= */
-        <div className="border-2 border-black bg-white overflow-x-auto shadow-sm">
-          <div className="min-w-[900px]">
+        <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl overflow-x-auto shadow-md">
+          <div className="min-w-[920px]">
             {/* Cabecera de la Grilla: Boxes Clínicos */}
             <div
-              className="grid border-b-2 border-black bg-neutral-100"
+              className="grid border-b border-[#CDECE5] dark:border-[#21403A] bg-[#F4FAF8] dark:bg-[#0B1715]"
               style={{
                 gridTemplateColumns: `100px repeat(${boxesFiltrados.length}, minmax(220px, 1fr))`,
               }}
             >
-              {/* Celda de esquina (Hora / Box) */}
-              <div className="p-3 font-mono text-xs font-bold uppercase border-r-2 border-black flex items-center justify-center bg-neutral-200">
+              <div className="p-3 font-mono text-xs font-extrabold uppercase border-r border-[#CDECE5] dark:border-[#21403A] flex items-center justify-center text-[#1E4640] dark:text-[#A7E3D4]">
                 HORA
               </div>
 
-              {/* Columnas de Boxes */}
               {boxesFiltrados.map((box) => {
                 const agendaBox = agendas.find(
                   (a) => a.box_id === box.id && a.fecha === fechaSeleccionada
                 );
 
                 return (
-                  <div key={box.id} className="p-3 border-r border-black last:border-r-0 font-mono">
-                    <div className="flex items-start justify-between gap-1 mb-1">
-                      <span className="font-bold text-sm uppercase tracking-tight block">
+                  <div
+                    key={box.id}
+                    className="p-3.5 border-r border-[#CDECE5] dark:border-[#21403A] last:border-r-0"
+                  >
+                    <div className="flex items-start justify-between gap-1 mb-1.5">
+                      <span className="font-extrabold text-sm text-[#132A26] dark:text-white">
                         {box.numero}
                       </span>
-                      <span className="text-[10px] uppercase px-1 border border-black bg-white font-bold">
-                        {box.especialidad}
+                      <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] font-bold">
+                        {box.especialidad.replace("_", " ")}
                       </span>
                     </div>
 
                     {agendaBox ? (
-                      <div className="space-y-1.5 pt-1 border-t border-neutral-300 text-[11px]">
-                        <div className="font-bold text-black truncate" title={agendaBox.profesional_nombre}>
+                      <div className="space-y-1.5 pt-2 border-t border-[#CDECE5] dark:border-[#21403A] text-xs">
+                        <div
+                          className="font-bold text-[#132A26] dark:text-[#E8F5F2] truncate"
+                          title={agendaBox.profesional_nombre}
+                        >
                           {agendaBox.profesional_nombre}
                         </div>
-                        <div className="flex items-center justify-between text-[10px] text-neutral-600">
-                          <span>
+                        <div className="flex items-center justify-between text-[11px] text-[#355C56] dark:text-[#9CC2BC]">
+                          <span className="font-mono">
                             {agendaBox.hora_inicio} - {agendaBox.hora_fin}
                           </span>
                           <span
-                            className={`px-1.5 py-0.5 border text-[9px] font-bold ${
+                            className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
                               agendaBox.activa
-                                ? "bg-black text-white border-black"
-                                : "bg-neutral-200 text-neutral-700 border-neutral-400"
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
+                                : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
                             }`}
                           >
-                            {agendaBox.activa ? "ACTIVA" : "BLOQUEADA"}
+                            {agendaBox.activa ? "ACTIVA" : "PAUSADA"}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-[10px] font-bold pt-0.5">
-                          <span>
+                        <div className="flex items-center justify-between text-[11px] font-bold pt-0.5">
+                          <span className="text-[#0F766E] dark:text-[#5BB9A6]">
                             Libres: {agendaBox.estadisticas.disponibles}/{agendaBox.estadisticas.total}
                           </span>
                           {agendaBox.activa && (
                             <button
                               type="button"
-                              onClick={() => handlePausarAgenda(agendaBox.id)}
-                              className="text-[10px] uppercase underline hover:no-underline text-neutral-800"
+                              onClick={() => setAgendaPorPausar(agendaBox)}
+                              className="text-[11px] text-amber-700 dark:text-amber-400 hover:underline font-semibold cursor-pointer"
                             >
-                              [Pausar]
+                              Pausar
                             </button>
                           )}
                         </div>
                       </div>
                     ) : (
-                      <div className="pt-2 text-[11px] text-neutral-500">
-                        <span className="block mb-1.5 italic">Sin agenda hoy</span>
+                      <div className="pt-2 text-xs text-[#355C56] dark:text-[#9CC2BC]">
+                        <span className="block mb-2 italic text-[11px]">Sin agenda asignada</span>
                         <button
                           type="button"
                           onClick={() => abrirModalCrear({ boxId: box.id, fecha: fechaSeleccionada })}
-                          className="w-full text-[10px] font-bold uppercase py-1 border border-black bg-white hover:bg-black hover:text-white transition-colors"
+                          className="w-full text-[11px] font-bold py-1.5 rounded-xl border border-[#0F766E] dark:border-[#5BB9A6] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#0F766E] hover:text-white transition-colors cursor-pointer"
                         >
                           + Asignar Agenda
                         </button>
@@ -647,7 +679,7 @@ export default function AgendasPage() {
             </div>
 
             {/* Filas Horarias de la Jornada */}
-            <div className="divide-y divide-neutral-200">
+            <div className="divide-y divide-[#CDECE5]/60 dark:divide-[#21403A]">
               {franjasHorarias.map((hora) => {
                 const esColacion = hora >= "13:00" && hora < "14:00";
 
@@ -659,21 +691,18 @@ export default function AgendasPage() {
                       gridTemplateColumns: `100px repeat(${boxesFiltrados.length}, minmax(220px, 1fr))`,
                     }}
                   >
-                    {/* Eje Y: Franja Horaria */}
-                    <div className="p-2 border-r-2 border-black font-mono text-xs font-bold text-center bg-neutral-50 flex items-center justify-center">
+                    <div className="p-2 border-r border-[#CDECE5] dark:border-[#21403A] font-mono text-xs font-bold text-center bg-[#F4FAF8]/70 dark:bg-[#0B1715]/70 text-[#1E4640] dark:text-[#A7E3D4] flex items-center justify-center">
                       {hora}
                     </div>
 
-                    {/* Si es hora de colación (13:00 a 14:00), desplegar franja especial si no hay bloques */}
                     {esColacion ? (
                       <div
-                        className="p-2 bg-neutral-100 border-r border-black font-mono text-[11px] text-center text-neutral-600 flex items-center justify-center italic"
+                        className="p-2.5 bg-slate-100/80 dark:bg-[#0B1715] font-mono text-xs text-center text-slate-500 dark:text-slate-400 flex items-center justify-center italic"
                         style={{ gridColumn: `span ${boxesFiltrados.length}` }}
                       >
-                        [ 13:00 - 14:00 | PAUSA DE COLACIÓN — SIN ATENCIÓN MÉDICA ]
+                        13:00 - 14:00 • Pausa de Colación — Sin Atención Médica
                       </div>
                     ) : (
-                      /* Casilleros por cada Box Clínico */
                       boxesFiltrados.map((box) => {
                         const agendaBox = agendas.find(
                           (a) => a.box_id === box.id && a.fecha === fechaSeleccionada
@@ -684,7 +713,7 @@ export default function AgendasPage() {
                         return (
                           <div
                             key={box.id}
-                            className="p-1.5 border-r border-neutral-300 last:border-r-0 min-h-[48px] flex items-stretch"
+                            className="p-1.5 border-r border-[#CDECE5]/60 dark:border-[#21403A] last:border-r-0 min-h-[52px] flex items-stretch"
                           >
                             {bloque ? (
                               <button
@@ -692,47 +721,52 @@ export default function AgendasPage() {
                                 onClick={() =>
                                   agendaBox && setBloqueSeleccionado({ bloque, agenda: agendaBox })
                                 }
-                                className={`w-full p-1.5 text-left font-mono text-[11px] transition-all flex flex-col justify-between ${
+                                className={`w-full p-2 rounded-xl text-left text-xs transition-all flex flex-col justify-between cursor-pointer ${
                                   bloque.estado_bloque === "RESERVADO"
-                                    ? "bg-neutral-900 text-white shadow-sm hover:bg-black"
+                                    ? "bg-[#0F766E] text-white shadow-xs hover:bg-[#115E59]"
                                     : bloque.estado_bloque === "BLOQUEADO_SOME"
-                                    ? "bg-neutral-200 text-neutral-500 line-through border border-neutral-300 hover:bg-neutral-300"
+                                    ? "bg-slate-100 dark:bg-slate-800/70 text-slate-400 line-through border border-slate-300 dark:border-slate-700"
                                     : bloque.es_cuota_adulto_mayor
-                                    ? "bg-white text-black border-2 border-black hover:bg-neutral-50 font-bold"
-                                    : "bg-white text-black border border-neutral-400 hover:border-black hover:bg-neutral-50"
+                                    ? "bg-amber-50/90 dark:bg-amber-950/40 text-[#132A26] dark:text-[#E8F5F2] border-2 border-amber-400 dark:border-amber-600 hover:bg-amber-100/80 font-bold"
+                                    : "bg-[#F4FAF8] dark:bg-[#152B26] text-[#132A26] dark:text-[#E8F5F2] border border-[#CDECE5] dark:border-[#2A534B] hover:border-[#0F766E]"
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1 w-full">
-                                  <span className="font-bold">
+                                  <span className="font-mono font-bold text-[11px]">
                                     {bloque.hora_inicio} - {bloque.hora_fin}
                                   </span>
-                                  {bloque.es_cuota_adulto_mayor && bloque.estado_bloque === "DISPONIBLE" && (
-                                    <span className="text-[9px] px-1 bg-black text-white font-bold">
-                                      ★ 60+
-                                    </span>
-                                  )}
+                                  {bloque.es_cuota_adulto_mayor &&
+                                    bloque.estado_bloque === "DISPONIBLE" && (
+                                      <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400/30 text-amber-900 dark:text-amber-200 font-extrabold">
+                                        ★ 60+
+                                      </span>
+                                    )}
                                 </div>
 
                                 <div className="text-[10px] truncate w-full mt-0.5">
                                   {bloque.estado_bloque === "RESERVADO" ? (
-                                    <span className="font-bold text-neutral-200">
-                                      [RES: {bloque.cita?.codigo_reserva || "OCUPADO"}]
+                                    <span className="font-mono font-bold text-[#D9F5EF]">
+                                      ✓ {bloque.cita?.codigo_reserva || "RESERVADO"}
                                     </span>
                                   ) : bloque.estado_bloque === "BLOQUEADO_SOME" ? (
-                                    <span>[BLOQUEADO SOME]</span>
+                                    <span>Pausado SOME</span>
                                   ) : bloque.es_cuota_adulto_mayor ? (
-                                    <span>[CUOTA ADULTO MAYOR]</span>
+                                    <span className="text-amber-800 dark:text-amber-300">
+                                      Cuota Adulto Mayor
+                                    </span>
                                   ) : (
-                                    <span className="text-neutral-600">[DISPONIBLE]</span>
+                                    <span className="text-[#355C56] dark:text-[#9CC2BC]">
+                                      Disponible
+                                    </span>
                                   )}
                                 </div>
                               </button>
                             ) : agendaBox ? (
-                              <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-300 font-mono italic">
-                                -
+                              <div className="w-full h-full flex items-center justify-center text-xs text-slate-300 dark:text-slate-600 font-mono">
+                                —
                               </div>
                             ) : (
-                              <div className="w-full h-full"></div>
+                              <div className="w-full h-full" />
                             )}
                           </div>
                         );
@@ -746,25 +780,24 @@ export default function AgendasPage() {
         </div>
       ) : modoVista === "semanal" ? (
         /* ========================================================================= */
-        /* PESTAÑA 2: Horario Semanal (Estilo Horario de Clases Universitario)       */
+        /* PESTAÑA 2: Horario Semanal (Lunes a Sábado)                               */
         /* ========================================================================= */
-        <div className="border-2 border-black bg-white overflow-x-auto shadow-sm">
+        <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl overflow-x-auto shadow-md">
           <div className="min-w-[1000px]">
-            {/* Cabecera Semanal: Lunes a Sábado */}
-            <div className="grid grid-cols-6 border-b-2 border-black bg-neutral-100 font-mono">
+            <div className="grid grid-cols-6 border-b border-[#CDECE5] dark:border-[#21403A] bg-[#F4FAF8] dark:bg-[#0B1715]">
               {diasSemana.map((dia) => {
                 const esHoy = dia.fecha === new Date().toISOString().split("T")[0];
                 return (
                   <div
                     key={dia.fecha}
-                    className={`p-3 border-r border-black last:border-r-0 text-center ${
-                      esHoy ? "bg-neutral-200 font-bold" : ""
+                    className={`p-3.5 border-r border-[#CDECE5] dark:border-[#21403A] last:border-r-0 text-center ${
+                      esHoy ? "bg-[#D9F5EF]/60 dark:bg-[#1E3F3B]" : ""
                     }`}
                   >
-                    <span className="block text-xs uppercase text-neutral-600 font-semibold">
+                    <span className="block text-xs uppercase text-[#355C56] dark:text-[#9CC2BC] font-bold">
                       {dia.nombre}
                     </span>
-                    <span className="text-lg font-bold text-black">
+                    <span className="text-base font-black text-[#132A26] dark:text-white">
                       {dia.numeroDia} {dia.mes}
                     </span>
                   </div>
@@ -772,47 +805,50 @@ export default function AgendasPage() {
               })}
             </div>
 
-            {/* Contenido de la Semana */}
-            <div className="grid grid-cols-6 divide-x divide-black min-h-[500px]">
+            <div className="grid grid-cols-6 divide-x divide-[#CDECE5] dark:divide-[#21403A] min-h-[480px]">
               {diasSemana.map((dia) => {
                 const agendasDelDia = agendas.filter((a) => a.fecha === dia.fecha);
 
                 return (
-                  <div key={dia.fecha} className="p-3 space-y-3 font-mono text-xs bg-white">
+                  <div key={dia.fecha} className="p-3 space-y-3 text-xs">
                     {agendasDelDia.length > 0 ? (
                       agendasDelDia.map((agenda) => (
                         <div
                           key={agenda.id}
-                          className="border-2 border-black p-3 space-y-2 hover:bg-neutral-50 transition-colors"
+                          className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] rounded-2xl p-3.5 space-y-2 hover:border-[#0F766E] transition-colors"
                         >
-                          <div className="flex items-center justify-between border-b border-black pb-1.5">
-                            <span className="font-bold text-xs uppercase">{agenda.box_numero}</span>
-                            <span className="text-[10px] px-1 bg-black text-white font-bold">
-                              {agenda.especialidad}
+                          <div className="flex items-center justify-between border-b border-[#CDECE5] dark:border-[#21403A] pb-1.5">
+                            <span className="font-extrabold text-xs text-[#132A26] dark:text-white">
+                              {agenda.box_numero}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.2 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] font-bold">
+                              {agenda.especialidad.replace("_", " ")}
                             </span>
                           </div>
 
                           <div>
-                            <span className="font-bold block text-neutral-900 truncate">
+                            <span className="font-bold block text-[#132A26] dark:text-[#E8F5F2] truncate">
                               {agenda.profesional_nombre}
                             </span>
-                            <span className="text-[11px] text-neutral-600 block">
-                              {agenda.hora_inicio} - {agenda.hora_fin} ({agenda.duracion_bloque_min} min)
+                            <span className="text-[11px] font-mono text-[#355C56] dark:text-[#9CC2BC] block">
+                              {agenda.hora_inicio} - {agenda.hora_fin} ({agenda.duracion_bloque_min}m)
                             </span>
                           </div>
 
-                          <div className="pt-1.5 border-t border-neutral-300 text-[11px] space-y-0.5">
+                          <div className="pt-1.5 border-t border-[#CDECE5] dark:border-[#21403A] text-[11px] space-y-0.5">
                             <div className="flex justify-between">
-                              <span>Disponibles:</span>
-                              <strong>{agenda.estadisticas.disponibles}</strong>
+                              <span className="text-[#355C56] dark:text-[#9CC2BC]">Disponibles:</span>
+                              <strong className="text-[#0F766E] dark:text-[#5BB9A6]">
+                                {agenda.estadisticas.disponibles}
+                              </strong>
                             </div>
                             <div className="flex justify-between">
-                              <span>Reservados:</span>
+                              <span className="text-[#355C56] dark:text-[#9CC2BC]">Reservados:</span>
                               <strong>{agenda.estadisticas.reservados}</strong>
                             </div>
                             {agenda.estadisticas.cuota_adulto_mayor > 0 && (
-                              <div className="flex justify-between text-neutral-700 font-semibold">
-                                <span>Cuota 60+:</span>
+                              <div className="flex justify-between text-amber-800 dark:text-amber-300 font-bold">
+                                <span>★ Cuota 60+:</span>
                                 <span>{agenda.estadisticas.cuota_adulto_mayor}</span>
                               </div>
                             )}
@@ -825,15 +861,15 @@ export default function AgendasPage() {
                                 setFechaSeleccionada(agenda.fecha);
                                 setModoVista("matriz");
                               }}
-                              className="flex-1 text-[10px] uppercase font-bold py-1 border border-black bg-white hover:bg-black hover:text-white transition-colors text-center"
+                              className="flex-1 text-[11px] font-bold py-1.5 rounded-xl bg-[#0F766E] text-white hover:bg-[#115E59] transition-colors text-center cursor-pointer"
                             >
-                              Ver Día →
+                              Ver Matriz →
                             </button>
                             {agenda.activa && (
                               <button
                                 type="button"
-                                onClick={() => handlePausarAgenda(agenda.id)}
-                                className="text-[10px] uppercase px-1.5 py-1 border border-black hover:bg-neutral-200"
+                                onClick={() => setAgendaPorPausar(agenda)}
+                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-[#CDECE5] dark:border-[#264E46] hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-300 cursor-pointer"
                                 title="Pausar agenda"
                               >
                                 Pausar
@@ -843,12 +879,12 @@ export default function AgendasPage() {
                         </div>
                       ))
                     ) : (
-                      <div className="py-12 text-center text-neutral-400 border border-dashed border-neutral-300 p-4 space-y-2">
-                        <span className="block text-[11px] italic">Sin agenda</span>
+                      <div className="py-10 text-center text-slate-400 border border-dashed border-[#CDECE5] dark:border-[#264E46] rounded-2xl p-4 space-y-2">
+                        <span className="block text-xs italic">Sin agendas</span>
                         <button
                           type="button"
                           onClick={() => abrirModalCrear({ fecha: dia.fecha })}
-                          className="text-[10px] uppercase font-bold px-2 py-1 border border-black bg-white hover:bg-black hover:text-white transition-colors"
+                          className="text-xs font-bold px-3 py-1.5 rounded-xl border border-[#0F766E] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#0F766E] hover:text-white transition-colors cursor-pointer"
                         >
                           + Cargar Día
                         </button>
@@ -862,95 +898,96 @@ export default function AgendasPage() {
         </div>
       ) : (
         /* ========================================================================= */
-        /* PESTAÑA 3: Lista Resumen (Tabla Tradicional)                              */
+        /* PESTAÑA 3: Lista Resumen (Tabla)                                          */
         /* ========================================================================= */
-        <div className="border-2 border-black p-5 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-black pb-3 mb-4 font-mono">
+        <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md">
+          <div className="flex items-center justify-between border-b border-[#CDECE5] dark:border-[#21403A] pb-4 mb-4">
             <div>
-              <h2 className="text-base font-bold uppercase tracking-tight text-black">
+              <h2 className="text-lg font-extrabold text-[#132A26] dark:text-[#E8F5F2]">
                 Lista Resumen de Agendas ({agendas.length})
               </h2>
-              <p className="text-xs text-neutral-600">
-                Detalle tabular consolidado de jornadas y cupos.
+              <p className="text-xs text-[#355C56] dark:text-[#9CC2BC]">
+                Detalle tabular consolidado de jornadas y cupos clínicos.
               </p>
             </div>
             <button
+              type="button"
               onClick={cargarAgendas}
-              className="text-xs font-mono uppercase px-3 py-1 border border-black hover:bg-neutral-100 font-bold"
+              className="text-xs font-bold px-3.5 py-2 rounded-xl border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#D9F5EF]/50 flex items-center gap-1.5 cursor-pointer"
             >
-              Actualizar
+              <ArrowPathIcon className="w-4 h-4" />
+              <span>Actualizar</span>
             </button>
           </div>
 
           {agendas.length === 0 ? (
-            <div className="py-12 text-center text-xs font-mono text-neutral-500 border border-dashed border-neutral-300">
+            <div className="py-12 text-center text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC] border border-dashed border-[#CDECE5] dark:border-[#264E46] rounded-2xl">
               No se encontraron agendas registradas con los filtros seleccionados.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono border-collapse">
+              <table className="w-full text-left text-xs sm:text-sm border-collapse">
                 <thead>
-                  <tr className="border-b-2 border-black bg-neutral-100">
-                    <th className="py-2.5 px-3 uppercase font-bold">Fecha</th>
-                    <th className="py-2.5 px-3 uppercase font-bold">Horario</th>
-                    <th className="py-2.5 px-3 uppercase font-bold">Profesional / Box</th>
-                    <th className="py-2.5 px-3 uppercase font-bold text-center">Cupos</th>
-                    <th className="py-2.5 px-3 uppercase font-bold text-center">Estado</th>
-                    <th className="py-2.5 px-3 uppercase font-bold text-right">Acción</th>
+                  <tr className="border-b border-[#CDECE5] dark:border-[#21403A] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#1E4640] dark:text-[#A7E3D4]">
+                    <th className="py-3 px-4 font-bold">Fecha</th>
+                    <th className="py-3 px-4 font-bold">Horario</th>
+                    <th className="py-3 px-4 font-bold">Profesional / Box</th>
+                    <th className="py-3 px-4 font-bold text-center">Cupos</th>
+                    <th className="py-3 px-4 font-bold text-center">Estado</th>
+                    <th className="py-3 px-4 font-bold text-right">Acción</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-300">
+                <tbody className="divide-y divide-[#CDECE5]/60 dark:divide-[#21403A]">
                   {agendas.map((ag) => (
-                    <tr key={ag.id} className="hover:bg-neutral-50">
-                      <td className="py-3 px-3 font-bold whitespace-nowrap">{ag.fecha}</td>
-                      <td className="py-3 px-3 whitespace-nowrap">
+                    <tr key={ag.id} className="hover:bg-[#F4FAF8]/60 dark:hover:bg-[#152B26]/60">
+                      <td className="py-3.5 px-4 font-mono font-bold whitespace-nowrap">{ag.fecha}</td>
+                      <td className="py-3.5 px-4 whitespace-nowrap font-mono">
                         {ag.hora_inicio} - {ag.hora_fin}
-                        <span className="block text-[10px] text-neutral-500">
+                        <span className="block text-[11px] font-sans text-[#355C56] dark:text-[#9CC2BC]">
                           {ag.duracion_bloque_min} min/bloque
                         </span>
                       </td>
-                      <td className="py-3 px-3">
-                        <span className="font-bold block">{ag.profesional_nombre}</span>
-                        <span className="text-[10px] text-neutral-600 block">
-                          {ag.especialidad} • {ag.box_numero}
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold block text-[#132A26] dark:text-white">
+                          {ag.profesional_nombre}
+                        </span>
+                        <span className="text-xs text-[#355C56] dark:text-[#9CC2BC] block">
+                          {ag.especialidad.replace("_", " ")} • {ag.box_numero}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <span className="font-bold">{ag.estadisticas.disponibles}</span>
-                        <span className="text-neutral-500"> / {ag.estadisticas.total}</span>
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <span className="font-bold text-[#0F766E] dark:text-[#5BB9A6]">
+                          {ag.estadisticas.disponibles}
+                        </span>
+                        <span className="text-slate-400"> / {ag.estadisticas.total}</span>
                         {ag.estadisticas.cuota_adulto_mayor > 0 && (
-                          <span className="block text-[10px] text-neutral-600">
-                            (60+: {ag.estadisticas.cuota_adulto_mayor})
-                          </span>
-                        )}
-                        {ag.estadisticas.reservados > 0 && (
-                          <span className="block text-[10px] font-bold text-black">
-                            Reservados: {ag.estadisticas.reservados}
+                          <span className="block text-[11px] text-amber-800 dark:text-amber-300 font-bold">
+                            ★ 60+: {ag.estadisticas.cuota_adulto_mayor}
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         {ag.activa ? (
-                          <span className="px-2 py-0.5 border border-black bg-black text-white text-[10px] font-bold">
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 text-xs font-bold">
                             ACTIVA
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 border border-neutral-400 bg-neutral-200 text-neutral-700 text-[10px] font-bold">
-                            BLOQUEADA SOME
+                          <span className="px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400 text-xs font-bold">
+                            PAUSADA SOME
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         {ag.activa ? (
                           <button
                             type="button"
-                            onClick={() => handlePausarAgenda(ag.id)}
-                            className="text-[11px] font-mono uppercase px-2.5 py-1 border border-black hover:bg-black hover:text-white transition-colors"
+                            onClick={() => setAgendaPorPausar(ag)}
+                            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
                           >
                             Pausar Agenda
                           </button>
                         ) : (
-                          <span className="text-[11px] text-neutral-400 font-mono italic">Pausada</span>
+                          <span className="text-xs text-slate-400 italic">Bloqueada</span>
                         )}
                       </td>
                     </tr>
@@ -963,106 +1000,98 @@ export default function AgendasPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 1: Detalle del Bloque Horario al hacer clic                         */}
+      {/* MODAL 1: Detalle del Bloque Horario                                       */}
       {/* ========================================================================= */}
       {bloqueSeleccionado && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-black max-w-md w-full p-6 shadow-2xl font-mono text-xs space-y-4">
-            <div className="flex items-center justify-between border-b-2 border-black pb-2">
-              <span className="text-xs uppercase px-2 py-0.5 bg-black text-white font-bold">
-                Detalle del Bloque Horario
-              </span>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] max-w-md w-full p-6 rounded-3xl shadow-2xl text-xs sm:text-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
+              <div className="flex items-center gap-2">
+                <ClockIcon className="w-5 h-5 text-[#0F766E] dark:text-[#5BB9A6]" />
+                <span className="font-extrabold text-base text-[#132A26] dark:text-white">
+                  Detalle del Bloque Horario
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => setBloqueSeleccionado(null)}
-                className="text-sm font-bold px-2 py-0.5 border border-black hover:bg-neutral-200"
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#17302B] text-slate-500 cursor-pointer"
               >
-                ✕
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-2 border-b border-neutral-300 pb-3">
+            <div className="space-y-2 border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
               <div className="flex justify-between">
-                <span className="text-neutral-600">Horario:</span>
-                <strong className="text-sm">
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Horario:</span>
+                <strong className="font-mono text-[#132A26] dark:text-white">
                   {bloqueSeleccionado.bloque.hora_inicio} a {bloqueSeleccionado.bloque.hora_fin} hrs
                 </strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Fecha:</span>
-                <strong>{bloqueSeleccionado.agenda.fecha}</strong>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Fecha:</span>
+                <strong className="font-mono">{bloqueSeleccionado.agenda.fecha}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Box Clínico:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Box Clínico:</span>
                 <strong>{bloqueSeleccionado.agenda.box_numero}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Profesional:</span>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Profesional:</span>
                 <strong>{bloqueSeleccionado.agenda.profesional_nombre}</strong>
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-600">Especialidad:</span>
-                <strong>{bloqueSeleccionado.agenda.especialidad}</strong>
-              </div>
-              <div className="flex justify-between items-center pt-1 border-t border-neutral-200">
-                <span className="text-neutral-600">Estado del Cupo:</span>
-                <span
-                  className={`px-2 py-0.5 border font-bold text-[10px] ${
-                    bloqueSeleccionado.bloque.estado_bloque === "RESERVADO"
-                      ? "bg-neutral-900 text-white border-black"
-                      : bloqueSeleccionado.bloque.estado_bloque === "BLOQUEADO_SOME"
-                      ? "bg-neutral-200 text-neutral-700 border-neutral-400"
-                      : "bg-white text-black border-black"
-                  }`}
-                >
+              <div className="flex justify-between items-center pt-1">
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Estado:</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] font-bold text-xs">
                   {bloqueSeleccionado.bloque.estado_bloque}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-neutral-600">Protección Cuota 60+:</span>
-                <strong>{bloqueSeleccionado.bloque.es_cuota_adulto_mayor ? "Sí (★ Cuota Adulto Mayor)" : "No (General)"}</strong>
+                <span className="text-[#355C56] dark:text-[#9CC2BC]">Cuota Adulto Mayor:</span>
+                <strong className={bloqueSeleccionado.bloque.es_cuota_adulto_mayor ? "text-amber-700 dark:text-amber-300" : ""}>
+                  {bloqueSeleccionado.bloque.es_cuota_adulto_mayor ? "★ Sí (Protegido 60+)" : "No (Cupo General)"}
+                </strong>
               </div>
             </div>
 
-            {/* Datos de la Cita si está reservado */}
             {bloqueSeleccionado.bloque.cita ? (
-              <div className="border border-black bg-neutral-50 p-3 space-y-1.5">
-                <span className="font-bold block uppercase text-black border-b border-neutral-300 pb-1">
-                  Datos de la Reserva:
+              <div className="bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] rounded-2xl p-4 space-y-1.5">
+                <span className="font-extrabold block text-xs uppercase text-[#0F766E] dark:text-[#A7E3D4] pb-1">
+                  Datos de la Reserva Activa
                 </span>
                 <div className="flex justify-between">
-                  <span className="text-neutral-600">Código Reserva:</span>
-                  <strong className="text-sm font-bold text-black">
+                  <span className="text-[#355C56] dark:text-[#9CC2BC]">Código:</span>
+                  <strong className="font-mono text-[#0F766E] dark:text-[#5BB9A6]">
                     {bloqueSeleccionado.bloque.cita.codigo_reserva}
                   </strong>
                 </div>
                 {bloqueSeleccionado.bloque.cita.paciente && (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-neutral-600">Paciente:</span>
+                      <span className="text-[#355C56] dark:text-[#9CC2BC]">Paciente:</span>
                       <strong>{bloqueSeleccionado.bloque.cita.paciente.nombre_completo}</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-neutral-600">RUT:</span>
-                      <strong>{bloqueSeleccionado.bloque.cita.paciente.rut_formateado}</strong>
+                      <span className="text-[#355C56] dark:text-[#9CC2BC]">RUT:</span>
+                      <strong className="font-mono">{bloqueSeleccionado.bloque.cita.paciente.rut_formateado}</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-neutral-600">Contacto:</span>
-                      <span>{bloqueSeleccionado.bloque.cita.paciente.telefono}</span>
+                      <span className="text-[#355C56] dark:text-[#9CC2BC]">Teléfono:</span>
+                      <span className="font-mono">{bloqueSeleccionado.bloque.cita.paciente.telefono}</span>
                     </div>
                   </>
                 )}
               </div>
             ) : (
-              <div className="text-neutral-500 italic text-[11px] text-center py-2">
-                Este cupo no registra citas asociadas.
+              <div className="text-[#355C56] dark:text-[#9CC2BC] italic text-xs text-center py-2">
+                Este bloque horario se encuentra libre sin citas asociadas.
               </div>
             )}
 
             <button
               type="button"
               onClick={() => setBloqueSeleccionado(null)}
-              className="w-full bg-black text-white hover:bg-neutral-800 border-2 border-black py-2 uppercase font-bold transition-colors"
+              className="w-full bg-[#0F766E] hover:bg-[#115E59] text-white py-3 rounded-xl font-bold transition-colors cursor-pointer"
             >
               Cerrar Detalle
             </button>
@@ -1071,47 +1100,95 @@ export default function AgendasPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: Publicar Nueva Agenda Médica                                     */}
+      {/* MODAL 2: Confirmación para Pausar Agenda                                  */}
+      {/* ========================================================================= */}
+      {agendaPorPausar && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] max-w-md w-full p-6 rounded-3xl shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-600 flex items-center justify-center flex-shrink-0">
+                <PauseCircleIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Contingencia Operativa SOME
+                </span>
+                <h3 className="text-base sm:text-lg font-extrabold text-[#132A26] dark:text-[#E8F5F2]">
+                  ¿Pausar agenda médica?
+                </h3>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC] leading-relaxed">
+              Se bloquearán temporalmente los cupos libres de{" "}
+              <strong className="text-[#132A26] dark:text-white">{agendaPorPausar.profesional_nombre}</strong> en el{" "}
+              <strong>{agendaPorPausar.box_numero}</strong> ({agendaPorPausar.fecha}).
+            </p>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={confirmarPausaAgenda}
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-colors cursor-pointer"
+              >
+                Confirmar Pausa de Agenda
+              </button>
+              <button
+                type="button"
+                onClick={() => setAgendaPorPausar(null)}
+                className="px-4 py-3 rounded-xl border border-[#CDECE5] dark:border-[#264E46] text-xs sm:text-sm font-bold text-[#132A26] dark:text-[#D9F5EF] hover:bg-slate-100 dark:hover:bg-[#17302B] cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: Publicar Nueva Agenda Médica                                     */}
       {/* ========================================================================= */}
       {modalCrearAbierto && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-black max-w-lg w-full p-6 shadow-2xl font-mono text-xs space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b-2 border-black pb-2">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] max-w-lg w-full p-6 sm:p-7 rounded-3xl shadow-2xl text-xs sm:text-sm space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
               <div>
-                <span className="text-xs uppercase px-2 py-0.5 bg-black text-white font-bold block mb-1 w-fit">
-                  Apertura de Agenda
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] inline-block mb-1">
+                  Apertura de Agenda • HU-005
                 </span>
-                <h3 className="text-base font-bold uppercase tracking-tight text-black">
+                <h3 className="text-lg font-extrabold text-[#132A26] dark:text-white">
                   Publicar Nueva Agenda Médica
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setModalCrearAbierto(false)}
-                className="text-sm font-bold px-2.5 py-1 border border-black hover:bg-neutral-200"
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#17302B] text-slate-500 cursor-pointer"
               >
-                ✕
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
 
             {errorModal && (
-              <div className="border-2 border-black bg-white p-3 text-xs">
-                <span className="font-bold text-black">[!] ERROR:</span> {errorModal}
+              <div className="bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800 p-3.5 rounded-2xl text-xs text-red-800 dark:text-red-200 font-semibold">
+                {errorModal}
               </div>
             )}
 
-            <form onSubmit={handleCrearAgendaSubmit} className="space-y-3.5">
+            <form onSubmit={handleCrearAgendaSubmit} className="space-y-4">
               <div>
-                <label className="block font-bold uppercase mb-1">Profesional de Salud</label>
+                <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                  Profesional de Salud
+                </label>
                 <select
                   value={nuevoProfId}
                   onChange={(e) => handleModalProfChange(e.target.value)}
-                  className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none"
+                  className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#0F766E]"
                   required
                 >
                   {profesionales.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.nombres} {p.apellidos} ({p.especialidad})
+                      {p.nombres} {p.apellidos} ({p.especialidad.replace("_", " ")})
                     </option>
                   ))}
                 </select>
@@ -1119,20 +1196,24 @@ export default function AgendasPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold uppercase mb-1">Especialidad</label>
+                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                    Especialidad
+                  </label>
                   <input
                     type="text"
-                    value={nuevaEsp}
+                    value={nuevaEsp.replace("_", " ")}
                     readOnly
-                    className="w-full border-2 border-black px-3 py-2 bg-neutral-100 font-bold"
+                    className="w-full border border-[#CDECE5] dark:border-[#264E46] px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/70 font-bold text-xs sm:text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold uppercase mb-1">Box Clínico</label>
+                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                    Box Clínico
+                  </label>
                   <select
                     value={nuevoBoxId}
                     onChange={(e) => setNuevoBoxId(e.target.value)}
-                    className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none"
+                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#0F766E]"
                     required
                   >
                     {boxes.map((b) => (
@@ -1145,34 +1226,40 @@ export default function AgendasPage() {
               </div>
 
               <div>
-                <label className="block font-bold uppercase mb-1">Fecha de la Agenda</label>
+                <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                  Fecha de la Agenda
+                </label>
                 <input
                   type="date"
                   value={nuevaFecha}
                   onChange={(e) => setNuevaFecha(e.target.value)}
-                  className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none"
+                  className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#0F766E]"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold uppercase mb-1">Hora Inicio</label>
+                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                    Hora Inicio
+                  </label>
                   <input
                     type="time"
                     value={nuevaHoraInicio}
                     onChange={(e) => setNuevaHoraInicio(e.target.value)}
-                    className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none"
+                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#0F766E]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-bold uppercase mb-1">Hora Fin</label>
+                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                    Hora Fin
+                  </label>
                   <input
                     type="time"
                     value={nuevaHoraFin}
                     onChange={(e) => setNuevaHoraFin(e.target.value)}
-                    className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none"
+                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#0F766E]"
                     required
                   />
                 </div>
@@ -1180,11 +1267,13 @@ export default function AgendasPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold uppercase mb-1">Duración Bloque</label>
+                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                    Duración por Bloque
+                  </label>
                   <select
                     value={nuevaDuracionMin}
                     onChange={(e) => setNuevaDuracionMin(Number(e.target.value))}
-                    className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none"
+                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#0F766E]"
                   >
                     <option value={15}>15 minutos</option>
                     <option value={20}>20 minutos (Estándar)</option>
@@ -1192,15 +1281,17 @@ export default function AgendasPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold uppercase mb-1">% Cuota Adulto Mayor</label>
+                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                    % Cuota Adulto Mayor (60+)
+                  </label>
                   <select
                     value={nuevoPorcentajeCuota}
                     disabled={nuevaEsp !== "MEDICINA_GENERAL"}
                     onChange={(e) => setNuevoPorcentajeCuota(Number(e.target.value))}
-                    className="w-full border-2 border-black px-3 py-2 bg-white text-xs font-mono focus:outline-none disabled:bg-neutral-100 disabled:cursor-not-allowed"
+                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none disabled:opacity-50"
                   >
                     <option value={20}>20%</option>
-                    <option value={30}>30% (Legal)</option>
+                    <option value={30}>30% (Normativa Legal)</option>
                     <option value={40}>40%</option>
                     <option value={50}>50%</option>
                   </select>
@@ -1208,26 +1299,28 @@ export default function AgendasPage() {
               </div>
 
               {/* Previsualizador */}
-              <div className="border border-black bg-neutral-50 p-3 space-y-1 text-[11px]">
-                <div className="font-bold uppercase text-black border-b border-neutral-300 pb-1 mb-1">
-                  Previsualizador Automático:
+              <div className="bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] rounded-2xl p-4 space-y-1.5 text-xs">
+                <div className="font-extrabold uppercase text-[#0F766E] dark:text-[#A7E3D4] pb-1">
+                  Previsualizador Automático de Bloques:
                 </div>
                 <div className="flex justify-between">
-                  <span>Bloques hábiles a crear:</span>
-                  <strong>{previsualizacionModal.total} cupos</strong>
+                  <span className="text-[#355C56] dark:text-[#9CC2BC]">Bloques hábiles a crear:</span>
+                  <strong className="text-[#132A26] dark:text-white">{previsualizacionModal.total} cupos</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span>Colación 13:00-14:00 (Omitida):</span>
+                  <span className="text-[#355C56] dark:text-[#9CC2BC]">Pausa colación 13:00-14:00 (Omitida):</span>
                   <span>{previsualizacionModal.colacionOmitida} bloques</span>
                 </div>
                 {nuevaEsp === "MEDICINA_GENERAL" ? (
-                  <div className="flex justify-between pt-1 border-t border-neutral-200">
-                    <span>Cuota protegida Adulto Mayor:</span>
-                    <strong>{previsualizacionModal.cuota} cupos ({nuevoPorcentajeCuota}%)</strong>
+                  <div className="flex justify-between pt-1.5 border-t border-[#CDECE5] dark:border-[#21403A] text-amber-800 dark:text-amber-300 font-bold">
+                    <span>★ Cuota protegida Adulto Mayor:</span>
+                    <span>
+                      {previsualizacionModal.cuota} cupos ({nuevoPorcentajeCuota}%)
+                    </span>
                   </div>
                 ) : (
-                  <div className="text-[10px] text-neutral-500 italic">
-                    * La cuota protegida aplica a Medicina General.
+                  <div className="text-[11px] text-slate-500 italic">
+                    * La cuota protegida 60+ aplica exclusivamente a Medicina General.
                   </div>
                 )}
               </div>
@@ -1236,14 +1329,14 @@ export default function AgendasPage() {
                 <button
                   type="submit"
                   disabled={guardandoAgenda || previsualizacionModal.total === 0}
-                  className="flex-1 bg-black text-white hover:bg-neutral-800 border-2 border-black py-2.5 uppercase font-bold tracking-wider disabled:opacity-50"
+                  className="flex-1 bg-[#0F766E] hover:bg-[#115E59] text-white py-3 rounded-xl font-bold shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {guardandoAgenda ? "Publicando Agenda..." : "Publicar Agenda Médica →"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setModalCrearAbierto(false)}
-                  className="border-2 border-black px-4 py-2.5 uppercase hover:bg-neutral-100"
+                  className="px-4 py-3 rounded-xl border border-[#CDECE5] dark:border-[#264E46] font-bold hover:bg-slate-100 dark:hover:bg-[#17302B] cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1252,6 +1345,6 @@ export default function AgendasPage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -46,6 +46,12 @@ export async function listarCuposDisponibles(filtros: ListarCuposFiltros = {}) {
       gte: fNorm,
       lt: fFin,
     };
+  } else {
+    // Si no se especifica fecha, excluir citas de días pasados
+    const hoyNorm = normalizarFecha(new Date());
+    where.hora_inicio = {
+      gte: hoyNorm,
+    };
   }
 
   // Si se especifica que NO es adulto mayor, ocultar los cupos de cuota protegida
