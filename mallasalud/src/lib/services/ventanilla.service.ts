@@ -1,8 +1,13 @@
 import prisma from "@/lib/prisma";
 import { Especialidad, EstadoBloque, EstadoCita, CanalOrigen, Prisma } from "@prisma/client";
-import { normalizarFecha } from "./agendas.service";
+import {
+  normalizarFecha,
+  liberarCuotasAdultoMayorProximas,
+  MINUTOS_LIBERACION_CUOTA_MAYOR,
+} from "./agendas.service";
 import { generarCodigoReserva } from "@/lib/utils/codigo-reserva";
 import { formatearRut } from "@/lib/utils/rut";
+import { esAdultoMayor } from "@/lib/utils/edad";
 
 export class VentanillaError extends Error {
   public statusCode: number;
@@ -25,10 +30,14 @@ export interface AgendarVentanillaDTO {
 }
 
 /**
- * HU-006: Lista cupos disponibles en tiempo real para el mesón SOME.
- * Si el paciente no es adulto mayor, se ocultan los cupos protegidos por cuota.
+ * HU-006: Lista cupos disponibles en tiempo real para el mesón SOME y Portal Paciente.
+ * Libera automáticamente cupos 60+ cuando faltan <= 30 minutos para la hora de inicio.
+ * Si el paciente no es adulto mayor, se ocultan los cupos aún protegidos por cuota.
  */
 export async function listarCuposDisponibles(filtros: ListarCuposFiltros = {}) {
+  // Liberación dinámica (Cut-off 30 min): desbloquea cupos 60+ no tomados próximos a iniciar
+  await liberarCuotasAdultoMayorProximas();
+
   const where: Prisma.BloqueHorarioWhereInput = {
     estado_bloque: EstadoBloque.DISPONIBLE,
     agenda: {
@@ -54,7 +63,7 @@ export async function listarCuposDisponibles(filtros: ListarCuposFiltros = {}) {
     };
   }
 
-  // Si se especifica que NO es adulto mayor, ocultar los cupos de cuota protegida
+  // Si se especifica que NO es adulto mayor, ocultar los cupos que siguen en cuota protegida
   if (filtros.esAdultoMayor === false) {
     where.es_cuota_adulto_mayor = false;
   }
@@ -126,6 +135,9 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
   }
 
   return await prisma.$transaction(async (tx) => {
+    // 0. Liberar automáticamente cupos 60+ que estén a <= 30 min de iniciar
+    await liberarCuotasAdultoMayorProximas(tx);
+
     // 1. Validar existencia y vigencia del paciente
     const paciente = await tx.paciente.findUnique({
       where: { id: dto.paciente_id },
@@ -149,6 +161,7 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
             box: true,
           },
         },
+        cita: true,
       },
     });
 
@@ -165,6 +178,20 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
         `El bloque horario ya no se encuentra disponible (estado actual: ${bloque.estado_bloque}).`,
         409
       );
+    }
+
+    // 2.1 Validar regla de Cuota Adulto Mayor (60+) con liberación automática 30 min antes
+    if (bloque.es_cuota_adulto_mayor) {
+      const pacienteEsMayor = esAdultoMayor(paciente.fecha_nacimiento, paciente.rut);
+      const msRestantes = new Date(bloque.hora_inicio).getTime() - Date.now();
+      const dentroVentanaLiberacion = msRestantes <= MINUTOS_LIBERACION_CUOTA_MAYOR * 60 * 1000;
+
+      if (!pacienteEsMayor && !dentroVentanaLiberacion) {
+        throw new VentanillaError(
+          `Este cupo está reservado para Adulto Mayor (60+ años). Si nadie lo toma, se liberará automáticamente para todo público ${MINUTOS_LIBERACION_CUOTA_MAYOR} minutos antes de la hora de inicio.`,
+          403
+        );
+      }
     }
 
     // 3. Regla de Negocio: El paciente NO puede tener otra cita agendada en la misma especialidad el mismo día
@@ -210,6 +237,14 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
         bloqueado_por_rut: paciente.rut,
       },
     });
+
+    // 5.1 Si el bloque tenía una cita previa cancelada (CANCELADA_OPORTUNA), eliminarla antes de insertar la nueva
+    // para respetar la restricción @unique de bloque_id en la tabla citas
+    if (bloque.cita) {
+      await tx.cita.delete({
+        where: { id: bloque.cita.id },
+      });
+    }
 
     // 6. Crear la Cita médica
     const cita = await tx.cita.create({

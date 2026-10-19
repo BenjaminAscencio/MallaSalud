@@ -1,0 +1,261 @@
+@reference "../app/globals.css";
+
+.site-header {
+  @apply print:hidden sticky top-0 z-50 w-full bg-white/95 dark:bg-[#11221F]/95 backdrop-blur-md border-b border-border-subtle dark:border-surface-dark-accent shadow-xs font-sans transition-colors duration-200;
+}
+
+.site-header-container {
+  @apply w-full max-w-[1780px] mx-auto px-3 sm:px-6 lg:px-8 xl:px-10;
+}
+
+.site-header-row {
+  @apply flex items-center justify-between min-h-16 sm:h-20 py-2 sm:py-0 gap-2 sm:gap-4 lg:gap-6;
+}
+
+.site-header-brand {
+  @apply flex items-center gap-2 sm:gap-3 focus:outline-none focus:ring-2 focus:ring-teal-primary focus:ring-offset-2 rounded-xl p-1 min-w-0 shrink;
+}
+
+.site-header-logo-box {
+  @apply relative w-9 h-9 sm:w-10 sm:h-10 shrink-0 bg-surface-bg dark:bg-surface-dark-elevated rounded-lg border border-border-subtle dark:border-border-dark-accent p-1 flex items-center justify-center group-hover:border-teal-primary transition-all;
+}
+
+.site-header-logo-img {
+  @apply object-contain w-full h-full;
+}
+
+.site-header-brand-text {
+  @apply flex flex-col min-w-0;
+}
+
+.site-header-brand-top {
+  @apply flex items-center gap-1.5 sm:gap-2 flex-wrap;
+}
+
+.site-header-brand-title {
+  @apply font-bold text-base sm:text-xl tracking-tight text-teal-deep dark:text-text-dark-main truncate;
+}
+
+.site-header-brand-highlight {
+  @apply text-teal-primary dark:text-teal-accent;
+}
+
+.site-header-brand-badge {
+  @apply text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider bg-slate-100 dark:bg-surface-dark-accent text-teal-deep dark:text-mint-medium px-1.5 py-0.5 rounded shrink-0;
+}
+
+.site-header-brand-subtitle {
+  @apply text-[11px] text-text-muted dark:text-text-dark-muted font-normal tracking-tight hidden sm:block truncate;
+}
+
+.site-header-nav {
+  @apply hidden lg:flex items-center gap-1 xl:gap-1.5 shrink-0;
+}
+
+.site-header-nav-link {
+  @apply px-2.5 xl:px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium transition-colors whitespace-nowrap text-text-muted dark:text-text-dark-muted hover:text-teal-deep dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-dark-muted;
+}
+
+.site-header-nav-link-active {
+  @apply px-2.5 xl:px-3 py-1.5 rounded-lg text-xs xl:text-sm transition-colors whitespace-nowrap text-teal-primary dark:text-text-dark-main bg-mint-pale/60 dark:bg-surface-dark-accent font-semibold;
+}
+
+.site-header-actions {
+  @apply flex items-center gap-1.5 sm:gap-2 shrink-0;
+}
+
+.site-header-a11y-toggle {
+  @apply inline-flex items-center justify-center min-w-9 h-9 px-2.5 rounded-lg bg-slate-100 dark:bg-surface-dark-elevated border border-border-subtle/70 dark:border-border-dark-accent text-xs font-bold text-teal-deep dark:text-mint-medium hover:bg-slate-200/70 dark:hover:bg-surface-dark-accent transition-colors focus:outline-none focus:ring-2 focus:ring-teal-primary cursor-pointer select-none;
+}
+
+.site-header-a11y-toggle-active {
+  @apply inline-flex items-center justify-center min-w-9 h-9 px-2.5 rounded-lg bg-teal-primary border border-teal-primary text-xs font-bold text-white hover:bg-teal-hover transition-colors focus:outline-none focus:ring-2 focus:ring-teal-primary cursor-pointer select-none;
+}
+
+.site-header-theme-btn {
+  @apply inline-flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 dark:bg-surface-dark-elevated border border-border-subtle/70 dark:border-border-dark-accent text-teal-deep dark:text-mint-medium hover:bg-slate-200/70 dark:hover:bg-surface-dark-accent transition-colors focus:outline-none focus:ring-2 focus:ring-teal-primary cursor-pointer;
+}
+
+.site-header-theme-icon-sun {
+  @apply w-4 h-4 text-amber-300;
+}
+
+.site-header-theme-icon-moon {
+  @apply w-4 h-4 text-teal-deep;
+}
+
+.site-header-dropdown-wrap {
+  @apply relative hidden sm:block;
+}
+
+.site-header-some-btn {
+  @apply flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-semibold transition-colors border cursor-pointer bg-white dark:bg-surface-dark-elevated text-teal-deep dark:text-mint-medium border-border-subtle dark:border-border-dark-accent hover:border-teal-primary;
+}
+
+.site-header-some-btn-active {
+  @apply flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs font-semibold transition-colors border cursor-pointer bg-teal-deep dark:bg-surface-dark-accent text-white border-teal-deep dark:border-teal-accent;
+}
+
+.site-header-some-icon {
+  @apply w-4 h-4 text-teal-primary dark:text-teal-accent shrink-0;
+}
+
+.site-header-some-icon-active {
+  @apply w-4 h-4 text-mint-medium shrink-0;
+}
+
+.site-header-some-label-desktop {
+  @apply hidden xl:inline;
+}
+
+.site-header-some-label-mobile {
+  @apply xl:hidden;
+}
+
+.site-header-chevron {
+  @apply w-3.5 h-3.5 transition-transform;
+}
+
+.site-header-chevron-open {
+  @apply w-3.5 h-3.5 transition-transform rotate-180;
+}
+
+.site-header-dropdown-menu {
+  @apply absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white dark:bg-surface-dark text-text-main dark:text-text-dark-main rounded-xl shadow-lg border border-border-subtle dark:border-border-dark-accent p-2 z-50 animate-fadeIn;
+}
+
+.site-header-dropdown-header {
+  @apply px-3 py-2 border-b border-border-subtle dark:border-border-dark-accent;
+}
+
+.site-header-dropdown-title {
+  @apply text-[11px] font-semibold text-teal-primary dark:text-mint-medium uppercase tracking-wider flex items-center gap-1.5;
+}
+
+.site-header-dropdown-title-icon {
+  @apply w-3.5 h-3.5 text-teal-primary dark:text-teal-accent;
+}
+
+.site-header-dropdown-subtitle {
+  @apply text-[11px] text-text-muted dark:text-text-dark-muted mt-0.5;
+}
+
+.site-header-dropdown-list {
+  @apply mt-1 space-y-0.5;
+}
+
+.site-header-dropdown-item {
+  @apply flex items-start gap-2.5 p-2 rounded-lg transition-colors hover:bg-slate-50 dark:hover:bg-surface-dark-muted;
+}
+
+.site-header-dropdown-item-active {
+  @apply flex items-start gap-2.5 p-2 rounded-lg transition-colors bg-mint-pale/60 dark:bg-surface-dark-accent;
+}
+
+.site-header-dropdown-dot-teal {
+  @apply w-2 h-2 rounded-full bg-teal-primary dark:bg-teal-accent mt-1.5 shrink-0;
+}
+
+.site-header-dropdown-dot-amber {
+  @apply w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0;
+}
+
+.site-header-dropdown-dot-mint {
+  @apply w-2 h-2 rounded-full bg-teal-accent mt-1.5 shrink-0;
+}
+
+.site-header-dropdown-item-title {
+  @apply text-xs font-semibold text-text-main dark:text-text-dark-main;
+}
+
+.site-header-dropdown-item-desc {
+  @apply text-[11px] text-text-muted dark:text-text-dark-muted;
+}
+
+.site-header-cta-btn {
+  @apply hidden sm:inline-flex items-center gap-1.5 bg-teal-primary hover:bg-teal-hover active:bg-teal-active text-white px-3.5 lg:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs lg:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-mint-medium whitespace-nowrap shrink-0;
+}
+
+.site-header-cta-icon {
+  @apply w-4 h-4 text-white shrink-0;
+}
+
+.site-header-mobile-menu-btn {
+  @apply lg:hidden p-2 rounded-lg bg-slate-100 dark:bg-surface-dark-elevated border border-border-subtle/70 dark:border-border-dark-accent text-teal-deep dark:text-mint-medium hover:bg-slate-200/70 dark:hover:bg-surface-dark-accent focus:outline-none focus:ring-2 focus:ring-teal-primary cursor-pointer;
+}
+
+.site-header-mobile-menu-icon {
+  @apply w-6 h-6;
+}
+
+.site-header-mobile-drawer {
+  @apply lg:hidden border-t border-border-subtle dark:border-border-dark-accent bg-white dark:bg-[#11221F] shadow-xl animate-fadeIn max-h-[calc(100vh-4.5rem)] overflow-y-auto;
+}
+
+.site-header-mobile-drawer-inner {
+  @apply px-4 pt-3 pb-6 space-y-3;
+}
+
+.site-header-mobile-controls {
+  @apply flex flex-wrap items-center justify-between gap-2 bg-surface-bg dark:bg-surface-dark-elevated border border-border-subtle dark:border-border-dark-accent p-2.5 rounded-xl;
+}
+
+.site-header-mobile-a11y {
+  @apply flex items-center gap-1.5 flex-wrap;
+}
+
+.site-header-mobile-a11y-label {
+  @apply text-xs font-bold text-teal-deep dark:text-mint-medium;
+}
+
+.site-header-mobile-a11y-btn {
+  @apply px-2.5 py-1 rounded-lg text-xs font-bold bg-white dark:bg-surface-dark-accent text-teal-deep dark:text-text-dark-muted border border-border-subtle dark:border-border-dark-accent cursor-pointer;
+}
+
+.site-header-mobile-a11y-btn-active {
+  @apply px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-primary text-white cursor-pointer;
+}
+
+.site-header-mobile-theme-btn {
+  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-surface-dark-accent border border-border-subtle dark:border-border-dark-accent text-teal-deep dark:text-mint-medium cursor-pointer;
+}
+
+.site-header-mobile-nav-list {
+  @apply space-y-1;
+}
+
+.site-header-mobile-nav-link {
+  @apply flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm sm:text-base font-semibold text-text-main dark:text-text-dark-main hover:text-teal-primary hover:bg-mint-pale dark:hover:bg-surface-dark-accent transition-colors;
+}
+
+.site-header-mobile-nav-link-active {
+  @apply flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm sm:text-base font-bold text-teal-primary dark:text-mint-medium bg-mint-pale/70 dark:bg-surface-dark-accent transition-colors;
+}
+
+.site-header-mobile-nav-arrow {
+  @apply text-teal-primary dark:text-teal-accent;
+}
+
+.site-header-mobile-cta-wrap {
+  @apply pt-2 border-t border-border-subtle dark:border-border-dark-accent;
+}
+
+.site-header-mobile-cta-btn {
+  @apply w-full flex items-center justify-center gap-2 bg-teal-primary hover:bg-teal-hover text-white py-3 rounded-xl font-bold text-sm sm:text-base shadow-sm mt-1;
+}
+
+.site-header-mobile-some-wrap {
+  @apply pt-3 border-t border-border-subtle dark:border-border-dark-accent space-y-2;
+}
+
+.site-header-mobile-some-label {
+  @apply text-[11px] font-bold text-text-muted dark:text-text-dark-muted uppercase tracking-wider px-1;
+}
+
+.site-header-mobile-some-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs;
+}
+
+.site-header-mobile-some-link {
+  @apply p-2.5 rounded-xl bg-surface-bg dark:bg-surface-dark-elevated border border-border-subtle dark:border-border-dark-accent text-teal-deep dark:text-mint-medium font-bold text-center hover:bg-mint-pale dark:hover:bg-surface-dark-accent transition-colors;
+}

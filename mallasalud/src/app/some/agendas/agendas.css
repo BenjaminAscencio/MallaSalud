@@ -1,0 +1,751 @@
+@reference "../../globals.css";
+
+.agendas-page {
+  @apply max-w-[1540px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-7 font-sans space-y-5;
+}
+
+/* Cabecera plana de consola clínica (sin card flotante envolvente) */
+.agendas-header-card {
+  @apply border-b border-border-subtle dark:border-border-dark pb-4 space-y-4;
+}
+
+.agendas-header-top {
+  @apply flex flex-col lg:flex-row lg:items-center justify-between gap-3;
+}
+
+.agendas-badge-row {
+  @apply flex flex-wrap items-center gap-2 mb-0.5;
+}
+
+.agendas-hu-badge {
+  @apply hidden;
+}
+
+.agendas-hu-subtitle {
+  @apply text-xs font-semibold uppercase tracking-wider text-teal-primary dark:text-mint-medium;
+}
+
+.agendas-title {
+  @apply text-xl sm:text-2xl font-bold tracking-tight text-text-main dark:text-text-dark-main;
+}
+
+.agendas-btn-create {
+  @apply w-full sm:w-auto bg-teal-primary hover:bg-teal-hover text-white px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold shadow-2xs transition-colors flex items-center justify-center gap-2 cursor-pointer shrink-0;
+}
+
+.agendas-icon-plus {
+  @apply w-4 h-4 stroke-[2.5] shrink-0;
+}
+
+.agendas-icon-sm {
+  @apply w-4 h-4 shrink-0;
+}
+
+.agendas-icon-xs {
+  @apply w-3.5 h-3.5 shrink-0;
+}
+
+.agendas-icon-md {
+  @apply w-5 h-5 shrink-0;
+}
+
+.agendas-toolbar {
+  @apply flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs pt-1;
+}
+
+.agendas-view-switcher {
+  @apply grid grid-cols-1 sm:flex sm:flex-wrap items-stretch sm:items-center gap-1 bg-slate-100 dark:bg-surface-dark-bg p-1 rounded-lg border border-border-subtle/70 dark:border-border-dark-subtle w-full xl:w-auto;
+}
+
+.agendas-view-btn {
+  @apply px-3 py-2 sm:py-1.5 rounded-md font-medium transition-colors flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer text-text-muted dark:text-text-dark-muted hover:text-text-main dark:hover:text-white;
+}
+
+.agendas-view-btn-active {
+  @apply px-3 py-2 sm:py-1.5 rounded-md font-semibold transition-colors flex items-center justify-center sm:justify-start gap-1.5 cursor-pointer bg-white dark:bg-surface-dark text-teal-primary dark:text-mint-medium shadow-2xs;
+}
+
+.agendas-date-nav {
+  @apply grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 w-full xl:w-auto;
+}
+
+.agendas-date-btn {
+  @apply border border-border-subtle dark:border-border-dark-subtle bg-white dark:bg-surface-dark text-text-main dark:text-mint-pale px-2.5 py-1.5 rounded-lg font-medium hover:border-teal-primary transition-colors flex items-center justify-center gap-1 cursor-pointer;
+}
+
+.agendas-date-btn-today {
+  @apply border border-border-subtle dark:border-border-dark-subtle bg-white dark:bg-surface-dark text-teal-primary dark:text-mint-medium px-2.5 py-1.5 rounded-lg font-semibold hover:border-teal-primary transition-colors text-center cursor-pointer;
+}
+
+.agendas-date-input {
+  @apply col-span-2 sm:col-span-1 w-full sm:w-auto border border-border-subtle dark:border-border-dark-subtle bg-white dark:bg-surface-dark text-text-main dark:text-text-dark-main px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold focus:outline-none focus:border-teal-primary;
+}
+
+.agendas-filters {
+  @apply grid grid-cols-1 sm:grid-cols-3 xl:flex xl:flex-wrap items-center gap-2 w-full xl:w-auto;
+}
+
+.agendas-filter-select {
+  @apply w-full xl:w-auto border border-border-subtle dark:border-border-dark-subtle bg-white dark:bg-surface-dark text-text-main dark:text-text-dark-main px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:border-teal-primary;
+}
+
+.agendas-legend {
+  @apply pt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] sm:text-xs text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-legend-title {
+  @apply font-semibold text-text-main dark:text-white;
+}
+
+.agendas-legend-item {
+  @apply inline-flex items-center gap-1.5;
+}
+
+.agendas-swatch-general {
+  @apply w-3 h-3 rounded-xs border border-slate-300 bg-white inline-block shrink-0;
+}
+
+.agendas-swatch-senior {
+  @apply w-3 h-3 rounded-xs border border-amber-400 bg-amber-50 inline-block shrink-0;
+}
+
+.agendas-legend-text-senior {
+  @apply font-semibold text-amber-800 dark:text-amber-300;
+}
+
+.agendas-swatch-reserved {
+  @apply w-3 h-3 rounded-xs bg-teal-primary inline-block shrink-0;
+}
+
+.agendas-legend-text-reserved {
+  @apply text-teal-primary dark:text-teal-accent font-semibold;
+}
+
+.agendas-swatch-blocked {
+  @apply w-3 h-3 rounded-xs bg-slate-200 dark:bg-slate-800 border border-slate-400 inline-block shrink-0;
+}
+
+.agendas-swatch-colacion {
+  @apply w-3 h-3 rounded-xs bg-slate-100 dark:bg-slate-900 border border-dashed border-slate-400 inline-block shrink-0;
+}
+
+.agendas-alert-success {
+  @apply flex items-start sm:items-center gap-2.5 border-l-3 border-teal-primary bg-mint-pale/40 dark:bg-surface-dark-accent p-3.5 rounded-r-lg text-xs sm:text-sm text-text-main dark:text-text-dark-main font-medium animate-fadeIn;
+}
+
+.agendas-alert-success-icon {
+  @apply w-4 h-4 text-teal-primary dark:text-teal-accent shrink-0 mt-0.5 sm:mt-0;
+}
+
+.agendas-alert-warning {
+  @apply flex items-start sm:items-center gap-2.5 border-l-3 border-amber-500 bg-amber-50/70 dark:bg-amber-950/50 p-3.5 rounded-r-lg text-xs sm:text-sm text-amber-900 dark:text-amber-200 font-medium animate-fadeIn;
+}
+
+.agendas-alert-warning-icon {
+  @apply w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0;
+}
+
+.agendas-loading-card {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark rounded-xl p-8 sm:p-12 text-center text-xs sm:text-sm text-text-muted dark:text-text-dark-muted flex flex-col items-center justify-center gap-2.5;
+}
+
+.agendas-loading-spinner {
+  @apply w-6 h-6 animate-spin text-teal-primary dark:text-teal-accent;
+}
+
+.agendas-loading-text {
+  @apply font-medium;
+}
+
+/* Vista 1 (Móvil / Tablet < lg): Secciones por Box limpias */
+.agendas-mobile-boxes-list {
+  @apply lg:hidden space-y-4;
+}
+
+.agendas-mobile-box-card {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark rounded-xl p-4 sm:p-5 space-y-3.5;
+}
+
+.agendas-mobile-box-header {
+  @apply flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle dark:border-border-dark pb-2.5;
+}
+
+.agendas-mobile-box-title-wrap {
+  @apply flex items-center gap-2 flex-wrap;
+}
+
+.agendas-mobile-box-info {
+  @apply flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle/70 dark:border-border-dark pb-3 text-xs;
+}
+
+.agendas-mobile-slots-grid {
+  @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2;
+}
+
+.agendas-mobile-colacion-banner {
+  @apply col-span-2 sm:col-span-3 md:col-span-4 py-1.5 px-3 rounded-lg bg-slate-50 dark:bg-surface-dark-bg border border-dashed border-slate-300 dark:border-border-dark-subtle font-mono text-[11px] text-center text-slate-500 dark:text-slate-400;
+}
+
+.agendas-mobile-empty-box {
+  @apply py-4 text-center space-y-2.5;
+}
+
+/* Vista 1 (Escritorio >= lg): Matriz Diaria por Boxes */
+.agendas-matrix-card {
+  @apply hidden lg:block bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark rounded-xl overflow-x-auto shadow-2xs;
+}
+
+.agendas-matrix-inner {
+  @apply min-w-[920px];
+}
+
+.agendas-matrix-header-grid {
+  @apply grid border-b border-border-subtle dark:border-border-dark bg-slate-50/80 dark:bg-surface-dark-bg grid-cols-[90px_repeat(var(--matrix-cols,1),minmax(210px,1fr))];
+}
+
+.agendas-matrix-corner {
+  @apply sticky left-0 z-10 bg-slate-50 dark:bg-surface-dark-bg p-3 font-mono text-xs font-bold uppercase border-r border-border-subtle dark:border-border-dark flex items-center justify-center text-text-muted dark:text-mint-medium;
+}
+
+.agendas-matrix-box-header {
+  @apply p-3 border-r border-border-subtle dark:border-border-dark last:border-r-0;
+}
+
+.agendas-matrix-box-top {
+  @apply flex items-start justify-between gap-1 mb-1;
+}
+
+.agendas-matrix-box-num {
+  @apply font-bold text-sm text-text-main dark:text-white;
+}
+
+.agendas-matrix-box-esp {
+  @apply text-[10px] uppercase px-2 py-0.5 rounded bg-slate-100 dark:bg-surface-dark-accent text-teal-deep dark:text-mint-medium font-semibold;
+}
+
+.agendas-matrix-box-details {
+  @apply space-y-1 pt-1.5 border-t border-border-subtle/70 dark:border-border-dark text-xs;
+}
+
+.agendas-matrix-prof-name {
+  @apply font-semibold text-text-main dark:text-text-dark-main truncate;
+}
+
+.agendas-matrix-meta-row {
+  @apply flex items-center justify-between text-[11px] text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-matrix-time-range {
+  @apply font-mono text-[11px] text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-status-badge-active {
+  @apply px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800;
+}
+
+.agendas-status-badge-paused {
+  @apply px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400;
+}
+
+.agendas-matrix-stats-row {
+  @apply flex items-center justify-between text-[11px] font-semibold pt-0.5;
+}
+
+.agendas-matrix-free-count {
+  @apply text-teal-primary dark:text-teal-accent;
+}
+
+.agendas-matrix-pause-link {
+  @apply text-[11px] text-amber-700 dark:text-amber-400 hover:underline font-medium cursor-pointer;
+}
+
+.agendas-matrix-empty-box {
+  @apply pt-1.5 text-xs text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-matrix-empty-label {
+  @apply block mb-1.5 text-[11px];
+}
+
+.agendas-matrix-assign-btn {
+  @apply w-full text-[11px] font-semibold py-1.5 px-3 rounded-lg border border-teal-primary dark:border-teal-accent text-teal-primary dark:text-mint-medium hover:bg-teal-primary hover:text-white transition-colors cursor-pointer;
+}
+
+.agendas-matrix-body {
+  @apply divide-y divide-border-subtle/60 dark:divide-border-dark;
+}
+
+.agendas-matrix-row-grid {
+  @apply grid grid-cols-[90px_repeat(var(--matrix-cols,1),minmax(210px,1fr))];
+}
+
+.agendas-matrix-hour-cell {
+  @apply sticky left-0 z-10 p-2 border-r border-border-subtle dark:border-border-dark font-mono text-xs font-semibold text-center bg-slate-50/80 dark:bg-surface-dark-bg text-text-muted dark:text-mint-medium flex items-center justify-center;
+}
+
+.agendas-matrix-colacion-cell {
+  @apply p-2 bg-slate-50 dark:bg-surface-dark-bg font-mono text-xs text-center text-slate-400 dark:text-slate-500 flex items-center justify-center col-[2/-1];
+}
+
+.agendas-matrix-slot-cell {
+  @apply p-1 border-r border-border-subtle/60 dark:border-border-dark last:border-r-0 min-h-[48px] flex items-stretch;
+}
+
+.agendas-slot-btn-reserved {
+  @apply w-full p-2 rounded-lg text-left text-xs transition-colors flex flex-col justify-between cursor-pointer bg-teal-primary text-white hover:bg-teal-hover;
+}
+
+.agendas-slot-btn-blocked {
+  @apply w-full p-2 rounded-lg text-left text-xs transition-colors flex flex-col justify-between cursor-pointer bg-slate-100 dark:bg-slate-800/70 text-slate-400 line-through border border-slate-200 dark:border-slate-700;
+}
+
+.agendas-slot-btn-senior {
+  @apply w-full p-2 rounded-lg text-left text-xs transition-colors flex flex-col justify-between cursor-pointer bg-amber-50/70 dark:bg-amber-950/30 text-text-main dark:text-text-dark-main border border-amber-300 dark:border-amber-700 hover:border-amber-500 font-semibold;
+}
+
+.agendas-slot-btn-available {
+  @apply w-full p-2 rounded-lg text-left text-xs transition-colors flex flex-col justify-between cursor-pointer bg-white dark:bg-surface-dark-elevated text-text-main dark:text-text-dark-main border border-border-subtle dark:border-border-dark-accent hover:border-teal-primary;
+}
+
+.agendas-slot-top {
+  @apply flex items-center justify-between gap-1 w-full;
+}
+
+.agendas-slot-time {
+  @apply font-mono font-semibold text-[11px];
+}
+
+.agendas-slot-senior-tag {
+  @apply text-[9px] px-1.5 py-0.5 rounded bg-amber-200/60 text-amber-900 dark:text-amber-200 font-bold shrink-0;
+}
+
+.agendas-slot-bottom {
+  @apply text-[10px] truncate w-full mt-0.5;
+}
+
+.agendas-slot-code-reserved {
+  @apply font-mono font-semibold text-mint-pale;
+}
+
+.agendas-slot-label-senior {
+  @apply text-amber-800 dark:text-amber-300;
+}
+
+.agendas-slot-label-available {
+  @apply text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-slot-dash {
+  @apply w-full h-full flex items-center justify-center text-xs text-slate-300 dark:text-slate-600 font-mono;
+}
+
+.agendas-slot-blank {
+  @apply w-full h-full;
+}
+
+/* Vista 2: Horario Semanal Responsivo */
+.agendas-weekly-card {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark rounded-xl overflow-hidden shadow-2xs;
+}
+
+.agendas-weekly-responsive-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-border-subtle dark:divide-border-dark;
+}
+
+.agendas-weekly-day-col {
+  @apply flex flex-col border-b sm:border-b border-border-subtle dark:border-border-dark xl:border-b-0;
+}
+
+.agendas-weekly-day-header {
+  @apply p-3 border-b border-border-subtle dark:border-border-dark bg-slate-50/80 dark:bg-surface-dark-bg text-center;
+}
+
+.agendas-weekly-day-header-today {
+  @apply p-3 border-b border-border-subtle dark:border-border-dark bg-mint-pale/40 dark:bg-surface-dark-accent text-center;
+}
+
+.agendas-weekly-day-name {
+  @apply block text-[11px] uppercase text-text-muted dark:text-text-dark-muted font-semibold;
+}
+
+.agendas-weekly-day-date {
+  @apply text-sm font-bold text-text-main dark:text-white;
+}
+
+.agendas-weekly-col {
+  @apply p-3 space-y-2.5 text-xs flex-1;
+}
+
+.agendas-weekly-item {
+  @apply border border-border-subtle dark:border-border-dark-subtle border-l-3 border-l-teal-primary bg-white dark:bg-surface-dark-bg rounded-lg p-3 space-y-1.5 hover:border-teal-primary transition-colors;
+}
+
+.agendas-weekly-item-top {
+  @apply flex items-center justify-between gap-1;
+}
+
+.agendas-weekly-item-box {
+  @apply font-bold text-xs text-text-main dark:text-white;
+}
+
+.agendas-weekly-item-esp {
+  @apply text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-surface-dark-accent text-teal-deep dark:text-mint-medium font-semibold;
+}
+
+.agendas-weekly-item-prof {
+  @apply font-semibold block text-text-main dark:text-text-dark-main truncate;
+}
+
+.agendas-weekly-item-hours {
+  @apply text-[11px] font-mono text-text-muted dark:text-text-dark-muted block;
+}
+
+.agendas-weekly-item-stats {
+  @apply pt-1.5 border-t border-border-subtle/70 dark:border-border-dark text-[11px] space-y-0.5;
+}
+
+.agendas-weekly-stat-row {
+  @apply flex justify-between;
+}
+
+.agendas-weekly-stat-label {
+  @apply text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-weekly-stat-free {
+  @apply text-teal-primary dark:text-teal-accent;
+}
+
+.agendas-weekly-stat-senior {
+  @apply flex justify-between text-amber-800 dark:text-amber-300 font-semibold;
+}
+
+.agendas-weekly-item-actions {
+  @apply pt-1.5 flex gap-1.5;
+}
+
+.agendas-weekly-btn-matrix {
+  @apply flex-1 text-[11px] font-semibold py-1.5 rounded-md bg-teal-primary text-white hover:bg-teal-hover transition-colors text-center cursor-pointer;
+}
+
+.agendas-weekly-btn-pause {
+  @apply text-[11px] font-medium px-2.5 py-1.5 rounded-md border border-border-subtle dark:border-border-dark-subtle hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-300 cursor-pointer;
+}
+
+.agendas-weekly-empty {
+  @apply py-8 text-center text-slate-400 p-4 space-y-2;
+}
+
+.agendas-weekly-empty-text {
+  @apply block text-xs;
+}
+
+.agendas-weekly-empty-btn {
+  @apply text-xs font-semibold px-3 py-1.5 rounded-lg border border-teal-primary text-teal-primary dark:text-mint-medium hover:bg-teal-primary hover:text-white transition-colors cursor-pointer;
+}
+
+/* Vista 3: Lista Resumen (Divisores en móvil + Tabla en md+) */
+.agendas-table-card {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark rounded-xl p-4 sm:p-6 shadow-2xs;
+}
+
+.agendas-table-header {
+  @apply flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-subtle dark:border-border-dark pb-4 mb-4;
+}
+
+.agendas-table-title {
+  @apply text-base font-bold text-text-main dark:text-text-dark-main;
+}
+
+.agendas-table-subtitle {
+  @apply text-xs text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-btn-refresh {
+  @apply self-start sm:self-auto text-xs font-semibold px-3 py-1.5 rounded-lg border border-border-subtle dark:border-border-dark-subtle bg-white dark:bg-surface-dark-bg text-teal-primary dark:text-mint-medium hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer;
+}
+
+.agendas-table-empty {
+  @apply py-10 px-4 text-center text-xs sm:text-sm text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-mobile-summary-list {
+  @apply md:hidden divide-y divide-border-subtle dark:divide-border-dark;
+}
+
+.agendas-mobile-summary-card {
+  @apply py-4 first:pt-0 last:pb-0 space-y-2.5 text-xs;
+}
+
+.agendas-mobile-summary-top {
+  @apply flex items-center justify-between gap-2;
+}
+
+.agendas-mobile-summary-grid {
+  @apply grid grid-cols-2 gap-2;
+}
+
+.agendas-table-wrap {
+  @apply hidden md:block overflow-x-auto;
+}
+
+.agendas-table {
+  @apply w-full text-left text-xs sm:text-sm border-collapse;
+}
+
+.agendas-thead-row {
+  @apply border-b border-border-subtle dark:border-border-dark bg-slate-50/80 dark:bg-surface-dark-bg text-text-muted dark:text-mint-medium text-xs uppercase tracking-wider;
+}
+
+.agendas-th {
+  @apply py-3 px-4 font-semibold;
+}
+
+.agendas-th-center {
+  @apply py-3 px-4 font-semibold text-center;
+}
+
+.agendas-th-right {
+  @apply py-3 px-4 font-semibold text-right;
+}
+
+.agendas-tbody {
+  @apply divide-y divide-border-subtle/60 dark:divide-border-dark;
+}
+
+.agendas-tr {
+  @apply hover:bg-slate-50/60 dark:hover:bg-surface-dark-elevated/60;
+}
+
+.agendas-td-date {
+  @apply py-3 px-4 font-mono font-semibold whitespace-nowrap;
+}
+
+.agendas-td-time {
+  @apply py-3 px-4 whitespace-nowrap font-mono;
+}
+
+.agendas-td-duration {
+  @apply block text-[11px] font-sans text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-td-prof {
+  @apply py-3 px-4;
+}
+
+.agendas-td-prof-name {
+  @apply font-semibold block text-text-main dark:text-white;
+}
+
+.agendas-td-prof-sub {
+  @apply text-xs text-text-muted dark:text-text-dark-muted block;
+}
+
+.agendas-td-center {
+  @apply py-3 px-4 text-center whitespace-nowrap;
+}
+
+.agendas-td-free {
+  @apply font-semibold text-teal-primary dark:text-teal-accent;
+}
+
+.agendas-td-total {
+  @apply text-slate-400;
+}
+
+.agendas-td-senior {
+  @apply block text-[11px] text-amber-800 dark:text-amber-300 font-semibold;
+}
+
+.agendas-pill-active {
+  @apply px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-semibold;
+}
+
+.agendas-pill-paused {
+  @apply px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[11px] font-semibold;
+}
+
+.agendas-td-right {
+  @apply py-3 px-4 text-right whitespace-nowrap;
+}
+
+.agendas-btn-pause-row {
+  @apply text-xs font-semibold px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer;
+}
+
+.agendas-text-blocked {
+  @apply text-xs text-slate-400;
+}
+
+/* Modales de Consola SOME */
+.agendas-modal-backdrop {
+  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-2 sm:p-4 animate-fadeIn;
+}
+
+.agendas-modal-box {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark-accent max-w-md w-full p-5 sm:p-6 rounded-xl shadow-xl text-xs sm:text-sm space-y-4 max-h-[92vh] overflow-y-auto;
+}
+
+.agendas-modal-box-lg {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark-accent max-w-lg w-full p-5 sm:p-6 rounded-xl shadow-xl text-xs sm:text-sm space-y-4 max-h-[92vh] overflow-y-auto;
+}
+
+.agendas-modal-header {
+  @apply flex items-start sm:items-center justify-between gap-2 border-b border-border-subtle dark:border-border-dark pb-3;
+}
+
+.agendas-modal-title-group {
+  @apply flex items-center gap-2;
+}
+
+.agendas-modal-title-icon {
+  @apply w-5 h-5 text-teal-primary dark:text-teal-accent shrink-0;
+}
+
+.agendas-modal-title {
+  @apply font-bold text-base text-text-main dark:text-white;
+}
+
+.agendas-modal-title-lg {
+  @apply text-base sm:text-lg font-bold text-text-main dark:text-white;
+}
+
+.agendas-modal-close-btn {
+  @apply p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-surface-dark-muted text-slate-500 cursor-pointer shrink-0;
+}
+
+.agendas-modal-details {
+  @apply space-y-2 border-b border-border-subtle dark:border-border-dark pb-3;
+}
+
+.agendas-modal-row {
+  @apply flex flex-wrap items-center justify-between gap-1;
+}
+
+.agendas-modal-row-center {
+  @apply flex flex-wrap items-center justify-between gap-1 pt-1;
+}
+
+.agendas-modal-label {
+  @apply text-text-muted dark:text-text-dark-muted;
+}
+
+.agendas-modal-val-mono {
+  @apply font-mono text-text-main dark:text-white;
+}
+
+.agendas-modal-val-code {
+  @apply font-mono text-teal-primary dark:text-teal-accent;
+}
+
+.agendas-modal-status-pill {
+  @apply px-2 py-0.5 rounded bg-mint-pale/60 dark:bg-surface-dark-accent text-teal-primary dark:text-mint-medium font-semibold text-xs;
+}
+
+.agendas-modal-senior-yes {
+  @apply text-amber-700 dark:text-amber-300;
+}
+
+.agendas-modal-cita-card {
+  @apply border-l-3 border-teal-primary bg-slate-50 dark:bg-surface-dark-bg p-3.5 rounded-r-lg space-y-1.5;
+}
+
+.agendas-modal-cita-title {
+  @apply font-bold block text-xs uppercase text-teal-primary dark:text-mint-medium pb-0.5;
+}
+
+.agendas-modal-empty-note {
+  @apply text-text-muted dark:text-text-dark-muted text-xs text-center py-2;
+}
+
+.agendas-modal-btn-primary {
+  @apply w-full bg-teal-primary hover:bg-teal-hover text-white py-2.5 rounded-lg font-semibold transition-colors cursor-pointer;
+}
+
+.agendas-modal-warn-header {
+  @apply flex items-center gap-3;
+}
+
+.agendas-modal-warn-icon-box {
+  @apply w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/70 text-amber-600 flex items-center justify-center shrink-0;
+}
+
+.agendas-modal-warn-icon {
+  @apply w-5 h-5;
+}
+
+.agendas-modal-warn-tag {
+  @apply text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400;
+}
+
+.agendas-modal-warn-text {
+  @apply text-xs sm:text-sm text-text-muted dark:text-text-dark-muted leading-relaxed;
+}
+
+.agendas-modal-warn-strong {
+  @apply text-text-main dark:text-white font-semibold;
+}
+
+.agendas-modal-actions {
+  @apply flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2;
+}
+
+.agendas-modal-btn-amber {
+  @apply flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer text-center;
+}
+
+.agendas-modal-btn-cancel {
+  @apply px-4 py-2.5 rounded-lg border border-border-subtle dark:border-border-dark-subtle text-xs sm:text-sm font-semibold text-text-main dark:text-mint-pale hover:bg-slate-100 dark:hover:bg-surface-dark-muted cursor-pointer text-center;
+}
+
+.agendas-modal-tag-pill {
+  @apply text-[10px] font-semibold uppercase tracking-wider text-teal-primary dark:text-mint-medium block mb-0.5;
+}
+
+.agendas-modal-error {
+  @apply border-l-3 border-red-600 bg-red-50/70 dark:bg-red-950/50 p-3 rounded-r-lg text-xs text-red-800 dark:text-red-200 font-medium;
+}
+
+.agendas-modal-form {
+  @apply space-y-3.5;
+}
+
+.agendas-modal-field-label {
+  @apply block text-xs font-semibold text-text-main dark:text-mint-pale mb-1;
+}
+
+.agendas-modal-select {
+  @apply w-full border border-border-subtle dark:border-border-dark-subtle bg-white dark:bg-surface-dark-bg text-text-main dark:text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium focus:outline-none focus:border-teal-primary disabled:opacity-50;
+}
+
+.agendas-modal-grid-2 {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-3;
+}
+
+.agendas-modal-input-readonly {
+  @apply w-full border border-border-subtle dark:border-border-dark-subtle px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800/70 font-semibold text-xs sm:text-sm;
+}
+
+.agendas-modal-input-mono {
+  @apply w-full border border-border-subtle dark:border-border-dark-subtle bg-white dark:bg-surface-dark-bg text-text-main dark:text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-mono font-semibold focus:outline-none focus:border-teal-primary;
+}
+
+.agendas-preview-box {
+  @apply border-l-3 border-teal-primary bg-slate-50 dark:bg-surface-dark-bg p-3.5 rounded-r-lg space-y-1 text-xs;
+}
+
+.agendas-preview-title {
+  @apply font-bold uppercase text-teal-primary dark:text-mint-medium pb-0.5;
+}
+
+.agendas-preview-senior-row {
+  @apply flex flex-wrap justify-between gap-1 pt-1.5 border-t border-border-subtle dark:border-border-dark text-amber-800 dark:text-amber-300 font-semibold;
+}
+
+.agendas-preview-note {
+  @apply text-[11px] text-slate-500;
+}
+
+.agendas-modal-submit-btn {
+  @apply flex-1 bg-teal-primary hover:bg-teal-hover text-white py-2.5 rounded-lg font-semibold transition-colors disabled:opacity-50 cursor-pointer text-center;
+}

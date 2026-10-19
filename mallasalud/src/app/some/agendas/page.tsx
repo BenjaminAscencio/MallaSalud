@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, type CSSProperties } from "react";
 import {
   CalendarDaysIcon,
   PlusIcon,
@@ -15,6 +15,7 @@ import {
   TableCellsIcon,
   ClockIcon,
 } from "@heroicons/react/24/outline";
+import "./agendas.css";
 
 // Tipos de Dominio
 type EspecialidadEnum = "MEDICINA_GENERAL" | "DENTAL" | "MATRONERIA";
@@ -210,10 +211,18 @@ export default function AgendasPage() {
         if (profCompatible) setNuevoProfId(profCompatible.id);
       }
     } else {
-      if (boxes.length > 0) setNuevoBoxId(boxes[0].id);
       if (profesionales.length > 0) {
-        setNuevoProfId(profesionales[0].id);
-        setNuevaEsp(profesionales[0].especialidad);
+        const primerProf = profesionales[0];
+        setNuevoProfId(primerProf.id);
+        setNuevaEsp(primerProf.especialidad);
+        const boxCompatible = boxes.find((b) => b.especialidad === primerProf.especialidad);
+        if (boxCompatible) {
+          setNuevoBoxId(boxCompatible.id);
+        } else if (boxes.length > 0) {
+          setNuevoBoxId(boxes[0].id);
+        }
+      } else if (boxes.length > 0) {
+        setNuevoBoxId(boxes[0].id);
       }
     }
 
@@ -385,22 +394,33 @@ export default function AgendasPage() {
     });
   }, [fechaSeleccionada, modoVista]);
 
+  const matrixGridVars = {
+    "--matrix-cols": Math.max(1, boxesFiltrados.length),
+  } as CSSProperties;
+
+  const getSlotBtnClass = (bloque: BloqueDetalle) => {
+    if (bloque.estado_bloque === "RESERVADO") return "agendas-slot-btn-reserved";
+    if (bloque.estado_bloque === "BLOQUEADO_SOME") return "agendas-slot-btn-blocked";
+    if (bloque.es_cuota_adulto_mayor) return "agendas-slot-btn-senior";
+    return "agendas-slot-btn-available";
+  };
+
   return (
-    <div className="max-w-[1540px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans space-y-6">
+    <div className="agendas-page">
       
       {/* 1. Cabecera Institucional de Consola SOME */}
-      <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#CDECE5] dark:border-[#21403A] pb-5">
+      <div className="agendas-header-card">
+        <div className="agendas-header-top">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] border border-[#A7E3D4] dark:border-[#2A534B]">
+            <div className="agendas-badge-row">
+              <span className="agendas-hu-badge">
                 HU-005 • Consola SOME
               </span>
-              <span className="text-xs font-medium text-[#355C56] dark:text-[#9CC2BC]">
+              <span className="agendas-hu-subtitle">
                 Gestión de Bloques y Parametrización de Cuota 60+
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#132A26] dark:text-[#E8F5F2]">
+            <h1 className="agendas-title">
               Programación y Control de Agendas Médicas
             </h1>
           </div>
@@ -409,103 +429,91 @@ export default function AgendasPage() {
           <button
             type="button"
             onClick={() => abrirModalCrear()}
-            className="bg-[#0F766E] hover:bg-[#115E59] text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all self-start lg:self-auto flex items-center gap-2 cursor-pointer"
+            className="agendas-btn-create"
           >
-            <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+            <PlusIcon className="agendas-icon-plus" />
             <span>Publicar Nueva Agenda</span>
           </button>
         </div>
 
         {/* Barra de Navegación y Filtros */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 text-xs">
+        <div className="agendas-toolbar">
           {/* Selector de Modo de Vista */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-[#F4FAF8] dark:bg-[#0B1715] p-1.5 rounded-xl border border-[#CDECE5] dark:border-[#264E46]">
+          <div className="agendas-view-switcher">
             <button
               type="button"
               onClick={() => setModoVista("matriz")}
-              className={`px-3.5 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                modoVista === "matriz"
-                  ? "bg-[#0F766E] text-white shadow-2xs"
-                  : "text-[#355C56] dark:text-[#9CC2BC] hover:text-[#132A26] dark:hover:text-white"
-              }`}
+              className={modoVista === "matriz" ? "agendas-view-btn-active" : "agendas-view-btn"}
             >
-              <Squares2X2Icon className="w-4 h-4" />
+              <Squares2X2Icon className="agendas-icon-sm" />
               <span>1. Matriz Diaria por Boxes</span>
             </button>
             <button
               type="button"
               onClick={() => setModoVista("semanal")}
-              className={`px-3.5 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                modoVista === "semanal"
-                  ? "bg-[#0F766E] text-white shadow-2xs"
-                  : "text-[#355C56] dark:text-[#9CC2BC] hover:text-[#132A26] dark:hover:text-white"
-              }`}
+              className={modoVista === "semanal" ? "agendas-view-btn-active" : "agendas-view-btn"}
             >
-              <CalendarDaysIcon className="w-4 h-4" />
+              <CalendarDaysIcon className="agendas-icon-sm" />
               <span>2. Horario Semanal (Lun - Sáb)</span>
             </button>
             <button
               type="button"
               onClick={() => setModoVista("tabla")}
-              className={`px-3.5 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                modoVista === "tabla"
-                  ? "bg-[#0F766E] text-white shadow-2xs"
-                  : "text-[#355C56] dark:text-[#9CC2BC] hover:text-[#132A26] dark:hover:text-white"
-              }`}
+              className={modoVista === "tabla" ? "agendas-view-btn-active" : "agendas-view-btn"}
             >
-              <TableCellsIcon className="w-4 h-4" />
+              <TableCellsIcon className="agendas-icon-sm" />
               <span>3. Lista Resumen</span>
             </button>
           </div>
 
           {/* Controles de Navegación de Fecha */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="agendas-date-nav">
             <button
               type="button"
               onClick={() => cambiarDia(-1)}
-              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#D9F5EF] px-3 py-2 rounded-xl font-bold hover:border-[#0F766E] transition-colors flex items-center gap-1 cursor-pointer"
+              className="agendas-date-btn"
               title="Día anterior"
             >
-              <ChevronLeftIcon className="w-3.5 h-3.5" />
+              <ChevronLeftIcon className="agendas-icon-xs" />
               <span>Anterior</span>
             </button>
             <button
               type="button"
               onClick={irAHoy}
-              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#0F766E] dark:text-[#A7E3D4] px-3 py-2 rounded-xl font-extrabold hover:border-[#0F766E] transition-colors cursor-pointer"
+              className="agendas-date-btn-today"
             >
               Hoy
             </button>
             <button
               type="button"
               onClick={irAMañana}
-              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#D9F5EF] px-3 py-2 rounded-xl font-bold hover:border-[#0F766E] transition-colors cursor-pointer"
+              className="agendas-date-btn"
             >
               Mañana
             </button>
             <button
               type="button"
               onClick={() => cambiarDia(1)}
-              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#D9F5EF] px-3 py-2 rounded-xl font-bold hover:border-[#0F766E] transition-colors flex items-center gap-1 cursor-pointer"
+              className="agendas-date-btn"
               title="Día siguiente"
             >
               <span>Siguiente</span>
-              <ChevronRightIcon className="w-3.5 h-3.5" />
+              <ChevronRightIcon className="agendas-icon-xs" />
             </button>
             <input
               type="date"
               value={fechaSeleccionada}
               onChange={(e) => setFechaSeleccionada(e.target.value)}
-              className="border-2 border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#0B1715] text-[#132A26] dark:text-[#E8F5F2] px-3 py-1.5 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#0F766E]"
+              className="agendas-date-input"
             />
           </div>
 
           {/* Filtros de Dominio */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="agendas-filters">
             <select
               value={filtroEspecialidad}
               onChange={(e) => setFiltroEspecialidad(e.target.value)}
-              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#E8F5F2] px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0F766E]"
+              className="agendas-filter-select"
             >
               <option value="">Todas las Especialidades</option>
               <option value="MEDICINA_GENERAL">Medicina General</option>
@@ -516,7 +524,7 @@ export default function AgendasPage() {
             <select
               value={filtroBoxId}
               onChange={(e) => setFiltroBoxId(e.target.value)}
-              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#E8F5F2] px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0F766E]"
+              className="agendas-filter-select"
             >
               <option value="">Todos los Boxes</option>
               {boxes.map((b) => (
@@ -529,7 +537,7 @@ export default function AgendasPage() {
             <select
               value={filtroProfesionalId}
               onChange={(e) => setFiltroProfesionalId(e.target.value)}
-              className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-[#E8F5F2] px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0F766E]"
+              className="agendas-filter-select"
             >
               <option value="">Todos los Profesionales</option>
               {profesionales.map((p) => (
@@ -542,26 +550,26 @@ export default function AgendasPage() {
         </div>
 
         {/* Leyenda de Estados */}
-        <div className="pt-3 border-t border-[#CDECE5] dark:border-[#21403A] flex flex-wrap items-center gap-4 text-xs text-[#355C56] dark:text-[#9CC2BC]">
-          <span className="font-extrabold uppercase text-[#132A26] dark:text-white">Leyenda:</span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded border border-[#CDECE5] bg-[#F4FAF8] inline-block" />
+        <div className="agendas-legend">
+          <span className="agendas-legend-title">Leyenda:</span>
+          <span className="agendas-legend-item">
+            <span className="agendas-swatch-general" />
             <span>Disponible General</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded border-2 border-amber-400 bg-amber-50 inline-block" />
-            <span className="font-bold text-amber-800 dark:text-amber-300">★ Cuota 60+ (Protegido)</span>
+          <span className="agendas-legend-item">
+            <span className="agendas-swatch-senior" />
+            <span className="agendas-legend-text-senior">★ Cuota 60+ (Intercalada · se libera 30 min antes)</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded bg-[#0F766E] inline-block" />
-            <span className="text-[#0F766E] dark:text-[#5BB9A6] font-bold">Reservado / Con Paciente</span>
+          <span className="agendas-legend-item">
+            <span className="agendas-swatch-reserved" />
+            <span className="agendas-legend-text-reserved">Reservado / Con Paciente</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-800 border border-slate-400 inline-block" />
+          <span className="agendas-legend-item">
+            <span className="agendas-swatch-blocked" />
             <span>Bloqueado SOME</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded bg-slate-100 dark:bg-slate-900 border border-dashed border-slate-400 inline-block" />
+          <span className="agendas-legend-item">
+            <span className="agendas-swatch-colacion" />
             <span>13:00 - 14:00 Pausa de Colación</span>
           </span>
         </div>
@@ -569,299 +577,403 @@ export default function AgendasPage() {
 
       {/* Alertas Globales */}
       {mensajeExito && (
-        <div className="flex items-center gap-2.5 bg-[#D9F5EF] dark:bg-[#1E3F3B] border border-[#5BB9A6] p-4 rounded-2xl text-xs sm:text-sm text-[#132A26] dark:text-[#E8F5F2] font-bold animate-fadeIn">
-          <CheckCircleIcon className="w-5 h-5 text-[#0F766E] dark:text-[#5BB9A6] flex-shrink-0" />
+        <div className="agendas-alert-success">
+          <CheckCircleIcon className="agendas-alert-success-icon" />
           <span>{mensajeExito}</span>
         </div>
       )}
 
       {alertaPausa && (
-        <div className="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 p-4 rounded-2xl text-xs sm:text-sm text-amber-900 dark:text-amber-200 font-semibold animate-fadeIn">
-          <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 flex-shrink-0" />
+        <div className="agendas-alert-warning">
+          <ExclamationTriangleIcon className="agendas-alert-warning-icon" />
           <span>{alertaPausa}</span>
         </div>
       )}
 
       {/* CONTENIDO PRINCIPAL SEGÚN EL MODO DE VISTA */}
       {cargando ? (
-        <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-14 text-center text-sm text-[#355C56] dark:text-[#9CC2BC] flex flex-col items-center justify-center gap-3">
-          <ArrowPathIcon className="w-8 h-8 animate-spin text-[#0F766E] dark:text-[#5BB9A6]" />
-          <span className="font-bold">Cargando agendas médicas y matriz de bloques...</span>
+        <div className="agendas-loading-card">
+          <ArrowPathIcon className="agendas-loading-spinner" />
+          <span className="agendas-loading-text">Cargando agendas médicas y matriz de bloques...</span>
         </div>
       ) : modoVista === "matriz" ? (
-        /* ========================================================================= */
-        /* PESTAÑA 1: Matriz Diaria por Boxes                                        */
-        /* ========================================================================= */
-        <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl overflow-x-auto shadow-md">
-          <div className="min-w-[920px]">
-            {/* Cabecera de la Grilla: Boxes Clínicos */}
-            <div
-              className="grid border-b border-[#CDECE5] dark:border-[#21403A] bg-[#F4FAF8] dark:bg-[#0B1715]"
-              style={{
-                gridTemplateColumns: `100px repeat(${boxesFiltrados.length}, minmax(220px, 1fr))`,
-              }}
-            >
-              <div className="p-3 font-mono text-xs font-extrabold uppercase border-r border-[#CDECE5] dark:border-[#21403A] flex items-center justify-center text-[#1E4640] dark:text-[#A7E3D4]">
-                HORA
-              </div>
+        <>
+          {/* ========================================================================= */}
+          {/* PESTAÑA 1 (MÓVIL / TABLET < lg): Tarjetas Responsivas por Box y Cupos     */}
+          {/* ========================================================================= */}
+          <div className="agendas-mobile-boxes-list">
+            {boxesFiltrados.map((box) => {
+              const agendaBox = agendas.find(
+                (a) => a.box_id === box.id && a.fecha === fechaSeleccionada
+              );
+              const bloquesList = agendaBox?.bloques_horarios || agendaBox?.bloques || [];
 
-              {boxesFiltrados.map((box) => {
-                const agendaBox = agendas.find(
-                  (a) => a.box_id === box.id && a.fecha === fechaSeleccionada
-                );
-
-                return (
-                  <div
-                    key={box.id}
-                    className="p-3.5 border-r border-[#CDECE5] dark:border-[#21403A] last:border-r-0"
-                  >
-                    <div className="flex items-start justify-between gap-1 mb-1.5">
-                      <span className="font-extrabold text-sm text-[#132A26] dark:text-white">
-                        {box.numero}
-                      </span>
-                      <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] font-bold">
+              return (
+                <div key={box.id} className="agendas-mobile-box-card">
+                  <div className="agendas-mobile-box-header">
+                    <div className="agendas-mobile-box-title-wrap">
+                      <span className="agendas-matrix-box-num">{box.numero}</span>
+                      <span className="agendas-matrix-box-esp">
                         {box.especialidad.replace("_", " ")}
                       </span>
                     </div>
 
-                    {agendaBox ? (
-                      <div className="space-y-1.5 pt-2 border-t border-[#CDECE5] dark:border-[#21403A] text-xs">
-                        <div
-                          className="font-bold text-[#132A26] dark:text-[#E8F5F2] truncate"
-                          title={agendaBox.profesional_nombre}
-                        >
-                          {agendaBox.profesional_nombre}
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#355C56] dark:text-[#9CC2BC]">
-                          <span className="font-mono">
-                            {agendaBox.hora_inicio} - {agendaBox.hora_fin}
+                    {agendaBox && (
+                      <span
+                        className={
+                          agendaBox.activa
+                            ? "agendas-status-badge-active"
+                            : "agendas-status-badge-paused"
+                        }
+                      >
+                        {agendaBox.activa ? "ACTIVA" : "PAUSADA"}
+                      </span>
+                    )}
+                  </div>
+
+                  {agendaBox ? (
+                    <>
+                      <div className="agendas-mobile-box-info">
+                        <div>
+                          <div className="agendas-matrix-prof-name">
+                            {agendaBox.profesional_nombre}
+                          </div>
+                          <span className="agendas-matrix-time-range">
+                            Jornada: {agendaBox.hora_inicio} - {agendaBox.hora_fin} hrs
                           </span>
-                          <span
-                            className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${
-                              agendaBox.activa
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300"
-                                : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
-                            }`}
-                          >
-                            {agendaBox.activa ? "ACTIVA" : "PAUSADA"}
-                          </span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] font-bold pt-0.5">
-                          <span className="text-[#0F766E] dark:text-[#5BB9A6]">
+                        <div className="agendas-matrix-stats-row">
+                          <span className="agendas-matrix-free-count">
                             Libres: {agendaBox.estadisticas.disponibles}/{agendaBox.estadisticas.total}
                           </span>
                           {agendaBox.activa && (
                             <button
                               type="button"
                               onClick={() => setAgendaPorPausar(agendaBox)}
-                              className="text-[11px] text-amber-700 dark:text-amber-400 hover:underline font-semibold cursor-pointer"
+                              className="agendas-weekly-btn-pause"
                             >
-                              Pausar
+                              Pausar Agenda
                             </button>
                           )}
                         </div>
                       </div>
-                    ) : (
-                      <div className="pt-2 text-xs text-[#355C56] dark:text-[#9CC2BC]">
-                        <span className="block mb-2 italic text-[11px]">Sin agenda asignada</span>
-                        <button
-                          type="button"
-                          onClick={() => abrirModalCrear({ boxId: box.id, fecha: fechaSeleccionada })}
-                          className="w-full text-[11px] font-bold py-1.5 rounded-xl border border-[#0F766E] dark:border-[#5BB9A6] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#0F766E] hover:text-white transition-colors cursor-pointer"
-                        >
-                          + Asignar Agenda
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
 
-            {/* Filas Horarias de la Jornada */}
-            <div className="divide-y divide-[#CDECE5]/60 dark:divide-[#21403A]">
-              {franjasHorarias.map((hora) => {
-                const esColacion = hora >= "13:00" && hora < "14:00";
-
-                return (
-                  <div
-                    key={hora}
-                    className="grid"
-                    style={{
-                      gridTemplateColumns: `100px repeat(${boxesFiltrados.length}, minmax(220px, 1fr))`,
-                    }}
-                  >
-                    <div className="p-2 border-r border-[#CDECE5] dark:border-[#21403A] font-mono text-xs font-bold text-center bg-[#F4FAF8]/70 dark:bg-[#0B1715]/70 text-[#1E4640] dark:text-[#A7E3D4] flex items-center justify-center">
-                      {hora}
-                    </div>
-
-                    {esColacion ? (
-                      <div
-                        className="p-2.5 bg-slate-100/80 dark:bg-[#0B1715] font-mono text-xs text-center text-slate-500 dark:text-slate-400 flex items-center justify-center italic"
-                        style={{ gridColumn: `span ${boxesFiltrados.length}` }}
-                      >
-                        13:00 - 14:00 • Pausa de Colación — Sin Atención Médica
-                      </div>
-                    ) : (
-                      boxesFiltrados.map((box) => {
-                        const agendaBox = agendas.find(
-                          (a) => a.box_id === box.id && a.fecha === fechaSeleccionada
-                        );
-                        const bloquesList = agendaBox?.bloques_horarios || agendaBox?.bloques || [];
-                        const bloque = bloquesList.find((b) => b.hora_inicio === hora);
-
-                        return (
-                          <div
-                            key={box.id}
-                            className="p-1.5 border-r border-[#CDECE5]/60 dark:border-[#21403A] last:border-r-0 min-h-[52px] flex items-stretch"
+                      <div className="agendas-mobile-slots-grid">
+                        {bloquesList.map((bloque) => (
+                          <button
+                            key={bloque.id}
+                            type="button"
+                            onClick={() =>
+                              setBloqueSeleccionado({ bloque, agenda: agendaBox })
+                            }
+                            className={getSlotBtnClass(bloque)}
                           >
-                            {bloque ? (
+                            <div className="agendas-slot-top">
+                              <span className="agendas-slot-time">
+                                {bloque.hora_inicio}
+                              </span>
+                              {bloque.es_cuota_adulto_mayor &&
+                                bloque.estado_bloque === "DISPONIBLE" && (
+                                  <span className="agendas-slot-senior-tag">
+                                    ★ 60+
+                                  </span>
+                                )}
+                            </div>
+                            <div className="agendas-slot-bottom">
+                              {bloque.estado_bloque === "RESERVADO" ? (
+                                <span className="agendas-slot-code-reserved">
+                                  ✓ {bloque.cita?.codigo_reserva || "RESERVADO"}
+                                </span>
+                              ) : bloque.estado_bloque === "BLOQUEADO_SOME" ? (
+                                <span>Pausado SOME</span>
+                              ) : bloque.es_cuota_adulto_mayor ? (
+                                <span className="agendas-slot-label-senior">
+                                  Cuota 60+
+                                </span>
+                              ) : (
+                                <span className="agendas-slot-label-available">
+                                  Disponible
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                        <div className="agendas-mobile-colacion-banner">
+                          13:00 - 14:00 • Pausa de Colación — Sin Atención Médica
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="agendas-mobile-empty-box">
+                      <span className="agendas-matrix-empty-label">
+                        Sin agenda asignada para el {fechaSeleccionada}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          abrirModalCrear({ boxId: box.id, fecha: fechaSeleccionada })
+                        }
+                        className="agendas-matrix-assign-btn"
+                      >
+                        + Asignar Agenda en {box.numero}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ========================================================================= */}
+          {/* PESTAÑA 1 (ESCRITORIO >= lg): Matriz Diaria por Boxes                     */}
+          {/* ========================================================================= */}
+          <div className="agendas-matrix-card">
+            <div className="agendas-matrix-inner" style={matrixGridVars}>
+              {/* Cabecera de la Grilla: Boxes Clínicos */}
+              <div className="agendas-matrix-header-grid">
+                <div className="agendas-matrix-corner">
+                  HORA
+                </div>
+
+                {boxesFiltrados.map((box) => {
+                  const agendaBox = agendas.find(
+                    (a) => a.box_id === box.id && a.fecha === fechaSeleccionada
+                  );
+
+                  return (
+                    <div
+                      key={box.id}
+                      className="agendas-matrix-box-header"
+                    >
+                      <div className="agendas-matrix-box-top">
+                        <span className="agendas-matrix-box-num">
+                          {box.numero}
+                        </span>
+                        <span className="agendas-matrix-box-esp">
+                          {box.especialidad.replace("_", " ")}
+                        </span>
+                      </div>
+
+                      {agendaBox ? (
+                        <div className="agendas-matrix-box-details">
+                          <div
+                            className="agendas-matrix-prof-name"
+                            title={agendaBox.profesional_nombre}
+                          >
+                            {agendaBox.profesional_nombre}
+                          </div>
+                          <div className="agendas-matrix-meta-row">
+                            <span className="agendas-matrix-time-range">
+                              {agendaBox.hora_inicio} - {agendaBox.hora_fin}
+                            </span>
+                            <span
+                              className={
+                                agendaBox.activa
+                                  ? "agendas-status-badge-active"
+                                  : "agendas-status-badge-paused"
+                              }
+                            >
+                              {agendaBox.activa ? "ACTIVA" : "PAUSADA"}
+                            </span>
+                          </div>
+                          <div className="agendas-matrix-stats-row">
+                            <span className="agendas-matrix-free-count">
+                              Libres: {agendaBox.estadisticas.disponibles}/{agendaBox.estadisticas.total}
+                            </span>
+                            {agendaBox.activa && (
                               <button
                                 type="button"
-                                onClick={() =>
-                                  agendaBox && setBloqueSeleccionado({ bloque, agenda: agendaBox })
-                                }
-                                className={`w-full p-2 rounded-xl text-left text-xs transition-all flex flex-col justify-between cursor-pointer ${
-                                  bloque.estado_bloque === "RESERVADO"
-                                    ? "bg-[#0F766E] text-white shadow-xs hover:bg-[#115E59]"
-                                    : bloque.estado_bloque === "BLOQUEADO_SOME"
-                                    ? "bg-slate-100 dark:bg-slate-800/70 text-slate-400 line-through border border-slate-300 dark:border-slate-700"
-                                    : bloque.es_cuota_adulto_mayor
-                                    ? "bg-amber-50/90 dark:bg-amber-950/40 text-[#132A26] dark:text-[#E8F5F2] border-2 border-amber-400 dark:border-amber-600 hover:bg-amber-100/80 font-bold"
-                                    : "bg-[#F4FAF8] dark:bg-[#152B26] text-[#132A26] dark:text-[#E8F5F2] border border-[#CDECE5] dark:border-[#2A534B] hover:border-[#0F766E]"
-                                }`}
+                                onClick={() => setAgendaPorPausar(agendaBox)}
+                                className="agendas-matrix-pause-link"
                               >
-                                <div className="flex items-center justify-between gap-1 w-full">
-                                  <span className="font-mono font-bold text-[11px]">
-                                    {bloque.hora_inicio} - {bloque.hora_fin}
-                                  </span>
-                                  {bloque.es_cuota_adulto_mayor &&
-                                    bloque.estado_bloque === "DISPONIBLE" && (
-                                      <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400/30 text-amber-900 dark:text-amber-200 font-extrabold">
-                                        ★ 60+
-                                      </span>
-                                    )}
-                                </div>
-
-                                <div className="text-[10px] truncate w-full mt-0.5">
-                                  {bloque.estado_bloque === "RESERVADO" ? (
-                                    <span className="font-mono font-bold text-[#D9F5EF]">
-                                      ✓ {bloque.cita?.codigo_reserva || "RESERVADO"}
-                                    </span>
-                                  ) : bloque.estado_bloque === "BLOQUEADO_SOME" ? (
-                                    <span>Pausado SOME</span>
-                                  ) : bloque.es_cuota_adulto_mayor ? (
-                                    <span className="text-amber-800 dark:text-amber-300">
-                                      Cuota Adulto Mayor
-                                    </span>
-                                  ) : (
-                                    <span className="text-[#355C56] dark:text-[#9CC2BC]">
-                                      Disponible
-                                    </span>
-                                  )}
-                                </div>
+                                Pausar
                               </button>
-                            ) : agendaBox ? (
-                              <div className="w-full h-full flex items-center justify-center text-xs text-slate-300 dark:text-slate-600 font-mono">
-                                —
-                              </div>
-                            ) : (
-                              <div className="w-full h-full" />
                             )}
                           </div>
-                        );
-                      })
-                    )}
-                  </div>
-                );
-              })}
+                        </div>
+                      ) : (
+                        <div className="agendas-matrix-empty-box">
+                          <span className="agendas-matrix-empty-label">Sin agenda asignada</span>
+                          <button
+                            type="button"
+                            onClick={() => abrirModalCrear({ boxId: box.id, fecha: fechaSeleccionada })}
+                            className="agendas-matrix-assign-btn"
+                          >
+                            + Asignar Agenda
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Filas Horarias de la Jornada */}
+              <div className="agendas-matrix-body">
+                {franjasHorarias.map((hora) => {
+                  const esColacion = hora >= "13:00" && hora < "14:00";
+
+                  return (
+                    <div
+                      key={hora}
+                      className="agendas-matrix-row-grid"
+                    >
+                      <div className="agendas-matrix-hour-cell">
+                        {hora}
+                      </div>
+
+                      {esColacion ? (
+                        <div className="agendas-matrix-colacion-cell">
+                          13:00 - 14:00 • Pausa de Colación — Sin Atención Médica
+                        </div>
+                      ) : (
+                        boxesFiltrados.map((box) => {
+                          const agendaBox = agendas.find(
+                            (a) => a.box_id === box.id && a.fecha === fechaSeleccionada
+                          );
+                          const bloquesList = agendaBox?.bloques_horarios || agendaBox?.bloques || [];
+                          const bloque = bloquesList.find((b) => b.hora_inicio === hora);
+
+                          return (
+                            <div
+                              key={box.id}
+                              className="agendas-matrix-slot-cell"
+                            >
+                              {bloque ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    agendaBox && setBloqueSeleccionado({ bloque, agenda: agendaBox })
+                                  }
+                                  className={getSlotBtnClass(bloque)}
+                                >
+                                  <div className="agendas-slot-top">
+                                    <span className="agendas-slot-time">
+                                      {bloque.hora_inicio} - {bloque.hora_fin}
+                                    </span>
+                                    {bloque.es_cuota_adulto_mayor &&
+                                      bloque.estado_bloque === "DISPONIBLE" && (
+                                        <span className="agendas-slot-senior-tag">
+                                          ★ 60+
+                                        </span>
+                                      )}
+                                  </div>
+
+                                  <div className="agendas-slot-bottom">
+                                    {bloque.estado_bloque === "RESERVADO" ? (
+                                      <span className="agendas-slot-code-reserved">
+                                        ✓ {bloque.cita?.codigo_reserva || "RESERVADO"}
+                                      </span>
+                                    ) : bloque.estado_bloque === "BLOQUEADO_SOME" ? (
+                                      <span>Pausado SOME</span>
+                                    ) : bloque.es_cuota_adulto_mayor ? (
+                                      <span className="agendas-slot-label-senior">
+                                        Cuota Adulto Mayor
+                                      </span>
+                                    ) : (
+                                      <span className="agendas-slot-label-available">
+                                        Disponible
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              ) : agendaBox ? (
+                                <div className="agendas-slot-dash">
+                                  —
+                                </div>
+                              ) : (
+                                <div className="agendas-slot-blank" />
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       ) : modoVista === "semanal" ? (
         /* ========================================================================= */
-        /* PESTAÑA 2: Horario Semanal (Lunes a Sábado)                               */
+        /* PESTAÑA 2: Horario Semanal Responsivo (Lunes a Sábado)                    */
         /* ========================================================================= */
-        <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl overflow-x-auto shadow-md">
-          <div className="min-w-[1000px]">
-            <div className="grid grid-cols-6 border-b border-[#CDECE5] dark:border-[#21403A] bg-[#F4FAF8] dark:bg-[#0B1715]">
-              {diasSemana.map((dia) => {
-                const esHoy = dia.fecha === new Date().toISOString().split("T")[0];
-                return (
+        <div className="agendas-weekly-card">
+          <div className="agendas-weekly-responsive-grid">
+            {diasSemana.map((dia) => {
+              const esHoy = dia.fecha === new Date().toISOString().split("T")[0];
+              const agendasDelDia = agendas.filter((a) => a.fecha === dia.fecha);
+
+              return (
+                <div key={dia.fecha} className="agendas-weekly-day-col">
                   <div
-                    key={dia.fecha}
-                    className={`p-3.5 border-r border-[#CDECE5] dark:border-[#21403A] last:border-r-0 text-center ${
-                      esHoy ? "bg-[#D9F5EF]/60 dark:bg-[#1E3F3B]" : ""
-                    }`}
+                    className={
+                      esHoy
+                        ? "agendas-weekly-day-header-today"
+                        : "agendas-weekly-day-header"
+                    }
                   >
-                    <span className="block text-xs uppercase text-[#355C56] dark:text-[#9CC2BC] font-bold">
+                    <span className="agendas-weekly-day-name">
                       {dia.nombre}
                     </span>
-                    <span className="text-base font-black text-[#132A26] dark:text-white">
+                    <span className="agendas-weekly-day-date">
                       {dia.numeroDia} {dia.mes}
                     </span>
                   </div>
-                );
-              })}
-            </div>
 
-            <div className="grid grid-cols-6 divide-x divide-[#CDECE5] dark:divide-[#21403A] min-h-[480px]">
-              {diasSemana.map((dia) => {
-                const agendasDelDia = agendas.filter((a) => a.fecha === dia.fecha);
-
-                return (
-                  <div key={dia.fecha} className="p-3 space-y-3 text-xs">
+                  <div className="agendas-weekly-col">
                     {agendasDelDia.length > 0 ? (
                       agendasDelDia.map((agenda) => (
                         <div
                           key={agenda.id}
-                          className="border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] rounded-2xl p-3.5 space-y-2 hover:border-[#0F766E] transition-colors"
+                          className="agendas-weekly-item"
                         >
-                          <div className="flex items-center justify-between border-b border-[#CDECE5] dark:border-[#21403A] pb-1.5">
-                            <span className="font-extrabold text-xs text-[#132A26] dark:text-white">
+                          <div className="agendas-weekly-item-top">
+                            <span className="agendas-weekly-item-box">
                               {agenda.box_numero}
                             </span>
-                            <span className="text-[10px] px-2 py-0.2 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] font-bold">
+                            <span className="agendas-weekly-item-esp">
                               {agenda.especialidad.replace("_", " ")}
                             </span>
                           </div>
 
                           <div>
-                            <span className="font-bold block text-[#132A26] dark:text-[#E8F5F2] truncate">
+                            <span className="agendas-weekly-item-prof">
                               {agenda.profesional_nombre}
                             </span>
-                            <span className="text-[11px] font-mono text-[#355C56] dark:text-[#9CC2BC] block">
+                            <span className="agendas-weekly-item-hours">
                               {agenda.hora_inicio} - {agenda.hora_fin} ({agenda.duracion_bloque_min}m)
                             </span>
                           </div>
 
-                          <div className="pt-1.5 border-t border-[#CDECE5] dark:border-[#21403A] text-[11px] space-y-0.5">
-                            <div className="flex justify-between">
-                              <span className="text-[#355C56] dark:text-[#9CC2BC]">Disponibles:</span>
-                              <strong className="text-[#0F766E] dark:text-[#5BB9A6]">
+                          <div className="agendas-weekly-item-stats">
+                            <div className="agendas-weekly-stat-row">
+                              <span className="agendas-weekly-stat-label">Disponibles:</span>
+                              <strong className="agendas-weekly-stat-free">
                                 {agenda.estadisticas.disponibles}
                               </strong>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-[#355C56] dark:text-[#9CC2BC]">Reservados:</span>
+                            <div className="agendas-weekly-stat-row">
+                              <span className="agendas-weekly-stat-label">Reservados:</span>
                               <strong>{agenda.estadisticas.reservados}</strong>
                             </div>
                             {agenda.estadisticas.cuota_adulto_mayor > 0 && (
-                              <div className="flex justify-between text-amber-800 dark:text-amber-300 font-bold">
+                              <div className="agendas-weekly-stat-senior">
                                 <span>★ Cuota 60+:</span>
                                 <span>{agenda.estadisticas.cuota_adulto_mayor}</span>
                               </div>
                             )}
                           </div>
 
-                          <div className="pt-2 flex gap-1.5">
+                          <div className="agendas-weekly-item-actions">
                             <button
                               type="button"
                               onClick={() => {
                                 setFechaSeleccionada(agenda.fecha);
                                 setModoVista("matriz");
                               }}
-                              className="flex-1 text-[11px] font-bold py-1.5 rounded-xl bg-[#0F766E] text-white hover:bg-[#115E59] transition-colors text-center cursor-pointer"
+                              className="agendas-weekly-btn-matrix"
                             >
                               Ver Matriz →
                             </button>
@@ -869,7 +981,7 @@ export default function AgendasPage() {
                               <button
                                 type="button"
                                 onClick={() => setAgendaPorPausar(agenda)}
-                                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border border-[#CDECE5] dark:border-[#264E46] hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-300 cursor-pointer"
+                                className="agendas-weekly-btn-pause"
                                 title="Pausar agenda"
                               >
                                 Pausar
@@ -879,122 +991,186 @@ export default function AgendasPage() {
                         </div>
                       ))
                     ) : (
-                      <div className="py-10 text-center text-slate-400 border border-dashed border-[#CDECE5] dark:border-[#264E46] rounded-2xl p-4 space-y-2">
-                        <span className="block text-xs italic">Sin agendas</span>
+                      <div className="agendas-weekly-empty">
+                        <span className="agendas-weekly-empty-text">Sin agendas</span>
                         <button
                           type="button"
                           onClick={() => abrirModalCrear({ fecha: dia.fecha })}
-                          className="text-xs font-bold px-3 py-1.5 rounded-xl border border-[#0F766E] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#0F766E] hover:text-white transition-colors cursor-pointer"
+                          className="agendas-weekly-empty-btn"
                         >
                           + Cargar Día
                         </button>
                       </div>
                     )}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (
         /* ========================================================================= */
-        /* PESTAÑA 3: Lista Resumen (Tabla)                                          */
+        /* PESTAÑA 3: Lista Resumen (Tarjetas en móvil + Tabla en md+)               */
         /* ========================================================================= */
-        <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md">
-          <div className="flex items-center justify-between border-b border-[#CDECE5] dark:border-[#21403A] pb-4 mb-4">
+        <div className="agendas-table-card">
+          <div className="agendas-table-header">
             <div>
-              <h2 className="text-lg font-extrabold text-[#132A26] dark:text-[#E8F5F2]">
+              <h2 className="agendas-table-title">
                 Lista Resumen de Agendas ({agendas.length})
               </h2>
-              <p className="text-xs text-[#355C56] dark:text-[#9CC2BC]">
+              <p className="agendas-table-subtitle">
                 Detalle tabular consolidado de jornadas y cupos clínicos.
               </p>
             </div>
             <button
               type="button"
               onClick={cargarAgendas}
-              className="text-xs font-bold px-3.5 py-2 rounded-xl border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#D9F5EF]/50 flex items-center gap-1.5 cursor-pointer"
+              className="agendas-btn-refresh"
             >
-              <ArrowPathIcon className="w-4 h-4" />
+              <ArrowPathIcon className="agendas-icon-sm" />
               <span>Actualizar</span>
             </button>
           </div>
 
           {agendas.length === 0 ? (
-            <div className="py-12 text-center text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC] border border-dashed border-[#CDECE5] dark:border-[#264E46] rounded-2xl">
+            <div className="agendas-table-empty">
               No se encontraron agendas registradas con los filtros seleccionados.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs sm:text-sm border-collapse">
-                <thead>
-                  <tr className="border-b border-[#CDECE5] dark:border-[#21403A] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#1E4640] dark:text-[#A7E3D4]">
-                    <th className="py-3 px-4 font-bold">Fecha</th>
-                    <th className="py-3 px-4 font-bold">Horario</th>
-                    <th className="py-3 px-4 font-bold">Profesional / Box</th>
-                    <th className="py-3 px-4 font-bold text-center">Cupos</th>
-                    <th className="py-3 px-4 font-bold text-center">Estado</th>
-                    <th className="py-3 px-4 font-bold text-right">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#CDECE5]/60 dark:divide-[#21403A]">
-                  {agendas.map((ag) => (
-                    <tr key={ag.id} className="hover:bg-[#F4FAF8]/60 dark:hover:bg-[#152B26]/60">
-                      <td className="py-3.5 px-4 font-mono font-bold whitespace-nowrap">{ag.fecha}</td>
-                      <td className="py-3.5 px-4 whitespace-nowrap font-mono">
-                        {ag.hora_inicio} - {ag.hora_fin}
-                        <span className="block text-[11px] font-sans text-[#355C56] dark:text-[#9CC2BC]">
-                          {ag.duracion_bloque_min} min/bloque
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold block text-[#132A26] dark:text-white">
+            <>
+              {/* Tarjetas Responsivas en Móvil (< md) */}
+              <div className="agendas-mobile-summary-list">
+                {agendas.map((ag) => (
+                  <div key={ag.id} className="agendas-mobile-summary-card">
+                    <div className="agendas-mobile-summary-top">
+                      <div>
+                        <span className="agendas-td-prof-name">
                           {ag.profesional_nombre}
                         </span>
-                        <span className="text-xs text-[#355C56] dark:text-[#9CC2BC] block">
+                        <span className="agendas-td-prof-sub">
                           {ag.especialidad.replace("_", " ")} • {ag.box_numero}
                         </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span className="font-bold text-[#0F766E] dark:text-[#5BB9A6]">
-                          {ag.estadisticas.disponibles}
+                      </div>
+                      {ag.activa ? (
+                        <span className="agendas-pill-active">ACTIVA</span>
+                      ) : (
+                        <span className="agendas-pill-paused">PAUSADA</span>
+                      )}
+                    </div>
+
+                    <div className="agendas-mobile-summary-grid">
+                      <div>
+                        <span className="agendas-modal-label">Fecha:</span>
+                        <strong className="agendas-td-prof-name">{ag.fecha}</strong>
+                      </div>
+                      <div>
+                        <span className="agendas-modal-label">Horario:</span>
+                        <strong className="agendas-td-prof-name">
+                          {ag.hora_inicio} - {ag.hora_fin} ({ag.duracion_bloque_min}m)
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="agendas-modal-label">Disponibles:</span>
+                        <div>
+                          <span className="agendas-td-free">
+                            {ag.estadisticas.disponibles}
+                          </span>
+                          <span className="agendas-td-total"> / {ag.estadisticas.total}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="agendas-modal-label">Cuota 60+:</span>
+                        <span className="agendas-td-senior">
+                          ★ {ag.estadisticas.cuota_adulto_mayor} cupos
                         </span>
-                        <span className="text-slate-400"> / {ag.estadisticas.total}</span>
-                        {ag.estadisticas.cuota_adulto_mayor > 0 && (
-                          <span className="block text-[11px] text-amber-800 dark:text-amber-300 font-bold">
-                            ★ 60+: {ag.estadisticas.cuota_adulto_mayor}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        {ag.activa ? (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 text-xs font-bold">
-                            ACTIVA
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400 text-xs font-bold">
-                            PAUSADA SOME
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        {ag.activa ? (
-                          <button
-                            type="button"
-                            onClick={() => setAgendaPorPausar(ag)}
-                            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
-                          >
-                            Pausar Agenda
-                          </button>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Bloqueada</span>
-                        )}
-                      </td>
+                      </div>
+                    </div>
+
+                    {ag.activa && (
+                      <button
+                        type="button"
+                        onClick={() => setAgendaPorPausar(ag)}
+                        className="agendas-matrix-assign-btn"
+                      >
+                        Pausar Agenda
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Tabla en Tablet y Escritorio (>= md) */}
+              <div className="agendas-table-wrap">
+                <table className="agendas-table">
+                  <thead>
+                    <tr className="agendas-thead-row">
+                      <th className="agendas-th">Fecha</th>
+                      <th className="agendas-th">Horario</th>
+                      <th className="agendas-th">Profesional / Box</th>
+                      <th className="agendas-th-center">Cupos</th>
+                      <th className="agendas-th-center">Estado</th>
+                      <th className="agendas-th-right">Acción</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="agendas-tbody">
+                    {agendas.map((ag) => (
+                      <tr key={ag.id} className="agendas-tr">
+                        <td className="agendas-td-date">{ag.fecha}</td>
+                        <td className="agendas-td-time">
+                          {ag.hora_inicio} - {ag.hora_fin}
+                          <span className="agendas-td-duration">
+                            {ag.duracion_bloque_min} min/bloque
+                          </span>
+                        </td>
+                        <td className="agendas-td-prof">
+                          <span className="agendas-td-prof-name">
+                            {ag.profesional_nombre}
+                          </span>
+                          <span className="agendas-td-prof-sub">
+                            {ag.especialidad.replace("_", " ")} • {ag.box_numero}
+                          </span>
+                        </td>
+                        <td className="agendas-td-center">
+                          <span className="agendas-td-free">
+                            {ag.estadisticas.disponibles}
+                          </span>
+                          <span className="agendas-td-total"> / {ag.estadisticas.total}</span>
+                          {ag.estadisticas.cuota_adulto_mayor > 0 && (
+                            <span className="agendas-td-senior">
+                              ★ 60+: {ag.estadisticas.cuota_adulto_mayor}
+                            </span>
+                          )}
+                        </td>
+                        <td className="agendas-td-center">
+                          {ag.activa ? (
+                            <span className="agendas-pill-active">
+                              ACTIVA
+                            </span>
+                          ) : (
+                            <span className="agendas-pill-paused">
+                              PAUSADA SOME
+                            </span>
+                          )}
+                        </td>
+                        <td className="agendas-td-right">
+                          {ag.activa ? (
+                            <button
+                              type="button"
+                              onClick={() => setAgendaPorPausar(ag)}
+                              className="agendas-btn-pause-row"
+                            >
+                              Pausar Agenda
+                            </button>
+                          ) : (
+                            <span className="agendas-text-blocked">Bloqueada</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1003,87 +1179,87 @@ export default function AgendasPage() {
       {/* MODAL 1: Detalle del Bloque Horario                                       */}
       {/* ========================================================================= */}
       {bloqueSeleccionado && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] max-w-md w-full p-6 rounded-3xl shadow-2xl text-xs sm:text-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
-              <div className="flex items-center gap-2">
-                <ClockIcon className="w-5 h-5 text-[#0F766E] dark:text-[#5BB9A6]" />
-                <span className="font-extrabold text-base text-[#132A26] dark:text-white">
+        <div className="agendas-modal-backdrop">
+          <div className="agendas-modal-box">
+            <div className="agendas-modal-header">
+              <div className="agendas-modal-title-group">
+                <ClockIcon className="agendas-modal-title-icon" />
+                <span className="agendas-modal-title">
                   Detalle del Bloque Horario
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setBloqueSeleccionado(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#17302B] text-slate-500 cursor-pointer"
+                className="agendas-modal-close-btn"
               >
-                <XMarkIcon className="w-5 h-5" />
+                <XMarkIcon className="agendas-icon-md" />
               </button>
             </div>
 
-            <div className="space-y-2 border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Horario:</span>
-                <strong className="font-mono text-[#132A26] dark:text-white">
+            <div className="agendas-modal-details">
+              <div className="agendas-modal-row">
+                <span className="agendas-modal-label">Horario:</span>
+                <strong className="agendas-modal-val-mono">
                   {bloqueSeleccionado.bloque.hora_inicio} a {bloqueSeleccionado.bloque.hora_fin} hrs
                 </strong>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Fecha:</span>
-                <strong className="font-mono">{bloqueSeleccionado.agenda.fecha}</strong>
+              <div className="agendas-modal-row">
+                <span className="agendas-modal-label">Fecha:</span>
+                <strong className="agendas-modal-val-mono">{bloqueSeleccionado.agenda.fecha}</strong>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Box Clínico:</span>
+              <div className="agendas-modal-row">
+                <span className="agendas-modal-label">Box Clínico:</span>
                 <strong>{bloqueSeleccionado.agenda.box_numero}</strong>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Profesional:</span>
+              <div className="agendas-modal-row">
+                <span className="agendas-modal-label">Profesional:</span>
                 <strong>{bloqueSeleccionado.agenda.profesional_nombre}</strong>
               </div>
-              <div className="flex justify-between items-center pt-1">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Estado:</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] font-bold text-xs">
+              <div className="agendas-modal-row-center">
+                <span className="agendas-modal-label">Estado:</span>
+                <span className="agendas-modal-status-pill">
                   {bloqueSeleccionado.bloque.estado_bloque}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Cuota Adulto Mayor:</span>
-                <strong className={bloqueSeleccionado.bloque.es_cuota_adulto_mayor ? "text-amber-700 dark:text-amber-300" : ""}>
+              <div className="agendas-modal-row">
+                <span className="agendas-modal-label">Cuota Adulto Mayor:</span>
+                <strong className={bloqueSeleccionado.bloque.es_cuota_adulto_mayor ? "agendas-modal-senior-yes" : ""}>
                   {bloqueSeleccionado.bloque.es_cuota_adulto_mayor ? "★ Sí (Protegido 60+)" : "No (Cupo General)"}
                 </strong>
               </div>
             </div>
 
             {bloqueSeleccionado.bloque.cita ? (
-              <div className="bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] rounded-2xl p-4 space-y-1.5">
-                <span className="font-extrabold block text-xs uppercase text-[#0F766E] dark:text-[#A7E3D4] pb-1">
+              <div className="agendas-modal-cita-card">
+                <span className="agendas-modal-cita-title">
                   Datos de la Reserva Activa
                 </span>
-                <div className="flex justify-between">
-                  <span className="text-[#355C56] dark:text-[#9CC2BC]">Código:</span>
-                  <strong className="font-mono text-[#0F766E] dark:text-[#5BB9A6]">
+                <div className="agendas-modal-row">
+                  <span className="agendas-modal-label">Código:</span>
+                  <strong className="agendas-modal-val-code">
                     {bloqueSeleccionado.bloque.cita.codigo_reserva}
                   </strong>
                 </div>
                 {bloqueSeleccionado.bloque.cita.paciente && (
                   <>
-                    <div className="flex justify-between">
-                      <span className="text-[#355C56] dark:text-[#9CC2BC]">Paciente:</span>
+                    <div className="agendas-modal-row">
+                      <span className="agendas-modal-label">Paciente:</span>
                       <strong>{bloqueSeleccionado.bloque.cita.paciente.nombre_completo}</strong>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#355C56] dark:text-[#9CC2BC]">RUT:</span>
-                      <strong className="font-mono">{bloqueSeleccionado.bloque.cita.paciente.rut_formateado}</strong>
+                    <div className="agendas-modal-row">
+                      <span className="agendas-modal-label">RUT:</span>
+                      <strong className="agendas-modal-val-mono">{bloqueSeleccionado.bloque.cita.paciente.rut_formateado}</strong>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#355C56] dark:text-[#9CC2BC]">Teléfono:</span>
-                      <span className="font-mono">{bloqueSeleccionado.bloque.cita.paciente.telefono}</span>
+                    <div className="agendas-modal-row">
+                      <span className="agendas-modal-label">Teléfono:</span>
+                      <span className="agendas-modal-val-mono">{bloqueSeleccionado.bloque.cita.paciente.telefono}</span>
                     </div>
                   </>
                 )}
               </div>
             ) : (
-              <div className="text-[#355C56] dark:text-[#9CC2BC] italic text-xs text-center py-2">
+              <div className="agendas-modal-empty-note">
                 Este bloque horario se encuentra libre sin citas asociadas.
               </div>
             )}
@@ -1091,7 +1267,7 @@ export default function AgendasPage() {
             <button
               type="button"
               onClick={() => setBloqueSeleccionado(null)}
-              className="w-full bg-[#0F766E] hover:bg-[#115E59] text-white py-3 rounded-xl font-bold transition-colors cursor-pointer"
+              className="agendas-modal-btn-primary"
             >
               Cerrar Detalle
             </button>
@@ -1103,40 +1279,40 @@ export default function AgendasPage() {
       {/* MODAL 2: Confirmación para Pausar Agenda                                  */}
       {/* ========================================================================= */}
       {agendaPorPausar && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] max-w-md w-full p-6 rounded-3xl shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-600 flex items-center justify-center flex-shrink-0">
-                <PauseCircleIcon className="w-6 h-6" />
+        <div className="agendas-modal-backdrop">
+          <div className="agendas-modal-box">
+            <div className="agendas-modal-warn-header">
+              <div className="agendas-modal-warn-icon-box">
+                <PauseCircleIcon className="agendas-modal-warn-icon" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                <span className="agendas-modal-warn-tag">
                   Contingencia Operativa SOME
                 </span>
-                <h3 className="text-base sm:text-lg font-extrabold text-[#132A26] dark:text-[#E8F5F2]">
+                <h3 className="agendas-modal-title">
                   ¿Pausar agenda médica?
                 </h3>
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC] leading-relaxed">
+            <p className="agendas-modal-warn-text">
               Se bloquearán temporalmente los cupos libres de{" "}
-              <strong className="text-[#132A26] dark:text-white">{agendaPorPausar.profesional_nombre}</strong> en el{" "}
+              <strong className="agendas-modal-warn-strong">{agendaPorPausar.profesional_nombre}</strong> en el{" "}
               <strong>{agendaPorPausar.box_numero}</strong> ({agendaPorPausar.fecha}).
             </p>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="agendas-modal-actions">
               <button
                 type="button"
                 onClick={confirmarPausaAgenda}
-                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-colors cursor-pointer"
+                className="agendas-modal-btn-amber"
               >
                 Confirmar Pausa de Agenda
               </button>
               <button
                 type="button"
                 onClick={() => setAgendaPorPausar(null)}
-                className="px-4 py-3 rounded-xl border border-[#CDECE5] dark:border-[#264E46] text-xs sm:text-sm font-bold text-[#132A26] dark:text-[#D9F5EF] hover:bg-slate-100 dark:hover:bg-[#17302B] cursor-pointer"
+                className="agendas-modal-btn-cancel"
               >
                 Cancelar
               </button>
@@ -1149,41 +1325,41 @@ export default function AgendasPage() {
       {/* MODAL 3: Publicar Nueva Agenda Médica                                     */}
       {/* ========================================================================= */}
       {modalCrearAbierto && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] max-w-lg w-full p-6 sm:p-7 rounded-3xl shadow-2xl text-xs sm:text-sm space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
+        <div className="agendas-modal-backdrop">
+          <div className="agendas-modal-box-lg">
+            <div className="agendas-modal-header">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] inline-block mb-1">
+                <span className="agendas-modal-tag-pill">
                   Apertura de Agenda • HU-005
                 </span>
-                <h3 className="text-lg font-extrabold text-[#132A26] dark:text-white">
+                <h3 className="agendas-modal-title-lg">
                   Publicar Nueva Agenda Médica
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setModalCrearAbierto(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-[#17302B] text-slate-500 cursor-pointer"
+                className="agendas-modal-close-btn"
               >
-                <XMarkIcon className="w-5 h-5" />
+                <XMarkIcon className="agendas-icon-md" />
               </button>
             </div>
 
             {errorModal && (
-              <div className="bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800 p-3.5 rounded-2xl text-xs text-red-800 dark:text-red-200 font-semibold">
+              <div className="agendas-modal-error">
                 {errorModal}
               </div>
             )}
 
-            <form onSubmit={handleCrearAgendaSubmit} className="space-y-4">
+            <form onSubmit={handleCrearAgendaSubmit} className="agendas-modal-form">
               <div>
-                <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                <label className="agendas-modal-field-label">
                   Profesional de Salud
                 </label>
                 <select
                   value={nuevoProfId}
                   onChange={(e) => handleModalProfChange(e.target.value)}
-                  className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#0F766E]"
+                  className="agendas-modal-select"
                   required
                 >
                   {profesionales.map((p) => (
@@ -1194,86 +1370,88 @@ export default function AgendasPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="agendas-modal-grid-2">
                 <div>
-                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                  <label className="agendas-modal-field-label">
                     Especialidad
                   </label>
                   <input
                     type="text"
                     value={nuevaEsp.replace("_", " ")}
                     readOnly
-                    className="w-full border border-[#CDECE5] dark:border-[#264E46] px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/70 font-bold text-xs sm:text-sm"
+                    className="agendas-modal-input-readonly"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
-                    Box Clínico
+                  <label className="agendas-modal-field-label">
+                    Box Clínico ({nuevaEsp.replace("_", " ")})
                   </label>
                   <select
                     value={nuevoBoxId}
                     onChange={(e) => setNuevoBoxId(e.target.value)}
-                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#0F766E]"
+                    className="agendas-modal-select"
                     required
                   >
-                    {boxes.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.numero}
-                      </option>
-                    ))}
+                    {boxes
+                      .filter((b) => b.especialidad === nuevaEsp)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.numero} · {b.especialidad.replace("_", " ")}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                <label className="agendas-modal-field-label">
                   Fecha de la Agenda
                 </label>
                 <input
                   type="date"
                   value={nuevaFecha}
                   onChange={(e) => setNuevaFecha(e.target.value)}
-                  className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#0F766E]"
+                  className="agendas-modal-input-mono"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="agendas-modal-grid-2">
                 <div>
-                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                  <label className="agendas-modal-field-label">
                     Hora Inicio
                   </label>
                   <input
                     type="time"
                     value={nuevaHoraInicio}
                     onChange={(e) => setNuevaHoraInicio(e.target.value)}
-                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#0F766E]"
+                    className="agendas-modal-input-mono"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                  <label className="agendas-modal-field-label">
                     Hora Fin
                   </label>
                   <input
                     type="time"
                     value={nuevaHoraFin}
                     onChange={(e) => setNuevaHoraFin(e.target.value)}
-                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#0F766E]"
+                    className="agendas-modal-input-mono"
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="agendas-modal-grid-2">
                 <div>
-                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                  <label className="agendas-modal-field-label">
                     Duración por Bloque
                   </label>
                   <select
                     value={nuevaDuracionMin}
                     onChange={(e) => setNuevaDuracionMin(Number(e.target.value))}
-                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#0F766E]"
+                    className="agendas-modal-select"
                   >
                     <option value={15}>15 minutos</option>
                     <option value={20}>20 minutos (Estándar)</option>
@@ -1281,62 +1459,75 @@ export default function AgendasPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
+                  <label className="agendas-modal-field-label">
                     % Cuota Adulto Mayor (60+)
                   </label>
-                  <select
-                    value={nuevoPorcentajeCuota}
-                    disabled={nuevaEsp !== "MEDICINA_GENERAL"}
-                    onChange={(e) => setNuevoPorcentajeCuota(Number(e.target.value))}
-                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none disabled:opacity-50"
-                  >
-                    <option value={20}>20%</option>
-                    <option value={30}>30% (Normativa Legal)</option>
-                    <option value={40}>40%</option>
-                    <option value={50}>50%</option>
-                  </select>
+                  {nuevaEsp === "MEDICINA_GENERAL" ? (
+                    <select
+                      value={nuevoPorcentajeCuota}
+                      onChange={(e) => setNuevoPorcentajeCuota(Number(e.target.value))}
+                      className="agendas-modal-select"
+                    >
+                      <option value={20}>20%</option>
+                      <option value={30}>30% (Normativa Legal)</option>
+                      <option value={40}>40%</option>
+                      <option value={50}>50%</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value="0% (Exclusivo Medicina General)"
+                      readOnly
+                      className="agendas-modal-input-readonly"
+                    />
+                  )}
                 </div>
               </div>
 
               {/* Previsualizador */}
-              <div className="bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] rounded-2xl p-4 space-y-1.5 text-xs">
-                <div className="font-extrabold uppercase text-[#0F766E] dark:text-[#A7E3D4] pb-1">
+              <div className="agendas-preview-box">
+                <div className="agendas-preview-title">
                   Previsualizador Automático de Bloques:
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[#355C56] dark:text-[#9CC2BC]">Bloques hábiles a crear:</span>
-                  <strong className="text-[#132A26] dark:text-white">{previsualizacionModal.total} cupos</strong>
+                <div className="agendas-modal-row">
+                  <span className="agendas-modal-label">Bloques hábiles a crear:</span>
+                  <strong className="agendas-modal-warn-strong">{previsualizacionModal.total} cupos</strong>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[#355C56] dark:text-[#9CC2BC]">Pausa colación 13:00-14:00 (Omitida):</span>
+                <div className="agendas-modal-row">
+                  <span className="agendas-modal-label">Pausa colación 13:00-14:00 (Omitida):</span>
                   <span>{previsualizacionModal.colacionOmitida} bloques</span>
                 </div>
                 {nuevaEsp === "MEDICINA_GENERAL" ? (
-                  <div className="flex justify-between pt-1.5 border-t border-[#CDECE5] dark:border-[#21403A] text-amber-800 dark:text-amber-300 font-bold">
-                    <span>★ Cuota protegida Adulto Mayor:</span>
-                    <span>
-                      {previsualizacionModal.cuota} cupos ({nuevoPorcentajeCuota}%)
-                    </span>
-                  </div>
+                  <>
+                    <div className="agendas-preview-senior-row">
+                      <span>★ Cuota protegida Adulto Mayor (intercalada):</span>
+                      <span>
+                        {previsualizacionModal.cuota} cupos ({nuevoPorcentajeCuota}%)
+                      </span>
+                    </div>
+                    <div className="agendas-preview-note">
+                      * Se asignan de forma intercalada (08:20, 09:00...) y se liberan a todo público 30 min antes si no son tomados.
+                    </div>
+                  </>
                 ) : (
-                  <div className="text-[11px] text-slate-500 italic">
+                  <div className="agendas-preview-note">
                     * La cuota protegida 60+ aplica exclusivamente a Medicina General.
                   </div>
                 )}
               </div>
 
-              <div className="pt-2 flex gap-3">
+              <div className="agendas-modal-actions">
                 <button
                   type="submit"
                   disabled={guardandoAgenda || previsualizacionModal.total === 0}
-                  className="flex-1 bg-[#0F766E] hover:bg-[#115E59] text-white py-3 rounded-xl font-bold shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                  className="agendas-modal-submit-btn"
                 >
                   {guardandoAgenda ? "Publicando Agenda..." : "Publicar Agenda Médica →"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setModalCrearAbierto(false)}
-                  className="px-4 py-3 rounded-xl border border-[#CDECE5] dark:border-[#264E46] font-bold hover:bg-slate-100 dark:hover:bg-[#17302B] cursor-pointer"
+                  className="agendas-modal-btn-cancel"
                 >
                   Cancelar
                 </button>

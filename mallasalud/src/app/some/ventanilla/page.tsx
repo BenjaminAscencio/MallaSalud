@@ -11,6 +11,7 @@ import {
   IdentificationIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
+import "./ventanilla.css";
 
 interface PacienteFicha {
   id: string;
@@ -332,565 +333,592 @@ export default function VentanillaSomePage() {
   }, [paciente, cupos, agendandoId, handleNuevaAtencion, handleAgendar]);
 
   return (
-    <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 font-sans space-y-6">
-      
+    <div className="ventanilla-page">
+
       {/* Encabezado (oculto en impresión) */}
-      <div className="print:hidden bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md space-y-4">
+      <div className="ventanilla-header-card">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] border border-[#A7E3D4] dark:border-[#2A534B]">
+          <div className="ventanilla-badge-row">
+            <span className="ventanilla-hu-badge">
               HU-006 • Mesón SOME
             </span>
-            <span className="text-xs font-medium text-[#355C56] dark:text-[#9CC2BC]">
-              Atención Presencial Ágil (&lt; 45s por paciente)
+            <span className="ventanilla-hu-subtitle">
+              Módulo de Recepción SOME · Atención Presencial
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#132A26] dark:text-[#E8F5F2]">
+          <h1 className="ventanilla-title">
             Ventanilla de Agendamiento Presencial
           </h1>
-          <p className="text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC] mt-1">
-            Búsqueda en padrón comunal, alta rápida inmediata para nuevos vecinos, asignación de horas y emisión de ticket térmico.
+          <p className="ventanilla-subtitle">
+            Búsqueda en padrón comunal, inscripción inmediata para nuevos vecinos, asignación de horas y emisión de comprobante.
           </p>
-        </div>
-
-        {/* Barra de Atajos de Teclado Ventanilla */}
-        <div className="bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] rounded-2xl px-4 py-2.5 text-xs text-[#355C56] dark:text-[#9CC2BC] flex flex-wrap items-center justify-between gap-2">
-          <span className="font-extrabold uppercase text-[#0F766E] dark:text-[#A7E3D4]">
-            Atajos Rápidos de Teclado:
-          </span>
-          <div className="flex flex-wrap gap-3">
-            <span>
-              <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] font-mono font-bold text-[#132A26] dark:text-white">
-                F2
-              </kbd>{" "}
-              Buscar RUT
-            </span>
-            <span>
-              <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] font-mono font-bold text-[#132A26] dark:text-white">
-                Alt + 1..9
-              </kbd>{" "}
-              Asignar Cupo
-            </span>
-            <span>
-              <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] font-mono font-bold text-[#132A26] dark:text-white">
-                Alt + N
-              </kbd>{" "}
-              Nueva Atención
-            </span>
-            <span>
-              <kbd className="px-2 py-0.5 rounded-md bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#2A534B] font-mono font-bold text-[#132A26] dark:text-white">
-                Ctrl + P
-              </kbd>{" "}
-              Imprimir Ticket
-            </span>
-          </div>
         </div>
       </div>
 
       {/* Si hay comprobante emitido, mostrar vista de Comprobante Imprimible */}
       {comprobante ? (
-        <div className="max-w-md mx-auto my-4 animate-fadeIn">
-          {/* Botones de acción (ocultos al imprimir) */}
-          <div className="flex items-center justify-between gap-3 mb-6 print:hidden">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="flex-1 bg-[#0F766E] hover:bg-[#115E59] text-white py-3 px-4 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <PrinterIcon className="w-4 h-4" />
-              <span>Imprimir Ticket (PDF / Térmica)</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleNuevaAtencion}
-              className="border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] text-[#132A26] dark:text-[#D9F5EF] px-4 py-3 rounded-xl text-xs sm:text-sm font-bold hover:bg-[#F4FAF8] transition-colors cursor-pointer"
-            >
-              Nueva Atención [Alt+N]
-            </button>
-          </div>
-
-          {/* Ticket Comprobante Oficial CESFAM */}
-          <div className="print-ticket-container border-2 border-dashed border-[#0F766E] dark:border-[#5BB9A6] rounded-3xl p-6 bg-white dark:bg-[#122420] font-mono text-xs text-[#132A26] dark:text-[#E8F5F2] space-y-4 shadow-lg">
-            <div className="text-center border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
-              <span className="font-extrabold text-sm uppercase block tracking-wider text-[#0F766E] dark:text-[#A7E3D4]">
-                CESFAM MALLASALUD
-              </span>
-              <span className="text-[10px] text-[#355C56] dark:text-[#9CC2BC] uppercase block">
-                Comprobante Oficial de Hora Médica
-              </span>
-              <span className="text-[10px] text-slate-400 block mt-1">
-                Canal: {comprobante.canal_origen}
-              </span>
-            </div>
-
-            <div className="rounded-2xl border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] p-3.5 text-center">
-              <span className="text-[10px] uppercase text-[#355C56] dark:text-[#9CC2BC] block">
-                Código Único de Reserva
-              </span>
-              <span className="text-2xl font-black tracking-widest text-[#0F766E] dark:text-[#A7E3D4]">
-                {comprobante.codigo_reserva}
-              </span>
-            </div>
-
-            <div className="space-y-1.5 border-b border-[#CDECE5] dark:border-[#21403A] pb-3 text-[11px]">
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Fecha:</span>
-                <strong>{comprobante.horario.fecha}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Hora de Atención:</span>
-                <strong>{comprobante.horario.hora_inicio} hrs</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Especialidad:</span>
-                <strong>{comprobante.profesional.especialidad.replace("_", " ")}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Box Asignado:</span>
-                <strong>{comprobante.box.numero}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Profesional:</span>
-                <strong>{comprobante.profesional.nombre_completo}</strong>
-              </div>
-            </div>
-
-            <div className="space-y-1.5 border-b border-[#CDECE5] dark:border-[#21403A] pb-3 text-[11px]">
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Paciente:</span>
-                <strong>{comprobante.paciente.nombre_completo}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">RUT:</span>
-                <strong>{comprobante.paciente.rut_formateado}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#355C56] dark:text-[#9CC2BC]">Teléfono SMS:</span>
-                <strong>{comprobante.paciente.telefono}</strong>
-              </div>
-            </div>
-
-            <div className="text-[10px] text-[#355C56] dark:text-[#9CC2BC] rounded-xl border border-[#CDECE5] dark:border-[#264E46] p-2.5">
-              <span className="font-bold block uppercase mb-0.5 text-[#0F766E] dark:text-[#A7E3D4]">
-                ✓ Notificación SMS Enviada:
-              </span>
-              <p className="italic leading-tight">{comprobante.notificacion_sms.mensaje}</p>
-            </div>
-
-            <div className="text-[10px] text-[#355C56] dark:text-[#9CC2BC] text-center pt-1 space-y-1">
-              <p className="font-bold uppercase text-[#132A26] dark:text-white">
-                Presentarse 15 minutos antes
-              </p>
-              <p>Con su Cédula de Identidad en la sala de espera correspondiente.</p>
-              <p className="text-[9px] text-slate-400">
-                Emisión: {new Date().toLocaleString("es-CL")}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Flujo Regular de Ventanilla SOME */
-        <div className="space-y-6">
-          
-          {/* SECCIÓN 1: Búsqueda de Paciente */}
-          <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md space-y-4">
-            <div>
-              <h2 className="text-lg font-extrabold text-[#132A26] dark:text-[#E8F5F2]">
-                1. Identificación del Paciente en Mesón
-              </h2>
-              <p className="text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC]">
-                Consulte el RUT en el padrón del CESFAM. Si no está inscrito, se habilitará el formulario de Alta Rápida.
-              </p>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                buscarPaciente();
-              }}
-              className="flex flex-wrap gap-3 max-w-xl"
-            >
-              <div className="relative flex-1 min-w-[220px]">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <IdentificationIcon className="w-5 h-5 text-[#0F766E] dark:text-[#5BB9A6]" />
-                </div>
-                <input
-                  ref={rutInputRef}
-                  type="text"
-                  value={rutBusqueda}
-                  onChange={(e) => {
-                    const limpio = limpiarRut(e.target.value);
-                    if (limpio.length <= 9) {
-                      setRutBusqueda(formatearRut(limpio));
-                    }
-                    setErrorBusqueda(null);
-                  }}
-                  placeholder="RUT: 5.555.555-5 o 21.111.111-1 [F2]"
-                  className="w-full pl-11 pr-4 py-3 bg-[#F4FAF8] dark:bg-[#0B1715] border-2 border-[#CDECE5] dark:border-[#264E46] rounded-xl text-sm font-mono font-bold text-[#132A26] dark:text-white tracking-wider focus:outline-none focus:border-[#0F766E]"
-                />
-              </div>
+          <div className="ventanilla-ticket-wrapper">
+            {/* Botones de acción (ocultos al imprimir) */}
+            <div className="ventanilla-ticket-actions">
               <button
-                type="submit"
-                disabled={buscando}
-                className="bg-[#0F766E] hover:bg-[#115E59] text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                type="button"
+                onClick={() => window.print()}
+                className="ventanilla-btn-print"
               >
-                <MagnifyingGlassIcon className="w-4 h-4" />
-                <span>{buscando ? "Buscando..." : "Buscar Paciente"}</span>
+                <PrinterIcon className="ventanilla-icon-sm" />
+                <span>Imprimir Ticket (PDF / Térmica)</span>
               </button>
-            </form>
-
-            {/* Botones Rápidos de Prueba */}
-            <div className="pt-3 border-t border-[#CDECE5] dark:border-[#21403A]">
-              <span className="block text-[11px] text-[#355C56] dark:text-[#9CC2BC] uppercase font-extrabold mb-2">
-                Perfiles de Prueba Rápida (Mesón SOME):
-              </span>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => seleccionarRutPrueba("5555555-5")}
-                  className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
-                >
-                  ★ 60+: <strong className="font-mono">5.555.555-5</strong>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => seleccionarRutPrueba("21111111-1")}
-                  className="px-3 py-1.5 rounded-xl bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] text-[#132A26] dark:text-[#D9F5EF] hover:border-[#0F766E] transition-colors cursor-pointer"
-                >
-                  Joven: <strong className="font-mono">21.111.111-1</strong>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => seleccionarRutPrueba("16666666-6")}
-                  className="px-3 py-1.5 rounded-xl bg-[#F4FAF8] dark:bg-[#0B1715] border border-[#CDECE5] dark:border-[#264E46] text-[#132A26] dark:text-[#D9F5EF] hover:border-[#0F766E] transition-colors cursor-pointer"
-                >
-                  Con NSP: <strong className="font-mono">16.666.666-6</strong>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => seleccionarRutPrueba("21222222-2")}
-                  className="px-3 py-1.5 rounded-xl bg-[#D9F5EF]/50 dark:bg-[#1E3F3B]/60 border border-[#5BB9A6] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#D9F5EF] transition-colors cursor-pointer"
-                >
-                  + Alta Rápida (Joven): <strong className="font-mono">21.222.222-2</strong>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => seleccionarRutPrueba("6666666-6")}
-                  className="px-3 py-1.5 rounded-xl bg-[#D9F5EF]/50 dark:bg-[#1E3F3B]/60 border border-[#5BB9A6] text-[#0F766E] dark:text-[#A7E3D4] hover:bg-[#D9F5EF] transition-colors cursor-pointer"
-                >
-                  + Alta Rápida (60+): <strong className="font-mono">6.666.666-6</strong>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleNuevaAtencion}
+                className="ventanilla-btn-new"
+              >
+                Nueva Atención [Alt+N]
+              </button>
             </div>
 
-            {errorBusqueda && (
-              <div className="bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800 p-3.5 rounded-2xl text-xs text-red-800 dark:text-red-200 font-semibold">
-                {errorBusqueda}
-              </div>
-            )}
-
-            {/* Paciente Encontrado */}
-            {paciente && (
-              <div className="mt-4 border-2 border-[#5BB9A6] dark:border-[#2A534B] rounded-2xl p-5 bg-[#F4FAF8] dark:bg-[#0B1715] space-y-2 animate-fadeIn">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#0F766E] text-white">
-                      ✓ Paciente Verificado
-                    </span>
-                    {paciente.es_adulto_mayor && (
-                      <span className="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-full border border-amber-400 bg-amber-100 text-amber-900">
-                        ★ Adulto Mayor (&gt;= 60 Años)
-                      </span>
-                    )}
-                    {paciente.contador_inasistencias > 0 && (
-                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-300">
-                        NSP Registradas: {paciente.contador_inasistencias}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPaciente(null)}
-                    className="text-xs font-bold text-[#355C56] dark:text-[#9CC2BC] hover:text-red-600 underline cursor-pointer"
-                  >
-                    Cambiar Paciente
-                  </button>
-                </div>
-
-                <div className="text-xl font-black text-[#132A26] dark:text-white">
-                  {paciente.nombres} {paciente.apellidos}
-                </div>
-
-                <div className="flex flex-wrap gap-4 text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC]">
-                  <span>
-                    RUT: <strong className="font-mono text-[#132A26] dark:text-white">{paciente.rut_formateado}</strong>
-                  </span>
-                  <span>
-                    Edad: <strong className="text-[#132A26] dark:text-white">{paciente.edad} años</strong>
-                  </span>
-                  <span>
-                    F. Nac: <strong className="font-mono text-[#132A26] dark:text-white">{paciente.fecha_nacimiento}</strong>
-                  </span>
-                  <span>
-                    Teléfono: <strong className="font-mono text-[#132A26] dark:text-white">{paciente.telefono}</strong>
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Formulario de Alta Rápida (cuando no está inscrito) */}
-            {mostrarAltaRapida && (
-              <div className="mt-4 border-2 border-amber-400 dark:border-amber-600 rounded-2xl p-5 sm:p-6 bg-amber-50/40 dark:bg-[#0B1715] space-y-4 animate-fadeIn">
-                <div className="border-b border-[#CDECE5] dark:border-[#21403A] pb-3">
-                  <span className="text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-amber-500 text-white inline-flex items-center gap-1 mb-1">
-                    <UserPlusIcon className="w-3.5 h-3.5" />
-                    <span>Alta Rápida en Padrón Local SOME</span>
-                  </span>
-                  <h3 className="text-base font-extrabold text-[#132A26] dark:text-white">
-                    Inscripción Inmediata de Paciente Nuevo
-                  </h3>
-                  <p className="text-xs text-[#355C56] dark:text-[#9CC2BC]">
-                    El RUT no figura en la base local. Complete los datos básicos para enrolarlo y pasar directamente a asignarle hora.
-                  </p>
-                </div>
-
-                {errorAlta && (
-                  <div className="bg-red-50 border border-red-300 p-3 rounded-xl text-xs text-red-800 font-semibold">
-                    {errorAlta}
-                  </div>
-                )}
-
-                <form onSubmit={handleAltaRapidaSubmit} className="space-y-3.5 text-xs sm:text-sm">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">RUT</label>
-                      <input
-                        type="text"
-                        value={rutBusqueda}
-                        readOnly
-                        className="w-full border border-[#CDECE5] dark:border-[#264E46] rounded-xl px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 font-mono font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
-                        Teléfono Contacto (SMS)
-                      </label>
-                      <input
-                        type="text"
-                        value={altaTelefono}
-                        onChange={(e) => setAltaTelefono(e.target.value)}
-                        placeholder="+56912345678"
-                        className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] rounded-xl px-3.5 py-2.5 font-mono"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">Nombres</label>
-                      <input
-                        type="text"
-                        value={altaNombres}
-                        onChange={(e) => setAltaNombres(e.target.value)}
-                        placeholder="Ej: Juan Carlos"
-                        className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] rounded-xl px-3.5 py-2.5"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">Apellidos</label>
-                      <input
-                        type="text"
-                        value={altaApellidos}
-                        onChange={(e) => setAltaApellidos(e.target.value)}
-                        placeholder="Ej: Pérez González"
-                        className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] rounded-xl px-3.5 py-2.5"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
-                      Fecha de Nacimiento (Sugerida según serie del RUT)
-                    </label>
-                    <input
-                      type="date"
-                      value={altaFechaNac}
-                      onChange={(e) => setAltaFechaNac(e.target.value)}
-                      className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-white dark:bg-[#122420] rounded-xl px-3.5 py-2.5 font-mono"
-                      required
-                    />
-                    <span className="text-[11px] text-[#355C56] dark:text-[#9CC2BC] italic block mt-1">
-                      * Calculada preliminarmente según los millones del RUT para agilizar la atención en mesón.
-                    </span>
-                  </div>
-
-                  <div className="pt-2 flex gap-3">
-                    <button
-                      type="submit"
-                      disabled={guardandoAlta}
-                      className="flex-1 bg-[#0F766E] hover:bg-[#115E59] text-white py-3 rounded-xl font-bold shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
-                    >
-                      {guardandoAlta ? "Registrando en Padrón..." : "Inscribir Paciente y Proceder a Agendar →"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMostrarAltaRapida(false)}
-                      className="px-4 py-3 rounded-xl border border-[#CDECE5] dark:border-[#264E46] font-bold hover:bg-slate-100 dark:hover:bg-[#17302B] cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-          </div>
-
-          {/* SECCIÓN 2: Asignación de Cupos Disponibles */}
-          {paciente && (
-            <div className="bg-white dark:bg-[#122420] border border-[#CDECE5] dark:border-[#21403A] rounded-3xl p-6 shadow-md space-y-5 animate-fadeIn">
-              <div className="border-b border-[#CDECE5] dark:border-[#21403A] pb-4 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-lg font-extrabold text-[#132A26] dark:text-[#E8F5F2]">
-                    2. Selección y Asignación de Cupo Disponible
-                  </h2>
-                  <p className="text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC]">
-                    Use los botones o presione <kbd className="font-mono font-bold">Alt + 1..9</kbd> para asignar de inmediato.
-                  </p>
-                </div>
-                <span className="text-xs font-bold bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] px-3 py-1.5 rounded-xl">
-                  Paciente: {paciente.nombres} {paciente.apellidos} ({paciente.es_adulto_mayor ? "★ 60+ Preferente" : "General"})
+            {/* Ticket Comprobante Oficial CESFAM */}
+            <div className="print-ticket-container ventanilla-ticket-card">
+              <div className="ventanilla-ticket-header">
+                <span className="ventanilla-ticket-org">
+                  CESFAM MALLASALUD
+                </span>
+                <span className="ventanilla-ticket-doc">
+                  Comprobante Oficial de Hora Médica
+                </span>
+                <span className="ventanilla-ticket-channel">
+                  Canal: {comprobante.canal_origen}
                 </span>
               </div>
 
-              {/* Filtros de Especialidad y Fecha */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
-                    Especialidad Médica
-                  </label>
-                  <select
-                    value={filtroEspecialidad}
-                    onChange={(e) => setFiltroEspecialidad(e.target.value)}
-                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:border-[#0F766E]"
-                  >
-                    <option value="">Todas las especialidades</option>
-                    <option value="MEDICINA_GENERAL">Medicina General</option>
-                    <option value="DENTAL">Urgencia Dental</option>
-                    <option value="MATRONERIA">Matronería</option>
-                  </select>
-                </div>
+              <div className="ventanilla-ticket-code-box">
+                <span className="ventanilla-ticket-code-label">
+                  Código Único de Reserva
+                </span>
+                <span className="ventanilla-ticket-code-value">
+                  {comprobante.codigo_reserva}
+                </span>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4] mb-1">
-                    Fecha de Atención
-                  </label>
-                  <input
-                    type="date"
-                    value={filtroFecha}
-                    onChange={(e) => setFiltroFecha(e.target.value)}
-                    className="w-full border border-[#CDECE5] dark:border-[#264E46] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#132A26] dark:text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#0F766E]"
-                  />
+              <div className="ventanilla-ticket-section">
+                <div className="ventanilla-ticket-row">
+                  <span className="ventanilla-ticket-label">Fecha:</span>
+                  <strong>{comprobante.horario.fecha}</strong>
+                </div>
+                <div className="ventanilla-ticket-row">
+                  <span className="ventanilla-ticket-label">Hora de Atención:</span>
+                  <strong>{comprobante.horario.hora_inicio} hrs</strong>
+                </div>
+                <div className="ventanilla-ticket-row">
+                  <span className="ventanilla-ticket-label">Especialidad:</span>
+                  <strong>{comprobante.profesional.especialidad.replace("_", " ")}</strong>
+                </div>
+                <div className="ventanilla-ticket-row">
+                  <span className="ventanilla-ticket-label">Box Asignado:</span>
+                  <strong>{comprobante.box.numero}</strong>
+                </div>
+                <div className="ventanilla-ticket-row">
+                  <span className="ventanilla-ticket-label">Profesional:</span>
+                  <strong>{comprobante.profesional.nombre_completo}</strong>
                 </div>
               </div>
 
-              {errorAgendamiento && (
-                <div className="flex items-center gap-2 bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-800 p-4 rounded-2xl text-xs sm:text-sm text-red-800 dark:text-red-200 font-semibold">
-                  <ExclamationTriangleIcon className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <span>{errorAgendamiento}</span>
+              <div className="ventanilla-ticket-section">
+                <div className="ventanilla-ticket-row">
+                  <span className="ventanilla-ticket-label">Paciente:</span>
+                  <strong>{comprobante.paciente.nombre_completo}</strong>
+                </div>
+                <div className="ventanilla-ticket-row">
+                  <span className="ventanilla-ticket-label">RUT:</span>
+                  <strong>{comprobante.paciente.rut_formateado}</strong>
+                </div>
+                <div className="ventanilla-ticket-row">
+                  <span className="ventanilla-ticket-label">Teléfono SMS:</span>
+                  <strong>{comprobante.paciente.telefono}</strong>
+                </div>
+              </div>
+
+              <div className="ventanilla-ticket-sms-box">
+                <span className="ventanilla-ticket-sms-title">
+                  ✓ Notificación SMS Enviada:
+                </span>
+                <p className="ventanilla-ticket-sms-body">{comprobante.notificacion_sms.mensaje}</p>
+              </div>
+
+              <div className="ventanilla-ticket-footer">
+                <p className="ventanilla-ticket-footer-strong">
+                  Presentarse 15 minutos antes
+                </p>
+                <p>Con su Cédula de Identidad en la sala de espera correspondiente.</p>
+                <p className="ventanilla-ticket-timestamp">
+                  Emisión: {new Date().toLocaleString("es-CL")}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Flujo Regular de Ventanilla SOME */
+          <div className="ventanilla-flow">
+
+            {/* SECCIÓN 1: Búsqueda de Paciente */}
+            <div className="ventanilla-section-card">
+              <div>
+                <h2 className="ventanilla-section-title">
+                  1. Identificación del Paciente en Mesón
+                </h2>
+                <p className="ventanilla-section-desc">
+                  Consulte el RUT en el padrón del CESFAM. Si no está inscrito, se habilitará el formulario de Alta Rápida.
+                </p>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  buscarPaciente();
+                }}
+                className="ventanilla-search-form"
+              >
+                <div className="ventanilla-search-input-wrap">
+                  <div className="ventanilla-search-icon-wrap">
+                    <IdentificationIcon className="ventanilla-search-icon" />
+                  </div>
+                  <input
+                    ref={rutInputRef}
+                    type="text"
+                    value={rutBusqueda}
+                    onChange={(e) => {
+                      const limpio = limpiarRut(e.target.value);
+                      if (limpio.length <= 9) {
+                        setRutBusqueda(formatearRut(limpio));
+                      }
+                      setErrorBusqueda(null);
+                    }}
+                    placeholder="RUT: 5.555.555-5 o 21.111.111-1 [F2]"
+                    className="ventanilla-search-input"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={buscando}
+                  className="ventanilla-search-btn"
+                >
+                  <MagnifyingGlassIcon className="ventanilla-icon-sm" />
+                  <span>{buscando ? "Buscando..." : "Buscar Paciente"}</span>
+                </button>
+              </form>
+
+              {/* Botones Rápidos de Prueba */}
+              <div className="ventanilla-demo-wrap">
+                <span className="ventanilla-demo-label">
+                  Perfiles de Prueba Rápida (Mesón SOME):
+                </span>
+                <div className="ventanilla-demo-buttons">
+                  <button
+                    type="button"
+                    onClick={() => seleccionarRutPrueba("5555555-5")}
+                    className="ventanilla-demo-btn-senior"
+                  >
+                    ★ 60+: <strong className="ventanilla-demo-rut">5.555.555-5</strong>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => seleccionarRutPrueba("21111111-1")}
+                    className="ventanilla-demo-btn-normal"
+                  >
+                    Joven: <strong className="ventanilla-demo-rut">21.111.111-1</strong>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => seleccionarRutPrueba("16666666-6")}
+                    className="ventanilla-demo-btn-normal"
+                  >
+                    Con NSP: <strong className="ventanilla-demo-rut">16.666.666-6</strong>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => seleccionarRutPrueba("21222222-2")}
+                    className="ventanilla-demo-btn-alta"
+                  >
+                    + Alta Rápida (Joven): <strong className="ventanilla-demo-rut">21.222.222-2</strong>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => seleccionarRutPrueba("6666666-6")}
+                    className="ventanilla-demo-btn-alta"
+                  >
+                    + Alta Rápida (60+): <strong className="ventanilla-demo-rut">6.666.666-6</strong>
+                  </button>
+                </div>
+              </div>
+
+              {errorBusqueda && (
+                <div className="ventanilla-error-box">
+                  {errorBusqueda}
                 </div>
               )}
 
-              {/* Tabla de Cupos Disponibles */}
-              {cargandoCupos ? (
-                <div className="py-12 text-center text-sm text-[#355C56] dark:text-[#9CC2BC] flex flex-col items-center gap-2">
-                  <ArrowPathIcon className="w-7 h-7 animate-spin text-[#0F766E]" />
-                  <span>Consultando disponibilidad de cupos...</span>
+              {/* Paciente Encontrado */}
+              {paciente && (
+                <div className="ventanilla-patient-card">
+                  <div className="ventanilla-patient-top">
+                    <div className="ventanilla-patient-badges">
+                      <span className="ventanilla-badge-verified">
+                        ✓ Paciente Verificado
+                      </span>
+                      {paciente.es_adulto_mayor && (
+                        <span className="ventanilla-badge-senior">
+                          ★ Adulto Mayor (&gt;= 60 Años)
+                        </span>
+                      )}
+                      {paciente.contador_inasistencias > 0 && (
+                        <span className="ventanilla-badge-nsp">
+                          NSP Registradas: {paciente.contador_inasistencias}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPaciente(null)}
+                      className="ventanilla-patient-change-btn"
+                    >
+                      Cambiar Paciente
+                    </button>
+                  </div>
+
+                  <div className="ventanilla-patient-name">
+                    {paciente.nombres} {paciente.apellidos}
+                  </div>
+
+                  <div className="ventanilla-patient-meta">
+                    <span>
+                      RUT: <strong className="ventanilla-patient-meta-mono">{paciente.rut_formateado}</strong>
+                    </span>
+                    <span>
+                      Edad: <strong className="ventanilla-patient-meta-val">{paciente.edad} años</strong>
+                    </span>
+                    <span>
+                      F. Nac: <strong className="ventanilla-patient-meta-mono">{paciente.fecha_nacimiento}</strong>
+                    </span>
+                    <span>
+                      Teléfono: <strong className="ventanilla-patient-meta-mono">{paciente.telefono}</strong>
+                    </span>
+                  </div>
                 </div>
-              ) : cupos.length === 0 ? (
-                <div className="py-12 text-center text-xs sm:text-sm text-[#355C56] dark:text-[#9CC2BC] border border-dashed border-[#CDECE5] dark:border-[#264E46] rounded-2xl">
-                  No hay cupos disponibles para los filtros seleccionados.
+              )}
+
+              {/* Formulario de Alta Rápida (cuando no está inscrito) */}
+              {mostrarAltaRapida && (
+                <div className="ventanilla-alta-card">
+                  <div className="ventanilla-alta-header">
+                    <span className="ventanilla-alta-badge">
+                      <UserPlusIcon className="ventanilla-alta-icon" />
+                      <span>Alta Rápida en Padrón Local SOME</span>
+                    </span>
+                    <h3 className="ventanilla-alta-title">
+                      Inscripción Inmediata de Paciente Nuevo
+                    </h3>
+                    <p className="ventanilla-alta-desc">
+                      El RUT no figura en la base local. Complete los datos básicos para enrolarlo y pasar directamente a asignarle hora.
+                    </p>
+                  </div>
+
+                  {errorAlta && (
+                    <div className="ventanilla-error-box">
+                      {errorAlta}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleAltaRapidaSubmit} className="ventanilla-alta-form">
+                    <div className="ventanilla-form-grid">
+                      <div>
+                        <label className="ventanilla-field-label">RUT</label>
+                        <input
+                          type="text"
+                          value={rutBusqueda}
+                          readOnly
+                          className="ventanilla-input-readonly"
+                        />
+                      </div>
+                      <div>
+                        <label className="ventanilla-field-label">
+                          Teléfono Contacto (SMS)
+                        </label>
+                        <input
+                          type="text"
+                          value={altaTelefono}
+                          onChange={(e) => setAltaTelefono(e.target.value)}
+                          placeholder="+56912345678"
+                          className="ventanilla-input-mono"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="ventanilla-form-grid">
+                      <div>
+                        <label className="ventanilla-field-label">Nombres</label>
+                        <input
+                          type="text"
+                          value={altaNombres}
+                          onChange={(e) => setAltaNombres(e.target.value)}
+                          placeholder="Ej: Juan Carlos"
+                          className="ventanilla-input-text"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="ventanilla-field-label">Apellidos</label>
+                        <input
+                          type="text"
+                          value={altaApellidos}
+                          onChange={(e) => setAltaApellidos(e.target.value)}
+                          placeholder="Ej: Pérez González"
+                          className="ventanilla-input-text"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="ventanilla-field-label">
+                        Fecha de Nacimiento (Sugerida según serie del RUT)
+                      </label>
+                      <input
+                        type="date"
+                        value={altaFechaNac}
+                        onChange={(e) => setAltaFechaNac(e.target.value)}
+                        className="ventanilla-input-mono"
+                        required
+                      />
+                      <span className="ventanilla-field-hint">
+                        * Calculada preliminarmente según los millones del RUT para agilizar la atención en mesón.
+                      </span>
+                    </div>
+
+                    <div className="ventanilla-alta-actions">
+                      <button
+                        type="submit"
+                        disabled={guardandoAlta}
+                        className="ventanilla-alta-submit-btn"
+                      >
+                        {guardandoAlta ? "Registrando en Padrón..." : "Inscribir Paciente y Proceder a Agendar →"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMostrarAltaRapida(false)}
+                        className="ventanilla-alta-cancel-btn"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs sm:text-sm border-collapse">
-                    <thead>
-                      <tr className="border-b border-[#CDECE5] dark:border-[#21403A] bg-[#F4FAF8] dark:bg-[#0B1715] text-[#1E4640] dark:text-[#A7E3D4]">
-                        <th className="py-3 px-3 font-bold">Hora</th>
-                        <th className="py-3 px-3 font-bold">Especialidad</th>
-                        <th className="py-3 px-3 font-bold">Profesional</th>
-                        <th className="py-3 px-3 font-bold">Box</th>
-                        <th className="py-3 px-3 font-bold text-center">Tipo Cupo</th>
-                        <th className="py-3 px-3 font-bold text-right">Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#CDECE5]/60 dark:divide-[#21403A]">
+              )}
+            </div>
+
+            {/* SECCIÓN 2: Asignación de Cupos Disponibles */}
+            {paciente && (
+              <div className="ventanilla-section-card-animated">
+                <div className="ventanilla-cupos-header">
+                  <div>
+                    <h2 className="ventanilla-section-title">
+                      2. Selección y Asignación de Cupo Disponible
+                    </h2>
+                    <p className="ventanilla-section-desc">
+                      Use los botones o presione <kbd className="ventanilla-cupos-kbd">Alt + 1..9</kbd> para asignar de inmediato.
+                    </p>
+                  </div>
+                  <span className="ventanilla-cupos-patient-pill">
+                    Paciente: {paciente.nombres} {paciente.apellidos} ({paciente.es_adulto_mayor ? "★ 60+ Preferente" : "General"})
+                  </span>
+                </div>
+
+                {/* Filtros de Especialidad y Fecha */}
+                <div className="ventanilla-filters-grid">
+                  <div>
+                    <label className="ventanilla-field-label-sm">
+                      Especialidad Médica
+                    </label>
+                    <select
+                      value={filtroEspecialidad}
+                      onChange={(e) => setFiltroEspecialidad(e.target.value)}
+                      className="ventanilla-select"
+                    >
+                      <option value="">Todas las especialidades</option>
+                      <option value="MEDICINA_GENERAL">Medicina General</option>
+                      <option value="DENTAL">Urgencia Dental</option>
+                      <option value="MATRONERIA">Matronería</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="ventanilla-field-label-sm">
+                      Fecha de Atención
+                    </label>
+                    <input
+                      type="date"
+                      value={filtroFecha}
+                      onChange={(e) => setFiltroFecha(e.target.value)}
+                      className="ventanilla-date-input"
+                    />
+                  </div>
+                </div>
+
+                {errorAgendamiento && (
+                  <div className="ventanilla-error-alert">
+                    <ExclamationTriangleIcon className="ventanilla-error-icon" />
+                    <span>{errorAgendamiento}</span>
+                  </div>
+                )}
+
+                {/* Tabla de Cupos Disponibles */}
+                {cargandoCupos ? (
+                  <div className="ventanilla-loading-state">
+                    <ArrowPathIcon className="ventanilla-loading-spinner" />
+                    <span>Consultando disponibilidad de cupos...</span>
+                  </div>
+                ) : cupos.length === 0 ? (
+                  <div className="ventanilla-empty-state">
+                    No hay cupos disponibles para los filtros seleccionados.
+                  </div>
+                ) : (
+                  <>
+                    {/* Vista Móvil: Tarjetas de Cupos (< md) */}
+                    <div className="ventanilla-mobile-cupos-list">
                       {cupos.map((c, idx) => (
-                        <tr
+                        <div
                           key={c.id}
-                          className={`hover:bg-[#F4FAF8]/80 dark:hover:bg-[#152B26]/60 transition-colors ${
-                            c.es_cancelacion_reciente ? "bg-amber-50/40 dark:bg-amber-950/20" : ""
-                          }`}
+                          className={
+                            c.es_cancelacion_reciente
+                              ? "ventanilla-mobile-cupo-card-recent"
+                              : "ventanilla-mobile-cupo-card"
+                          }
                         >
-                          <td className="py-3 px-3 font-mono font-bold whitespace-nowrap">
-                            <div className="flex items-center gap-2">
+                          <div className="ventanilla-mobile-cupo-top">
+                            <div className="ventanilla-hora-cell">
                               {idx < 9 && (
-                                <span className="text-[10px] bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] px-1.5 py-0.5 rounded font-mono font-bold">
+                                <span className="ventanilla-shortcut-badge">
                                   Alt+{idx + 1}
                                 </span>
                               )}
-                              <span className="text-[#132A26] dark:text-white">{c.hora_inicio} hrs</span>
+                              <span className="ventanilla-hora-text">{c.hora_inicio} hrs</span>
                             </div>
-                          </td>
-                          <td className="py-3 px-3 whitespace-nowrap font-semibold">
-                            {c.especialidad.replace("_", " ")}
-                          </td>
-                          <td className="py-3 px-3 text-[#132A26] dark:text-[#E8F5F2]">
-                            {c.profesional.nombre_completo}
-                          </td>
-                          <td className="py-3 px-3 whitespace-nowrap font-semibold">
-                            {c.box.numero}
-                          </td>
-                          <td className="py-3 px-3 text-center whitespace-nowrap">
-                            <div className="inline-flex items-center gap-1">
+                            <div className="ventanilla-cupo-badges">
                               {c.es_cuota_adulto_mayor ? (
-                                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-400 text-[11px] font-extrabold">
+                                <span className="ventanilla-cupo-badge-senior">
                                   ★ Cuota 60+
                                 </span>
                               ) : (
-                                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+                                <span className="ventanilla-cupo-badge-general">
                                   General
                                 </span>
                               )}
                               {c.es_cancelacion_reciente && (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                <span className="ventanilla-cupo-badge-freed">
                                   ⚡ Liberado
                                 </span>
                               )}
                             </div>
-                          </td>
-                          <td className="py-3 px-3 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              disabled={agendandoId === c.id}
-                              onClick={() => handleAgendar(c.id)}
-                              className="bg-[#0F766E] hover:bg-[#115E59] text-white px-4 py-2 rounded-xl text-xs font-bold shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
-                            >
-                              {agendandoId === c.id ? "Asignando..." : "Asignar Hora →"}
-                            </button>
-                          </td>
-                        </tr>
+                          </div>
+                          <div>
+                            <p className="ventanilla-td-strong">
+                              {c.especialidad.replace("_", " ")} · {c.box.numero}
+                            </p>
+                            <p className="ventanilla-td-prof">
+                              {c.profesional.nombre_completo}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={agendandoId === c.id}
+                            onClick={() => handleAgendar(c.id)}
+                            className="ventanilla-assign-btn"
+                          >
+                            {agendandoId === c.id ? "Asignando..." : "Asignar Hora →"}
+                          </button>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+                    </div>
+
+                    {/* Vista Escritorio: Tabla de Cupos (>= md) */}
+                    <div className="ventanilla-table-wrap">
+                      <table className="ventanilla-table">
+                        <thead>
+                          <tr className="ventanilla-table-head-row">
+                            <th className="ventanilla-th">Hora</th>
+                            <th className="ventanilla-th">Especialidad</th>
+                            <th className="ventanilla-th">Profesional</th>
+                            <th className="ventanilla-th">Box</th>
+                            <th className="ventanilla-th-center">Tipo Cupo</th>
+                            <th className="ventanilla-th-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="ventanilla-tbody">
+                          {cupos.map((c, idx) => (
+                            <tr
+                              key={c.id}
+                              className={
+                                c.es_cancelacion_reciente ? "ventanilla-tr-recent" : "ventanilla-tr"
+                              }
+                            >
+                              <td className="ventanilla-td-hora">
+                                <div className="ventanilla-hora-cell">
+                                  {idx < 9 && (
+                                    <span className="ventanilla-shortcut-badge">
+                                      Alt+{idx + 1}
+                                    </span>
+                                  )}
+                                  <span className="ventanilla-hora-text">{c.hora_inicio} hrs</span>
+                                </div>
+                              </td>
+                              <td className="ventanilla-td-strong">
+                                {c.especialidad.replace("_", " ")}
+                              </td>
+                              <td className="ventanilla-td-prof">
+                                {c.profesional.nombre_completo}
+                              </td>
+                              <td className="ventanilla-td-strong">
+                                {c.box.numero}
+                              </td>
+                              <td className="ventanilla-td-center">
+                                <div className="ventanilla-cupo-badges">
+                                  {c.es_cuota_adulto_mayor ? (
+                                    <span className="ventanilla-cupo-badge-senior">
+                                      ★ Cuota 60+
+                                    </span>
+                                  ) : (
+                                    <span className="ventanilla-cupo-badge-general">
+                                      General
+                                    </span>
+                                  )}
+                                  {c.es_cancelacion_reciente && (
+                                    <span className="ventanilla-cupo-badge-freed">
+                                      ⚡ Liberado
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="ventanilla-td-right">
+                                <button
+                                  type="button"
+                                  disabled={agendandoId === c.id}
+                                  onClick={() => handleAgendar(c.id)}
+                                  className="ventanilla-assign-btn"
+                                >
+                                  {agendandoId === c.id ? "Asignando..." : "Asignar Hora →"}
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
     </div>
   );
 }

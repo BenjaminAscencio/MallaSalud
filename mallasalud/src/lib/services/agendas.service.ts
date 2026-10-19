@@ -62,6 +62,59 @@ function horaAMinutos(horaHHMM: string): number {
   return h * 60 + m;
 }
 
+export const MINUTOS_LIBERACION_CUOTA_MAYOR = 30;
+
+/**
+ * Libera automáticamente los bloques DISPONIBLES de cuota Adulto Mayor (60+)
+ * cuando faltan 30 minutos o menos para la hora de inicio y no han sido tomados,
+ * evitando que el box médico quede vacío.
+ */
+export async function liberarCuotasAdultoMayorProximas(
+  tx: Prisma.TransactionClient | typeof prisma = prisma
+): Promise<number> {
+  const limiteLiberacion = new Date(Date.now() + MINUTOS_LIBERACION_CUOTA_MAYOR * 60 * 1000);
+
+  const resultado = await tx.bloqueHorario.updateMany({
+    where: {
+      estado_bloque: EstadoBloque.DISPONIBLE,
+      es_cuota_adulto_mayor: true,
+      hora_inicio: {
+        lte: limiteLiberacion,
+      },
+    },
+    data: {
+      es_cuota_adulto_mayor: false,
+    },
+  });
+
+  return resultado.count;
+}
+
+/**
+ * Calcula los índices de bloques que tendrán cuota protegida 60+ de forma intercalada
+ * (ej. 08:20, 09:00, 09:40...) para alternar cupos generales y cupos 60+ durante la mañana.
+ */
+export function calcularIndicesCuotaIntercalada(
+  totalBloques: number,
+  cantidadCuotaMayor: number
+): Set<number> {
+  const indices = new Set<number>();
+  if (cantidadCuotaMayor <= 0 || totalBloques <= 0) return indices;
+
+  // 1. Asignar en bloques impares primero (índice 1, 3, 5...) para que el primer bloque (08:00)
+  // sea siempre abierto a público general y se vayan alternando 1 a 1.
+  for (let i = 1; i < totalBloques && indices.size < cantidadCuotaMayor; i += 2) {
+    indices.add(i);
+  }
+
+  // 2. Si la cuota supera el 50% de los bloques, completar con índices pares
+  for (let i = 0; i < totalBloques && indices.size < cantidadCuotaMayor; i += 2) {
+    indices.add(i);
+  }
+
+  return indices;
+}
+
 export interface ListarAgendasFiltros {
   fecha?: string | Date;
   fecha_desde?: string | Date;
@@ -76,6 +129,8 @@ export interface ListarAgendasFiltros {
  * Además incluye listas de profesionales y boxes activos para formularios SOME.
  */
 export async function listarAgendas(filtros?: ListarAgendasFiltros) {
+  await liberarCuotasAdultoMayorProximas();
+
   const where: Prisma.AgendaMedicaWhereInput = {};
 
   if (filtros?.fecha) {
@@ -254,6 +309,18 @@ export async function generarAgendaConBloques(dto: GenerarAgendaDTO) {
     throw new AgendaValidationError("El box seleccionado no existe o no se encuentra activo.");
   }
 
+  if (profesional.especialidad !== box.especialidad) {
+    throw new AgendaValidationError(
+      `Incompatibilidad de box clínico: El ${box.numero} está habilitado exclusivamente para ${box.especialidad.replace("_", " ")}, por lo que no puede asignarse a un profesional de ${profesional.especialidad.replace("_", " ")}.`
+    );
+  }
+
+  if (dto.especialidad !== profesional.especialidad) {
+    throw new AgendaValidationError(
+      `La especialidad de la agenda (${dto.especialidad.replace("_", " ")}) no coincide con la especialidad del profesional (${profesional.especialidad.replace("_", " ")}).`
+    );
+  }
+
   // 2. Validar NO solapamiento para mismo profesional o mismo box en la misma fecha
   const fechaSiguiente = new Date(fechaNorm);
   fechaSiguiente.setDate(fechaSiguiente.getDate() + 1);
@@ -330,9 +397,14 @@ export async function generarAgendaConBloques(dto: GenerarAgendaDTO) {
     throw new AgendaValidationError("El rango horario y duración no permiten generar bloques válidos.");
   }
 
-  // 4. Asignar cuota para Adulto Mayor (>= 60 años)
-  const porcentaje = dto.porcentaje_cuota_mayor ?? 30;
-  const cantidadCuotaMayor = Math.max(1, Math.round((bloquesParaCrear.length * porcentaje) / 100));
+  // 4. Asignar cuota para Adulto Mayor (>= 60 años) exclusivamente en Medicina General (intercalada)
+  const aplicaCuotaMayor = dto.especialidad === Especialidad.MEDICINA_GENERAL;
+  const porcentaje = aplicaCuotaMayor ? (dto.porcentaje_cuota_mayor ?? 30) : 0;
+  const cantidadCuotaMayor =
+    aplicaCuotaMayor && porcentaje > 0
+      ? Math.max(1, Math.round((bloquesParaCrear.length * porcentaje) / 100))
+      : 0;
+  const indicesCuotaMayor = calcularIndicesCuotaIntercalada(bloquesParaCrear.length, cantidadCuotaMayor);
 
   // 5. Transacción atómica en PostgreSQL
   return await prisma.$transaction(async (tx) => {
@@ -354,7 +426,7 @@ export async function generarAgendaConBloques(dto: GenerarAgendaDTO) {
       hora_inicio: b.hora_inicio,
       hora_fin: b.hora_fin,
       estado_bloque: EstadoBloque.DISPONIBLE,
-      es_cuota_adulto_mayor: idx < cantidadCuotaMayor,
+      es_cuota_adulto_mayor: indicesCuotaMayor.has(idx),
     }));
 
     await tx.bloqueHorario.createMany({

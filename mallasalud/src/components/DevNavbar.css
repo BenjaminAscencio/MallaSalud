@@ -1,0 +1,53 @@
+@reference "../app/globals.css";
+
+.dev-navbar {
+  @apply print:hidden z-40 bg-neutral-900 text-white text-[11px] font-mono border-b border-neutral-800;
+}
+
+.dev-navbar-bar {
+  @apply w-full px-3 sm:px-8 lg:px-12 xl:px-16 py-1.5 flex flex-wrap items-center justify-between gap-2;
+}
+
+.dev-navbar-brand {
+  @apply flex items-center gap-2 min-w-0;
+}
+
+.dev-navbar-badge {
+  @apply bg-neutral-800 text-neutral-300 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] uppercase font-bold tracking-wider truncate;
+}
+
+.dev-navbar-subtitle {
+  @apply text-neutral-400 hidden sm:inline;
+}
+
+.dev-navbar-actions {
+  @apply flex items-center gap-2 shrink-0;
+}
+
+.dev-navbar-toggle {
+  @apply text-neutral-300 hover:text-white underline text-[10px] sm:text-[11px] flex items-center gap-1 cursor-pointer;
+}
+
+.dev-navbar-drawer {
+  @apply bg-neutral-950 border-t border-neutral-800 px-3 sm:px-8 lg:px-12 xl:px-16 py-2.5;
+}
+
+.dev-navbar-links {
+  @apply w-full flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-1.5 sm:gap-2;
+}
+
+.dev-navbar-links-label {
+  @apply text-neutral-500 mr-1 text-[10px] sm:text-[11px];
+}
+
+.dev-navbar-link {
+  @apply px-2.5 py-1.5 sm:py-1 rounded transition-colors flex items-center justify-between sm:justify-start gap-1.5 bg-neutral-800 text-neutral-300 hover:bg-neutral-700;
+}
+
+.dev-navbar-link-active {
+  @apply px-2.5 py-1.5 sm:py-1 rounded transition-colors flex items-center justify-between sm:justify-start gap-1.5 bg-teal-primary text-white font-semibold;
+}
+
+.dev-navbar-link-badge {
+  @apply text-[9px] opacity-70 bg-neutral-900 px-1.5 py-0.5 rounded shrink-0;
+}

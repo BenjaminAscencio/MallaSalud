@@ -14,6 +14,7 @@ import {
   SunIcon,
   MoonIcon,
 } from "@heroicons/react/24/outline";
+import "./Header.css";
 
 export default function Header() {
   const pathname = usePathname();
@@ -33,6 +34,7 @@ export default function Header() {
     const savedTheme = localStorage.getItem("mallasalud_theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setModoOscuro(true);
       document.documentElement.classList.add("dark");
     } else {
@@ -43,10 +45,10 @@ export default function Header() {
     const savedFont = localStorage.getItem("mallasalud_font");
     if (savedFont === "grande") {
       setFontGrande(true);
-      document.documentElement.style.fontSize = "112%";
+      document.documentElement.classList.add("font-accessible-lg");
     } else {
       setFontGrande(false);
-      document.documentElement.style.fontSize = "100%";
+      document.documentElement.classList.remove("font-accessible-lg");
     }
   }, []);
 
@@ -54,10 +56,10 @@ export default function Header() {
   const toggleTamanoTexto = (esGrande: boolean) => {
     setFontGrande(esGrande);
     if (esGrande) {
-      document.documentElement.style.fontSize = "112%";
+      document.documentElement.classList.add("font-accessible-lg");
       localStorage.setItem("mallasalud_font", "grande");
     } else {
-      document.documentElement.style.fontSize = "100%";
+      document.documentElement.classList.remove("font-accessible-lg");
       localStorage.setItem("mallasalud_font", "normal");
     }
   };
@@ -77,6 +79,7 @@ export default function Header() {
 
   // Cerrar menú y dropdowns al cambiar de ruta
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuAbierto(false);
     setSomeDropdownAbierto(false);
   }, [pathname]);
@@ -102,53 +105,49 @@ export default function Header() {
   const enVistaSome = pathname.startsWith("/some");
 
   return (
-    <header className="print:hidden sticky top-0 z-50 w-full bg-white/95 dark:bg-[#11221F]/95 backdrop-blur-md border-b border-[#CDECE5] dark:border-[#1E3F3B] shadow-xs font-sans transition-colors duration-200">
-      <div className="w-full max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
-        <div className="flex items-center justify-between h-20 gap-3 sm:gap-6">
+    <header className="site-header">
+      <div className="site-header-container">
+        <div className="site-header-row">
           
           {/* 1. Logo y Nombre Institucional */}
           <Link
             href="/"
-            className="flex items-center gap-2.5 sm:gap-3 group focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:ring-offset-2 rounded-xl p-1 flex-shrink-0"
+            className="site-header-brand group"
           >
-            <div className="relative w-10 h-10 sm:w-11 sm:h-11 flex-shrink-0 bg-[#F4FAF8] dark:bg-[#152B26] rounded-xl border border-[#CDECE5] dark:border-[#2A534B] p-1 flex items-center justify-center group-hover:border-[#0F766E] transition-all shadow-2xs">
+            <div className="site-header-logo-box">
               <Image
                 src="/logo-mallasalud.png"
                 alt="Logo MallaSalud"
                 width={44}
                 height={44}
                 priority
-                className="object-contain"
+                className="site-header-logo-img"
               />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-[#1E4640] dark:text-[#E8F5F2]">
-                  MALLA<span className="text-[#0F766E] dark:text-[#5BB9A6]">SALUD</span>
+            <div className="site-header-brand-text">
+              <div className="site-header-brand-top">
+                <span className="site-header-brand-title">
+                  MALLA<span className="site-header-brand-highlight">SALUD</span>
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-[#D9F5EF] dark:bg-[#1E3F3B] text-[#0F766E] dark:text-[#A7E3D4] px-2 py-0.5 rounded-full border border-[#A7E3D4] dark:border-[#2A534B]">
+                <span className="site-header-brand-badge">
                   CESFAM
                 </span>
               </div>
-              <span className="text-xs text-[#355C56] dark:text-[#9CC2BC] font-medium tracking-tight hidden sm:block">
+              <span className="site-header-brand-subtitle">
                 Red de Salud Pública Primaria
               </span>
             </div>
           </Link>
 
           {/* 2. Enlaces de Navegación */}
-          <nav className="hidden xl:flex items-center gap-1 xl:gap-1.5">
+          <nav className="site-header-nav">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.label}
                   href={link.href}
-                  className={`px-3 py-2 rounded-xl text-xs xl:text-sm font-semibold transition-all whitespace-nowrap ${
-                    isActive
-                      ? "text-[#0F766E] dark:text-[#E8F5F2] bg-[#D9F5EF]/80 dark:bg-[#1E3F3B] font-bold"
-                      : "text-[#355C56] dark:text-[#9CC2BC] hover:text-[#1E4640] dark:hover:text-white hover:bg-[#F4FAF8] dark:hover:bg-[#17302B]"
-                  }`}
+                  className={isActive ? "site-header-nav-link-active" : "site-header-nav-link"}
                 >
                   {link.label}
                 </Link>
@@ -157,149 +156,121 @@ export default function Header() {
           </nav>
 
           {/* 3. Acciones Integradas: Accesibilidad + Modo Oscuro + Área Funcionarios + Reservar */}
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+          <div className="site-header-actions">
             
-            {/* Control de Accesibilidad (Normal / Grande A+) */}
-            <div
-              className="flex items-center gap-1 bg-[#F4FAF8] dark:bg-[#152B26] border border-[#CDECE5] dark:border-[#2A534B] rounded-xl px-2 py-1 shadow-2xs"
-              title="Ajustar tamaño de letra para mejor lectura"
+            {/* Botón Único de Tamaño de Letra (Alterna Normal <-> Grande al hacer clic) */}
+            <button
+              type="button"
+              onClick={() => toggleTamanoTexto(!fontGrande)}
+              className={fontGrande ? "site-header-a11y-toggle-active" : "site-header-a11y-toggle"}
+              title={fontGrande ? "Volver a letra normal" : "Aumentar tamaño de letra"}
+              aria-label={fontGrande ? "Volver a letra normal" : "Aumentar tamaño de letra"}
+              aria-pressed={fontGrande}
             >
-              <span className="text-[11px] font-bold text-[#355C56] dark:text-[#9CC2BC] px-0.5 select-none hidden sm:inline">
-                Texto:
-              </span>
-              <button
-                type="button"
-                onClick={() => toggleTamanoTexto(false)}
-                className={`px-2 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                  !fontGrande
-                    ? "bg-[#0F766E] text-white shadow-2xs"
-                    : "text-[#1E4640] dark:text-[#9CC2BC] hover:bg-[#D9F5EF] dark:hover:bg-[#1E3F3B]"
-                }`}
-                aria-label="Tamaño normal"
-              >
-                A
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleTamanoTexto(true)}
-                className={`px-2 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
-                  fontGrande
-                    ? "bg-[#0F766E] text-white shadow-2xs"
-                    : "text-[#1E4640] dark:text-[#9CC2BC] hover:bg-[#D9F5EF] dark:hover:bg-[#1E3F3B]"
-                }`}
-                aria-label="Tamaño grande"
-              >
-                A+
-              </button>
-            </div>
+              {fontGrande ? "A+" : "A"}
+            </button>
 
             {/* Botón Modo Oscuro / Modo Claro */}
             <button
               type="button"
               onClick={toggleModoOscuro}
-              className="p-2.5 rounded-xl bg-[#F4FAF8] dark:bg-[#152B26] border border-[#CDECE5] dark:border-[#2A534B] text-[#1E4640] dark:text-[#A7E3D4] hover:bg-[#D9F5EF] dark:hover:bg-[#1E3F3B] transition-all shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#0F766E] cursor-pointer"
+              className="site-header-theme-btn"
               title={modoOscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
               aria-label="Alternar modo oscuro"
             >
               {modoOscuro ? (
-                <SunIcon className="w-4 h-4 text-amber-300" />
+                <SunIcon className="site-header-theme-icon-sun" />
               ) : (
-                <MoonIcon className="w-4 h-4 text-[#1E4640]" />
+                <MoonIcon className="site-header-theme-icon-moon" />
               )}
             </button>
 
             {/* Selector / Dropdown de Área Funcionarios */}
-            <div className="relative" ref={dropdownRef}>
+            <div className="site-header-dropdown-wrap" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setSomeDropdownAbierto(!someDropdownAbierto)}
-                className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all border cursor-pointer ${
-                  someDropdownAbierto || enVistaSome
-                    ? "bg-[#1E4640] dark:bg-[#1E3F3B] text-white border-[#1E4640] dark:border-[#5BB9A6]"
-                    : "bg-[#F4FAF8] dark:bg-[#152B26] text-[#1E4640] dark:text-[#A7E3D4] border-[#CDECE5] dark:border-[#2A534B] hover:bg-[#D9F5EF]/60 dark:hover:bg-[#1E3F3B]"
-                }`}
+                className={someDropdownAbierto || enVistaSome ? "site-header-some-btn-active" : "site-header-some-btn"}
                 aria-expanded={someDropdownAbierto}
               >
-                <BuildingOffice2Icon className={`w-4 h-4 ${someDropdownAbierto || enVistaSome ? "text-[#A7E3D4]" : "text-[#0F766E] dark:text-[#5BB9A6]"}`} />
-                <span className="hidden md:inline">Área Funcionarios</span>
-                <span className="md:hidden">SOME</span>
+                <BuildingOffice2Icon className={someDropdownAbierto || enVistaSome ? "site-header-some-icon-active" : "site-header-some-icon"} />
+                <span className="site-header-some-label-desktop">Área Funcionarios</span>
+                <span className="site-header-some-label-mobile">SOME</span>
                 <ChevronDownIcon
-                  className={`w-3.5 h-3.5 transition-transform ${
-                    someDropdownAbierto ? "rotate-180" : ""
-                  }`}
+                  className={someDropdownAbierto ? "site-header-chevron-open" : "site-header-chevron"}
                 />
               </button>
 
               {/* Menú Desplegable con accesos a vistas */}
               {someDropdownAbierto && (
-                <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#122420] text-[#132A26] dark:text-[#E8F5F2] rounded-2xl shadow-xl border border-[#CDECE5] dark:border-[#2A534B] p-2.5 z-50 animate-fadeIn">
-                  <div className="px-3 py-2 border-b border-[#CDECE5] dark:border-[#2A534B]">
-                    <p className="text-[11px] font-bold text-[#0F766E] dark:text-[#A7E3D4] uppercase tracking-wider flex items-center gap-1.5">
-                      <EyeIcon className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#5BB9A6]" />
+                <div className="site-header-dropdown-menu">
+                  <div className="site-header-dropdown-header">
+                    <p className="site-header-dropdown-title">
+                      <EyeIcon className="site-header-dropdown-title-icon" />
                       Módulos Operativos CESFAM
                     </p>
-                    <p className="text-[11px] text-[#355C56] dark:text-[#9CC2BC] mt-0.5">
+                    <p className="site-header-dropdown-subtitle">
                       Acceso para gestión SOME y pruebas
                     </p>
                   </div>
 
-                  <div className="mt-1.5 space-y-1">
+                  <div className="site-header-dropdown-list">
                     <Link
                       href="/some/agendas"
-                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition-colors group ${
+                      className={`${
                         pathname === "/some/agendas"
-                          ? "bg-[#D9F5EF] dark:bg-[#1E3F3B]"
-                          : "hover:bg-[#F4FAF8] dark:hover:bg-[#17302B]"
-                      }`}
+                          ? "site-header-dropdown-item-active"
+                          : "site-header-dropdown-item"
+                      } group`}
                       onClick={() => setSomeDropdownAbierto(false)}
                     >
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#0F766E] dark:bg-[#5BB9A6] mt-1.5 flex-shrink-0 group-hover:scale-125 transition-transform" />
+                      <div className="site-header-dropdown-dot-teal" />
                       <div>
-                        <p className="text-xs font-bold text-[#132A26] dark:text-[#E8F5F2]">
+                        <p className="site-header-dropdown-item-title">
                           Consola SOME: Agendas
                         </p>
-                        <p className="text-[11px] text-[#355C56] dark:text-[#9CC2BC]">
-                          HU-005 • Apertura, Matriz de Boxes y Cuota 60+
+                        <p className="site-header-dropdown-item-desc">
+                          Apertura de horarios, Matriz de Boxes y Cuota 60+
                         </p>
                       </div>
                     </Link>
 
                     <Link
                       href="/some/ventanilla"
-                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition-colors group ${
+                      className={`${
                         pathname === "/some/ventanilla"
-                          ? "bg-[#D9F5EF] dark:bg-[#1E3F3B]"
-                          : "hover:bg-[#F4FAF8] dark:hover:bg-[#17302B]"
-                      }`}
+                          ? "site-header-dropdown-item-active"
+                          : "site-header-dropdown-item"
+                      } group`}
                       onClick={() => setSomeDropdownAbierto(false)}
                     >
-                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0 group-hover:scale-125 transition-transform" />
+                      <div className="site-header-dropdown-dot-amber" />
                       <div>
-                        <p className="text-xs font-bold text-[#132A26] dark:text-[#E8F5F2]">
+                        <p className="site-header-dropdown-item-title">
                           Ventanilla Presencial SOME
                         </p>
-                        <p className="text-[11px] text-[#355C56] dark:text-[#9CC2BC]">
-                          HU-006 • Alta Rápida, Mesón y Ticket Térmico
+                        <p className="site-header-dropdown-item-desc">
+                          Inscripción rápida, mesón y comprobante
                         </p>
                       </div>
                     </Link>
 
                     <Link
                       href="/"
-                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition-colors group ${
+                      className={`${
                         pathname === "/"
-                          ? "bg-[#D9F5EF] dark:bg-[#1E3F3B]"
-                          : "hover:bg-[#F4FAF8] dark:hover:bg-[#17302B]"
-                      }`}
+                          ? "site-header-dropdown-item-active"
+                          : "site-header-dropdown-item"
+                      } group`}
                       onClick={() => setSomeDropdownAbierto(false)}
                     >
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#5BB9A6] mt-1.5 flex-shrink-0 group-hover:scale-125 transition-transform" />
+                      <div className="site-header-dropdown-dot-mint" />
                       <div>
-                        <p className="text-xs font-bold text-[#132A26] dark:text-[#E8F5F2]">
+                        <p className="site-header-dropdown-item-title">
                           Portal Pacientes (Reserva Web)
                         </p>
-                        <p className="text-[11px] text-[#355C56] dark:text-[#9CC2BC]">
-                          HU-001/002 • Autoatención y Anulación
+                        <p className="site-header-dropdown-item-desc">
+                          Autoatención en línea y anulación de citas
                         </p>
                       </div>
                     </Link>
@@ -311,9 +282,9 @@ export default function Header() {
             {/* Botón Destacado 'Reservar Hora' con contraste WCAG AA */}
             <Link
               href="/"
-              className="inline-flex items-center gap-2 bg-[#0F766E] hover:bg-[#115E59] active:bg-[#134E4A] text-white px-4 sm:px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-[#A7E3D4] whitespace-nowrap flex-shrink-0"
+              className="site-header-cta-btn"
             >
-              <CalendarDaysIcon className="w-5 h-5 text-white" />
+              <CalendarDaysIcon className="site-header-cta-icon" />
               <span>Reservar Hora</span>
             </Link>
 
@@ -321,14 +292,14 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setMenuAbierto(!menuAbierto)}
-              className="lg:hidden p-2 rounded-xl text-[#1E4640] dark:text-[#A7E3D4] hover:bg-[#D9F5EF] dark:hover:bg-[#1E3F3B] focus:outline-none focus:ring-2 focus:ring-[#0F766E]"
+              className="site-header-mobile-menu-btn"
               aria-label="Abrir menú de navegación"
               aria-expanded={menuAbierto}
             >
               {menuAbierto ? (
-                <XMarkIcon className="w-6 h-6" />
+                <XMarkIcon className="site-header-mobile-menu-icon" />
               ) : (
-                <Bars3Icon className="w-6 h-6" />
+                <Bars3Icon className="site-header-mobile-menu-icon" />
               )}
             </button>
           </div>
@@ -337,52 +308,37 @@ export default function Header() {
 
       {/* 4. Menú Móvil Desplegable */}
       {menuAbierto && (
-        <div className="lg:hidden border-t border-[#CDECE5] dark:border-[#2A534B] bg-white dark:bg-[#11221F] shadow-xl animate-fadeIn">
-          <div className="px-4 pt-3 pb-6 space-y-3">
+        <div className="site-header-mobile-drawer">
+          <div className="site-header-mobile-drawer-inner">
             
-            {/* Controles en Móvil: Accesibilidad + Modo Oscuro */}
-            <div className="flex items-center justify-between bg-[#F4FAF8] dark:bg-[#152B26] border border-[#CDECE5] dark:border-[#2A534B] p-2.5 rounded-xl">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#1E4640] dark:text-[#A7E3D4]">
-                  Texto:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => toggleTamanoTexto(false)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                    !fontGrande
-                      ? "bg-[#0F766E] text-white"
-                      : "bg-white dark:bg-[#1E3F3B] text-[#1E4640] dark:text-[#9CC2BC] border border-[#CDECE5] dark:border-[#2A534B]"
-                  }`}
-                >
-                  Normal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleTamanoTexto(true)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                    fontGrande
-                      ? "bg-[#0F766E] text-white"
-                      : "bg-white dark:bg-[#1E3F3B] text-[#1E4640] dark:text-[#9CC2BC] border border-[#CDECE5] dark:border-[#2A534B]"
-                  }`}
-                >
-                  Grande (A+)
-                </button>
-              </div>
+            {/* Controles en Móvil: Botón Único de Letra + Modo Oscuro */}
+            <div className="site-header-mobile-controls">
+              <button
+                type="button"
+                onClick={() => toggleTamanoTexto(!fontGrande)}
+                className={
+                  fontGrande
+                    ? "site-header-mobile-a11y-btn-active"
+                    : "site-header-mobile-a11y-btn"
+                }
+                aria-pressed={fontGrande}
+              >
+                {fontGrande ? "A+" : "A"}
+              </button>
 
               <button
                 type="button"
                 onClick={toggleModoOscuro}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#1E3F3B] border border-[#CDECE5] dark:border-[#2A534B] text-[#1E4640] dark:text-[#A7E3D4]"
+                className="site-header-mobile-theme-btn"
               >
                 {modoOscuro ? (
                   <>
-                    <SunIcon className="w-4 h-4 text-amber-300" />
+                    <SunIcon className="site-header-theme-icon-sun" />
                     <span>Claro</span>
                   </>
                 ) : (
                   <>
-                    <MoonIcon className="w-4 h-4 text-[#1E4640]" />
+                    <MoonIcon className="site-header-theme-icon-moon" />
                     <span>Oscuro</span>
                   </>
                 )}
@@ -390,49 +346,56 @@ export default function Header() {
             </div>
 
             {/* Enlaces de navegación */}
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                onClick={() => setMenuAbierto(false)}
-                className="flex items-center justify-between px-3.5 py-3 rounded-xl text-base font-semibold text-[#132A26] dark:text-[#E8F5F2] hover:text-[#0F766E] hover:bg-[#D9F5EF] dark:hover:bg-[#1E3F3B] transition-colors"
-              >
-                <span>{link.label}</span>
-                <span className="text-[#0F766E] dark:text-[#5BB9A6]">→</span>
-              </Link>
-            ))}
+            <nav className="site-header-mobile-nav-list">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setMenuAbierto(false)}
+                    className={
+                      isActive ? "site-header-mobile-nav-link-active" : "site-header-mobile-nav-link"
+                    }
+                  >
+                    <span>{link.label}</span>
+                    <span className="site-header-mobile-nav-arrow">→</span>
+                  </Link>
+                );
+              })}
+            </nav>
 
             {/* Botón Reservar en Móvil */}
-            <div className="pt-2 border-t border-[#CDECE5] dark:border-[#2A534B]">
+            <div className="site-header-mobile-cta-wrap">
               <Link
                 href="/"
                 onClick={() => setMenuAbierto(false)}
-                className="w-full flex items-center justify-center gap-2 bg-[#0F766E] hover:bg-[#115E59] text-white py-3.5 rounded-xl font-bold text-base shadow-sm mt-1"
+                className="site-header-mobile-cta-btn"
               >
-                <CalendarDaysIcon className="w-5 h-5" />
+                <CalendarDaysIcon className="site-header-cta-icon" />
                 <span>Reservar Hora Médica</span>
               </Link>
             </div>
 
             {/* Accesos de Funcionarios en Móvil */}
-            <div className="pt-3 border-t border-[#CDECE5] dark:border-[#2A534B] space-y-1.5">
-              <p className="text-[11px] font-bold text-[#355C56] dark:text-[#9CC2BC] uppercase tracking-wider px-1">
+            <div className="site-header-mobile-some-wrap">
+              <p className="site-header-mobile-some-label">
                 Área Funcionarios / Vistas SOME:
               </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="site-header-mobile-some-grid">
                 <Link
                   href="/some/agendas"
                   onClick={() => setMenuAbierto(false)}
-                  className="p-2.5 rounded-xl bg-[#F4FAF8] dark:bg-[#152B26] border border-[#CDECE5] dark:border-[#2A534B] text-[#1E4640] dark:text-[#A7E3D4] font-semibold text-center hover:bg-[#D9F5EF] dark:hover:bg-[#1E3F3B]"
+                  className="site-header-mobile-some-link"
                 >
-                  Consola SOME
+                  Consola SOME (Agendas)
                 </Link>
                 <Link
                   href="/some/ventanilla"
                   onClick={() => setMenuAbierto(false)}
-                  className="p-2.5 rounded-xl bg-[#F4FAF8] dark:bg-[#152B26] border border-[#CDECE5] dark:border-[#2A534B] text-[#1E4640] dark:text-[#A7E3D4] font-semibold text-center hover:bg-[#D9F5EF] dark:hover:bg-[#1E3F3B]"
+                  className="site-header-mobile-some-link"
                 >
-                  Ventanilla SOME
+                  Ventanilla SOME (Mesón)
                 </Link>
               </div>
             </div>

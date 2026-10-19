@@ -2,90 +2,71 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --background: #F4FAF8;
-  --foreground: #132A26;
-  --mint-lightest: #F7FFFD;
-  --mint-pale: #D9F5EF;
-  --mint-medium: #A7E3D4;
-  --teal-primary: #0F766E;
-  --teal-primary-hover: #115E59;
-  --teal-accent: #5BB9A6;
-  --teal-deep: #1E4640;
-  --teal-darker: #132A26;
-  --senior-bg: #FEF3C7;
-  --senior-border: #F59E0B;
-  --senior-text: #92400E;
-  --card-bg: #FFFFFF;
-  --border-subtle: #CDECE5;
-  --text-muted: #355C56;
-}
-
-.dark {
-  --background: #0B1715;
-  --foreground: #E8F5F2;
-  --mint-lightest: #11221F;
-  --mint-pale: #17302B;
-  --mint-medium: #264E46;
-  --teal-primary: #14B8A6;
-  --teal-primary-hover: #0D9488;
-  --teal-accent: #5BB9A6;
-  --teal-deep: #99E6D8;
-  --teal-darker: #07100E;
-  --senior-bg: #3B2806;
-  --senior-border: #D97706;
-  --senior-text: #FDE68A;
-  --card-bg: #122420;
-  --border-subtle: #21403A;
-  --text-muted: #9CC2BC;
-}
-
 @theme {
   --color-mint-lightest: #F7FFFD;
   --color-mint-pale: #D9F5EF;
   --color-mint-medium: #A7E3D4;
   --color-teal-primary: #0F766E;
   --color-teal-hover: #115E59;
+  --color-teal-active: #134E4A;
   --color-teal-accent: #5BB9A6;
   --color-teal-deep: #1E4640;
   --color-teal-darker: #132A26;
   --color-surface: #FFFFFF;
   --color-surface-bg: #F4FAF8;
+  --color-surface-dark: #122420;
+  --color-surface-dark-bg: #0B1715;
+  --color-surface-dark-elevated: #152B26;
+  --color-surface-dark-muted: #17302B;
+  --color-surface-dark-accent: #1E3F3B;
   --color-text-main: #132A26;
+  --color-text-dark-main: #E8F5F2;
   --color-text-muted: #355C56;
+  --color-text-dark-muted: #9CC2BC;
   --color-text-subtle: #527A73;
   --color-border-subtle: #CDECE5;
-}
+  --color-border-dark: #21403A;
+  --color-border-dark-subtle: #264E46;
+  --color-border-dark-accent: #2A534B;
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+  --animate-fadeIn: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+}
+
+@layer base {
+  html {
+    @apply text-[112%] scroll-smooth scroll-pt-24 overflow-x-hidden;
+  }
+
+  html.font-accessible-lg {
+    @apply text-[125%];
+  }
+
+  body {
+    @apply min-h-screen flex flex-col bg-surface-bg dark:bg-surface-dark-bg text-text-main dark:text-text-dark-main font-sans antialiased overflow-x-hidden transition-colors duration-200;
   }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.layout-html {
+  @apply h-full antialiased;
 }
 
-html {
-  font-size: 100%;
-  scroll-behavior: smooth;
-  scroll-padding-top: 6rem;
-  overflow-x: hidden;
+.layout-body {
+  @apply min-h-full flex flex-col bg-surface-bg dark:bg-surface-dark-bg text-text-main dark:text-text-dark-main font-sans antialiased;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-  transition: background-color 0.25s ease, color 0.25s ease;
+.layout-main {
+  @apply flex-1 flex flex-col;
 }
 
 @media print {
@@ -93,18 +74,12 @@ body {
     size: 80mm auto;
     margin: 3mm;
   }
+
   body {
-    background: #ffffff !important;
-    color: #000000 !important;
+    @apply bg-white! text-black!;
   }
+
   .print-ticket-container {
-    width: 74mm !important;
-    max-width: 74mm !important;
-    margin: 0 auto !important;
-    padding: 6px !important;
-    border: 1px dashed #000000 !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-    color: #000000 !important;
+    @apply w-[74mm]! max-w-[74mm]! mx-auto! p-1.5! border! border-dashed! border-black! shadow-none! bg-white! text-black!;
   }
 }

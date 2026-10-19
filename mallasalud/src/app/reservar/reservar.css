@@ -1,0 +1,13 @@
+@reference "../globals.css";
+
+.reservar-redirect-wrapper {
+  @apply min-h-[50vh] flex items-center justify-center;
+}
+
+.reservar-redirect-status {
+  @apply flex items-center gap-3 text-teal-deep dark:text-mint-medium font-semibold text-sm;
+}
+
+.reservar-redirect-spinner {
+  @apply w-4 h-4 border-2 border-teal-accent border-t-transparent rounded-full animate-spin;
+}

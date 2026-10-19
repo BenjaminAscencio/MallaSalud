@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
       hora_inicio,
       hora_fin,
       duracion_bloque_min: Number(duracion_bloque_min),
-      porcentaje_cuota_mayor: porcentaje_cuota_mayor ? Number(porcentaje_cuota_mayor) : undefined,
+      porcentaje_cuota_mayor:
+        porcentaje_cuota_mayor !== undefined && porcentaje_cuota_mayor !== null
+          ? Number(porcentaje_cuota_mayor)
+          : undefined,
     });
 
     return NextResponse.json(

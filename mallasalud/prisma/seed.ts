@@ -239,11 +239,17 @@ async function main() {
         currentMinutes += 20;
       }
 
-      // Si aplica cuota mayor (Medicina General), marcar 30% de bloques
+      // Si aplica cuota mayor (Medicina General), marcar 30% de bloques de forma intercalada (08:20, 09:00, 09:40...)
       if (conf.esCuota) {
         const numCuota = Math.round(bloquesData.length * 0.3);
-        for (let b = 0; b < numCuota; b++) {
+        let asignados = 0;
+        for (let b = 1; b < bloquesData.length && asignados < numCuota; b += 2) {
           bloquesData[b].es_cuota_adulto_mayor = true;
+          asignados++;
+        }
+        for (let b = 0; b < bloquesData.length && asignados < numCuota; b += 2) {
+          bloquesData[b].es_cuota_adulto_mayor = true;
+          asignados++;
         }
       }
 

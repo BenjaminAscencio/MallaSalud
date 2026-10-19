@@ -1,0 +1,1114 @@
+@reference "./globals.css";
+
+.portal-page {
+  @apply w-full font-sans transition-colors duration-200;
+}
+
+/* 1. Cabecera Institucional Sobria */
+.portal-hero {
+  @apply print:hidden bg-surface-bg dark:bg-surface-dark-bg border-b border-border-subtle dark:border-border-dark pt-6 pb-12 px-4 sm:px-6 lg:px-8;
+}
+
+.portal-hero-inner {
+  @apply max-w-5xl mx-auto text-left sm:text-center space-y-2.5;
+}
+
+.portal-hero-title {
+  @apply text-2xl sm:text-3xl lg:text-4xl font-bold text-text-main dark:text-text-dark-main tracking-tight;
+}
+
+.portal-hero-highlight {
+  @apply text-teal-primary dark:text-teal-accent;
+}
+
+.portal-hero-subtitle {
+  @apply max-w-2xl sm:mx-auto text-xs sm:text-sm text-text-muted dark:text-text-dark-muted leading-relaxed;
+}
+
+.portal-hero-strong {
+  @apply text-text-main dark:text-white font-semibold;
+}
+
+/* 2. Contenedor Principal de Agendamiento */
+.portal-main-section {
+  @apply max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 pb-14 print:mt-0 print:pb-0 print:px-0;
+}
+
+.portal-main-card {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark rounded-xl shadow-xs overflow-hidden transition-all print:border-none print:shadow-none print:rounded-none;
+}
+
+.portal-mode-tabs {
+  @apply print:hidden grid grid-cols-2 border-b border-border-subtle dark:border-border-dark bg-slate-50/80 dark:bg-surface-dark-bg;
+}
+
+.portal-mode-tab {
+  @apply py-3.5 px-2.5 sm:py-3.5 sm:px-6 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold transition-colors border-b-2 cursor-pointer border-transparent text-text-muted dark:text-text-dark-muted hover:text-text-main dark:hover:text-white text-center;
+}
+
+.portal-mode-tab-active {
+  @apply py-3.5 px-2.5 sm:py-3.5 sm:px-6 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold transition-colors border-b-2 cursor-pointer bg-white dark:bg-surface-dark border-teal-primary dark:border-teal-accent text-teal-primary dark:text-mint-medium text-center;
+}
+
+.portal-mode-tab-icon {
+  @apply w-4 h-4 text-slate-400 shrink-0;
+}
+
+.portal-mode-tab-icon-active {
+  @apply w-4 h-4 text-teal-primary dark:text-teal-accent shrink-0;
+}
+
+.portal-card-body {
+  @apply p-4 sm:p-7 lg:p-8 print:p-0;
+}
+
+/* Stepper Interactivo de 4 Pasos */
+.portal-stepper-wrap {
+  @apply print:hidden mb-6 border-b border-border-subtle dark:border-border-dark pb-5;
+}
+
+.portal-stepper-row {
+  @apply flex items-center justify-between max-w-xl mx-auto;
+}
+
+.portal-step-item {
+  @apply flex items-center flex-1 last:flex-none min-w-0;
+}
+
+.portal-step-btn {
+  @apply flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center focus:outline-none cursor-default;
+}
+
+.portal-step-btn-clickable {
+  @apply flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center focus:outline-none cursor-pointer;
+}
+
+.portal-step-circle-done {
+  @apply w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors bg-teal-primary text-white group-hover:bg-teal-hover;
+}
+
+.portal-step-circle-active {
+  @apply w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors bg-teal-primary text-white ring-2 ring-mint-medium dark:ring-teal-accent/40;
+}
+
+.portal-step-circle-pending {
+  @apply w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-xs transition-colors bg-slate-100 dark:bg-surface-dark-muted text-slate-500 dark:text-slate-400;
+}
+
+.portal-step-check-icon {
+  @apply w-4 h-4 stroke-[2.5];
+}
+
+.portal-step-label-active {
+  @apply text-[10px] sm:text-xs transition-colors font-bold text-teal-primary dark:text-teal-accent;
+}
+
+.portal-step-label-done {
+  @apply text-[10px] sm:text-xs transition-colors font-semibold text-text-main dark:text-mint-pale group-hover:underline;
+}
+
+.portal-step-label-pending {
+  @apply text-[10px] sm:text-xs transition-colors font-medium text-slate-400 dark:text-slate-500;
+}
+
+.portal-step-line {
+  @apply flex-1 h-px mx-1.5 sm:mx-3 transition-colors bg-slate-200 dark:bg-surface-dark-muted;
+}
+
+.portal-step-line-done {
+  @apply flex-1 h-px mx-1.5 sm:mx-3 transition-colors bg-teal-primary dark:bg-teal-accent;
+}
+
+/* Barra Persistente del Paciente Activo (Plana, sin efecto caja sobre caja) */
+.portal-patient-banner-wrap {
+  @apply mb-6 space-y-2.5 animate-fadeIn border-b border-border-subtle dark:border-border-dark pb-5;
+}
+
+.portal-patient-banner {
+  @apply flex flex-col md:flex-row md:items-center justify-between gap-3;
+}
+
+.portal-patient-info {
+  @apply flex items-start sm:items-center gap-3;
+}
+
+.portal-patient-avatar {
+  @apply w-9 h-9 rounded-full bg-mint-pale/70 dark:bg-surface-dark-accent flex items-center justify-center shrink-0 text-teal-primary dark:text-mint-medium;
+}
+
+.portal-patient-avatar-icon {
+  @apply w-5 h-5;
+}
+
+.portal-patient-title-row {
+  @apply flex items-center gap-2 flex-wrap;
+}
+
+.portal-patient-name {
+  @apply text-base font-bold text-text-main dark:text-text-dark-main;
+}
+
+.portal-badge-senior-priority {
+  @apply bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/70 text-[11px] font-semibold px-2 py-0.5 rounded-md;
+}
+
+.portal-badge-fonasa {
+  @apply bg-slate-100 dark:bg-surface-dark-accent text-slate-700 dark:text-mint-medium text-[11px] font-medium px-2 py-0.5 rounded-md;
+}
+
+.portal-patient-meta-row {
+  @apply flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted dark:text-text-dark-muted mt-0.5;
+}
+
+.portal-patient-meta-mono {
+  @apply font-mono font-semibold text-text-main dark:text-white;
+}
+
+.portal-patient-meta-strong {
+  @apply font-semibold text-text-main dark:text-white;
+}
+
+.portal-patient-change-btn {
+  @apply text-xs font-semibold text-text-muted dark:text-text-dark-muted hover:text-red-600 dark:hover:text-red-400 border border-border-subtle dark:border-border-dark-subtle px-3 py-1.5 rounded-lg transition-colors self-start md:self-auto cursor-pointer;
+}
+
+.portal-senior-notice {
+  @apply flex items-center gap-2.5 border-l-3 border-amber-500 bg-amber-50/50 dark:bg-amber-950/25 py-2 px-3 rounded-r-lg text-xs text-amber-900 dark:text-amber-200;
+}
+
+.portal-senior-notice-icon {
+  @apply w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0;
+}
+
+.portal-senior-inline-tag {
+  @apply inline-block bg-amber-100 dark:bg-amber-900/80 text-amber-900 dark:text-amber-100 font-semibold px-1.5 py-0.5 rounded text-[11px];
+}
+
+/* Paso 1: Identificación del Paciente */
+.portal-step1-container {
+  @apply max-w-lg mx-auto space-y-6 animate-fadeIn py-2;
+}
+
+.portal-target-selector-box {
+  @apply space-y-2;
+}
+
+.portal-target-selector-label {
+  @apply block text-xs font-semibold text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-target-selector-grid {
+  @apply grid grid-cols-2 gap-1 bg-slate-100 dark:bg-surface-dark-bg p-1 rounded-lg border border-border-subtle/60 dark:border-border-dark;
+}
+
+.portal-target-option {
+  @apply py-2 px-3 rounded-md text-xs sm:text-sm font-medium text-center transition-all flex items-center justify-center gap-2 cursor-pointer text-text-muted dark:text-text-dark-muted hover:text-text-main dark:hover:text-white;
+}
+
+.portal-target-option-active {
+  @apply py-2 px-3 rounded-md text-xs sm:text-sm font-semibold text-center transition-all flex items-center justify-center gap-2 cursor-pointer bg-white dark:bg-surface-dark text-teal-primary dark:text-mint-medium shadow-2xs;
+}
+
+.portal-radio-outer {
+  @apply hidden;
+}
+
+.portal-radio-outer-active {
+  @apply hidden;
+}
+
+.portal-radio-inner {
+  @apply hidden;
+}
+
+.portal-step-heading-box {
+  @apply text-left sm:text-center space-y-1;
+}
+
+.portal-step-heading {
+  @apply text-lg sm:text-xl font-bold text-text-main dark:text-text-dark-main;
+}
+
+.portal-step-subheading {
+  @apply text-xs sm:text-sm text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-rut-form {
+  @apply space-y-4;
+}
+
+.portal-rut-label {
+  @apply block text-xs sm:text-sm font-semibold text-text-main dark:text-mint-pale mb-1.5;
+}
+
+.portal-rut-input-wrap {
+  @apply relative;
+}
+
+.portal-rut-icon-wrap {
+  @apply absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none;
+}
+
+.portal-rut-icon {
+  @apply w-5 h-5 text-slate-400 dark:text-slate-500;
+}
+
+.portal-rut-input {
+  @apply w-full pl-11 pr-4 py-3 bg-white dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle text-text-main dark:text-white rounded-lg text-base font-mono font-semibold tracking-wide placeholder-slate-400 focus:outline-none focus:border-teal-primary dark:focus:border-teal-accent focus:ring-2 focus:ring-teal-primary/20 transition-all;
+}
+
+.portal-alert-error {
+  @apply flex items-start gap-2.5 border-l-3 border-red-600 bg-red-50/70 dark:bg-red-950/40 p-3.5 rounded-r-lg text-xs sm:text-sm text-red-800 dark:text-red-200 animate-fadeIn;
+}
+
+.portal-alert-error-icon {
+  @apply w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400;
+}
+
+.portal-alert-error-title {
+  @apply block font-bold;
+}
+
+.portal-alert-noinscrito {
+  @apply border-l-3 border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 p-4 rounded-r-lg space-y-2 text-xs sm:text-sm text-amber-900 dark:text-amber-200 animate-fadeIn;
+}
+
+.portal-alert-noinscrito-header {
+  @apply flex items-center gap-2 font-bold text-sm;
+}
+
+.portal-alert-noinscrito-icon {
+  @apply w-4 h-4 text-amber-600 shrink-0;
+}
+
+.portal-alert-noinscrito-sub {
+  @apply text-xs text-amber-800 dark:text-amber-300 leading-relaxed;
+}
+
+.portal-alert-noinscrito-actions {
+  @apply pt-1;
+}
+
+.portal-alert-noinscrito-link {
+  @apply inline-flex items-center gap-1.5 text-xs font-semibold text-teal-primary dark:text-mint-medium bg-white dark:bg-surface-dark border border-amber-300 dark:border-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition-colors;
+}
+
+.portal-btn-submit-lg {
+  @apply w-full flex items-center justify-center gap-2 bg-teal-primary hover:bg-teal-hover active:bg-teal-active text-white py-3.5 rounded-lg font-semibold text-sm sm:text-base shadow-2xs transition-colors disabled:opacity-50 cursor-pointer;
+}
+
+.portal-icon-sm {
+  @apply w-4 h-4;
+}
+
+.portal-icon-md {
+  @apply w-5 h-5;
+}
+
+.portal-icon-spin {
+  @apply w-5 h-5 animate-spin;
+}
+
+.portal-icon-spin-sm {
+  @apply w-4 h-4 animate-spin;
+}
+
+.portal-demo-section {
+  @apply pt-4 border-t border-border-subtle dark:border-border-dark;
+}
+
+.portal-demo-toggle {
+  @apply w-full flex items-center justify-between text-xs font-medium text-text-muted dark:text-text-dark-muted hover:text-teal-primary transition-colors py-1 cursor-pointer;
+}
+
+.portal-demo-toggle-label {
+  @apply flex items-center gap-1.5;
+}
+
+.portal-demo-chevron {
+  @apply w-4 h-4 transition-transform;
+}
+
+.portal-demo-chevron-open {
+  @apply w-4 h-4 transition-transform rotate-180;
+}
+
+.portal-demo-grid {
+  @apply mt-2.5 divide-y divide-border-subtle dark:divide-border-dark border border-border-subtle dark:border-border-dark rounded-lg overflow-hidden animate-fadeIn;
+}
+
+.portal-demo-card-senior {
+  @apply w-full px-3.5 py-2.5 bg-white dark:bg-surface-dark-bg text-left hover:bg-slate-50 dark:hover:bg-surface-dark-muted transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-1;
+}
+
+.portal-demo-card {
+  @apply w-full px-3.5 py-2.5 bg-white dark:bg-surface-dark-bg text-left hover:bg-slate-50 dark:hover:bg-surface-dark-muted transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-1;
+}
+
+.portal-demo-card-title {
+  @apply text-xs font-mono font-semibold text-text-main dark:text-text-dark-main;
+}
+
+.portal-demo-card-sub-senior {
+  @apply text-[11px] text-amber-700 dark:text-amber-300 font-medium;
+}
+
+.portal-demo-card-sub {
+  @apply text-[11px] text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-demo-card-sub-nsp {
+  @apply text-[11px] text-amber-700 dark:text-amber-400;
+}
+
+.portal-demo-card-sub-muted {
+  @apply text-[11px] text-slate-500;
+}
+
+/* Paso 2: Selección de Especialidad y Cupos en Vivo */
+.portal-step2-container {
+  @apply space-y-5 animate-fadeIn;
+}
+
+.portal-step2-toolbar {
+  @apply flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-border-subtle dark:border-border-dark pb-4;
+}
+
+.portal-esp-tabs {
+  @apply flex flex-wrap sm:flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0;
+}
+
+.portal-esp-tab {
+  @apply px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer text-text-muted dark:text-text-dark-muted hover:bg-slate-100 dark:hover:bg-surface-dark-bg;
+}
+
+.portal-esp-tab-active {
+  @apply px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer bg-teal-primary text-white;
+}
+
+.portal-date-quick-bar {
+  @apply flex flex-wrap items-center gap-2 self-start lg:self-auto w-full lg:w-auto;
+}
+
+.portal-date-quick-label {
+  @apply text-xs font-semibold text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-date-quick-group {
+  @apply flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-surface-dark-bg p-1 rounded-lg border border-border-subtle/70 dark:border-border-dark-subtle w-full sm:w-auto;
+}
+
+.portal-date-quick-btn {
+  @apply px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer text-text-muted dark:text-text-dark-muted hover:text-text-main dark:hover:text-white;
+}
+
+.portal-date-quick-btn-active {
+  @apply px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer bg-white dark:bg-surface-dark text-teal-primary dark:text-mint-medium shadow-2xs;
+}
+
+.portal-date-quick-input {
+  @apply px-2 py-0.5 text-xs font-mono font-semibold bg-transparent text-text-main dark:text-text-dark-main focus:outline-none cursor-pointer;
+}
+
+.portal-esp-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+.portal-esp-card {
+  @apply bg-white dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle rounded-xl p-5 flex flex-col justify-between transition-all hover:border-teal-primary dark:hover:border-teal-accent cursor-pointer;
+}
+
+.portal-esp-card-disabled {
+  @apply bg-slate-50/60 dark:bg-surface-dark-bg/50 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col justify-between transition-all opacity-70 cursor-not-allowed;
+}
+
+.portal-esp-card-top {
+  @apply space-y-3;
+}
+
+.portal-esp-card-meta {
+  @apply flex items-center justify-between;
+}
+
+.portal-esp-code-pill {
+  @apply hidden;
+}
+
+.portal-esp-date-label {
+  @apply flex items-center gap-1 text-[11px] font-medium text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-esp-date-icon {
+  @apply w-3.5 h-3.5 text-slate-400;
+}
+
+.portal-esp-title-row {
+  @apply flex items-center gap-2.5;
+}
+
+.portal-esp-icon-box {
+  @apply w-8 h-8 rounded-lg bg-mint-pale/60 dark:bg-surface-dark-accent text-teal-primary dark:text-teal-accent flex items-center justify-center shrink-0;
+}
+
+.portal-esp-icon {
+  @apply w-4 h-4;
+}
+
+.portal-esp-name {
+  @apply text-base font-bold text-text-main dark:text-text-dark-main group-hover:text-teal-primary dark:group-hover:text-teal-accent transition-colors;
+}
+
+.portal-esp-desc {
+  @apply text-xs text-text-muted dark:text-text-dark-muted leading-relaxed;
+}
+
+.portal-esp-stats {
+  @apply pt-3 border-t border-border-subtle dark:border-border-dark space-y-1.5 text-xs;
+}
+
+.portal-esp-stat-row {
+  @apply flex items-center justify-between;
+}
+
+.portal-esp-stat-label {
+  @apply text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-esp-count-available {
+  @apply font-bold text-sm text-teal-primary dark:text-mint-medium;
+}
+
+.portal-esp-count-empty {
+  @apply font-semibold text-sm text-slate-400;
+}
+
+.portal-esp-senior-row {
+  @apply flex items-center justify-between text-[11px] text-amber-800 dark:text-amber-300 font-semibold pt-0.5;
+}
+
+.portal-esp-card-footer {
+  @apply pt-4;
+}
+
+.portal-esp-btn {
+  @apply w-full py-2.5 px-4 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer bg-teal-primary hover:bg-teal-hover text-white;
+}
+
+.portal-esp-btn-disabled {
+  @apply w-full py-2.5 px-4 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed;
+}
+
+/* Paso 3: Selección de Horario y Profesional (Jerarquía plana con divisores) */
+.portal-step3-container {
+  @apply space-y-5 animate-fadeIn;
+}
+
+.portal-step3-header {
+  @apply flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle dark:border-border-dark pb-3;
+}
+
+.portal-back-btn {
+  @apply inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-teal-primary dark:text-mint-medium hover:underline cursor-pointer;
+}
+
+.portal-selected-esp-label {
+  @apply text-xs sm:text-sm text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-selected-esp-strong {
+  @apply text-text-main dark:text-white font-bold;
+}
+
+.portal-date-strip {
+  @apply border-b border-border-subtle dark:border-border-dark pb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3;
+}
+
+.portal-date-strip-info {
+  @apply flex items-center gap-2;
+}
+
+.portal-date-strip-icon-box {
+  @apply hidden;
+}
+
+.portal-date-strip-caption {
+  @apply text-[11px] font-medium text-text-muted dark:text-text-dark-muted block;
+}
+
+.portal-date-strip-current {
+  @apply text-sm sm:text-base font-bold text-text-main dark:text-text-dark-main capitalize;
+}
+
+.portal-date-strip-buttons {
+  @apply flex flex-wrap items-center gap-1.5;
+}
+
+.portal-date-pill {
+  @apply px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer bg-white dark:bg-surface-dark text-text-main dark:text-mint-pale border-border-subtle dark:border-border-dark-subtle hover:border-teal-primary;
+}
+
+.portal-date-pill-active {
+  @apply px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer bg-teal-primary text-white border-teal-primary;
+}
+
+.portal-date-pill-label {
+  @apply inline capitalize mr-1;
+}
+
+.portal-date-pill-sub {
+  @apply text-[11px] text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-date-pill-sub-active {
+  @apply text-[11px] text-mint-pale;
+}
+
+.portal-date-picker-input {
+  @apply px-2.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark-subtle text-text-main dark:text-text-dark-main focus:outline-none focus:border-teal-primary cursor-pointer;
+}
+
+.portal-jornada-bar {
+  @apply flex flex-col md:flex-row md:items-center justify-between gap-3;
+}
+
+.portal-jornada-title {
+  @apply text-base sm:text-lg font-bold text-text-main dark:text-text-dark-main;
+}
+
+.portal-slot-legend {
+  @apply flex flex-wrap items-center gap-3 mt-1 text-xs text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-slot-legend-item {
+  @apply inline-flex items-center gap-1.5;
+}
+
+.portal-slot-legend-senior {
+  @apply inline-flex items-center gap-1.5 font-semibold text-amber-800 dark:text-amber-300;
+}
+
+.portal-swatch-general {
+  @apply w-2.5 h-2.5 rounded-xs bg-white dark:bg-surface-dark-elevated border border-slate-300 dark:border-border-dark-accent;
+}
+
+.portal-swatch-senior {
+  @apply w-2.5 h-2.5 rounded-xs bg-amber-100 border border-amber-400;
+}
+
+.portal-bolt-icon {
+  @apply text-amber-600 font-semibold;
+}
+
+.portal-jornada-tabs {
+  @apply flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-surface-dark-bg p-1 rounded-lg border border-border-subtle/70 dark:border-border-dark-subtle self-start md:self-auto w-full md:w-auto;
+}
+
+.portal-jornada-tab {
+  @apply flex-1 md:flex-none text-center px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer text-text-muted dark:text-text-dark-muted hover:text-text-main dark:hover:text-white;
+}
+
+.portal-jornada-tab-active {
+  @apply flex-1 md:flex-none text-center px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer bg-white dark:bg-surface-dark text-teal-primary dark:text-mint-medium shadow-2xs;
+}
+
+.portal-blocks-loading {
+  @apply py-10 flex flex-col items-center justify-center text-center text-sm text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-blocks-spinner {
+  @apply w-6 h-6 animate-spin text-teal-primary dark:text-teal-accent mb-2.5;
+}
+
+.portal-blocks-loading-text {
+  @apply font-medium text-xs sm:text-sm;
+}
+
+.portal-blocks-empty {
+  @apply text-center py-10 border-y border-border-subtle dark:border-border-dark p-6 space-y-1.5;
+}
+
+.portal-blocks-empty-icon {
+  @apply w-7 h-7 text-slate-400 mx-auto mb-1;
+}
+
+.portal-blocks-empty-title {
+  @apply font-semibold text-sm sm:text-base text-text-main dark:text-text-dark-main;
+}
+
+.portal-blocks-empty-desc {
+  @apply text-xs text-text-muted dark:text-text-dark-muted max-w-md mx-auto;
+}
+
+/* Lista de profesionales separada por líneas limpias en vez de cards anidadas */
+.portal-prof-list {
+  @apply divide-y divide-border-subtle dark:divide-border-dark border-t border-border-subtle dark:border-border-dark;
+}
+
+.portal-prof-card {
+  @apply py-5 space-y-3.5;
+}
+
+.portal-prof-header {
+  @apply flex flex-col sm:flex-row sm:items-center justify-between gap-1.5;
+}
+
+.portal-prof-info {
+  @apply flex items-center gap-3;
+}
+
+.portal-prof-avatar {
+  @apply w-9 h-9 rounded-full bg-slate-100 dark:bg-surface-dark-accent text-teal-deep dark:text-mint-medium font-bold text-xs flex items-center justify-center shrink-0;
+}
+
+.portal-prof-name {
+  @apply text-sm sm:text-base font-bold text-text-main dark:text-text-dark-main;
+}
+
+.portal-prof-meta {
+  @apply flex flex-wrap items-center gap-2 text-xs text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-prof-box {
+  @apply font-semibold text-text-main dark:text-mint-pale;
+}
+
+.portal-prof-slots-count {
+  @apply text-teal-primary dark:text-teal-accent font-medium;
+}
+
+.portal-prof-date-badge {
+  @apply text-xs font-medium text-text-muted dark:text-text-dark-muted self-start sm:self-auto capitalize;
+}
+
+.portal-slots-grid {
+  @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2;
+}
+
+.portal-slot-pill-selected {
+  @apply min-h-[48px] py-2 px-3 rounded-lg border-2 text-center transition-colors cursor-pointer relative flex flex-col items-center justify-center bg-teal-primary text-white border-teal-primary font-bold;
+}
+
+.portal-slot-pill-senior {
+  @apply min-h-[48px] py-2 px-3 rounded-lg border text-center transition-colors cursor-pointer relative flex flex-col items-center justify-center bg-amber-50/60 dark:bg-amber-950/25 border-amber-300 dark:border-amber-700/70 text-text-main dark:text-text-dark-main hover:border-amber-500 font-semibold;
+}
+
+.portal-slot-pill-general {
+  @apply min-h-[48px] py-2 px-3 rounded-lg border text-center transition-colors cursor-pointer relative flex flex-col items-center justify-center bg-white dark:bg-surface-dark-elevated border-border-subtle dark:border-border-dark-accent text-text-main dark:text-text-dark-main hover:border-teal-primary font-semibold;
+}
+
+.portal-slot-time {
+  @apply text-sm font-mono block leading-tight;
+}
+
+.portal-slot-sub-senior {
+  @apply text-[10px] block font-semibold mt-0.5 text-amber-800 dark:text-amber-300;
+}
+
+.portal-slot-sub-senior-selected {
+  @apply text-[10px] block font-semibold mt-0.5 text-amber-100;
+}
+
+.portal-slot-sub-general {
+  @apply text-[10px] block font-normal mt-0.5 text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-slot-sub-general-selected {
+  @apply text-[10px] block font-normal mt-0.5 text-mint-pale;
+}
+
+.portal-slot-freed-badge {
+  @apply absolute -top-1.5 -right-1 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded;
+}
+
+.portal-confirm-sticky-bar {
+  @apply sticky bottom-4 z-40 bg-white dark:bg-surface-dark border border-teal-primary dark:border-teal-accent p-4 rounded-xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 animate-fadeIn;
+}
+
+.portal-confirm-info {
+  @apply text-left space-y-0.5 w-full sm:w-auto;
+}
+
+.portal-confirm-top-row {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.portal-confirm-caption {
+  @apply text-[11px] uppercase font-bold tracking-wider text-teal-primary dark:text-teal-accent;
+}
+
+.portal-confirm-senior-tag {
+  @apply bg-amber-50 text-amber-800 border border-amber-300 text-[10px] font-semibold px-2 py-0.5 rounded;
+}
+
+.portal-confirm-summary {
+  @apply text-sm sm:text-base font-bold text-text-main dark:text-text-dark-main block;
+}
+
+.portal-confirm-sub {
+  @apply text-xs text-text-muted dark:text-text-dark-muted block;
+}
+
+.portal-confirm-btn {
+  @apply w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-teal-primary hover:bg-teal-hover active:bg-teal-active text-white px-6 py-3 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 cursor-pointer shrink-0;
+}
+
+/* Paso 4: Comprobante Oficial Imprimible */
+.portal-step4-container {
+  @apply max-w-lg mx-auto space-y-5 text-center animate-fadeIn py-2;
+}
+
+.portal-step4-header {
+  @apply print:hidden space-y-1.5;
+}
+
+.portal-step4-check-circle {
+  @apply w-12 h-12 rounded-full bg-mint-pale/70 dark:bg-surface-dark-accent flex items-center justify-center mx-auto text-teal-primary dark:text-teal-accent;
+}
+
+.portal-step4-check-icon {
+  @apply w-7 h-7;
+}
+
+.portal-step4-tag {
+  @apply text-xs font-semibold text-teal-primary dark:text-teal-accent block;
+}
+
+.portal-step4-title {
+  @apply text-xl sm:text-2xl font-bold text-text-main dark:text-text-dark-main;
+}
+
+.portal-step4-desc {
+  @apply text-xs sm:text-sm text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-step4-phone {
+  @apply font-mono font-semibold;
+}
+
+.portal-receipt-card {
+  @apply bg-slate-50/70 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle rounded-xl p-5 sm:p-6 text-left space-y-4;
+}
+
+.portal-receipt-top {
+  @apply flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-subtle dark:border-border-dark pb-3.5;
+}
+
+.portal-receipt-code-label {
+  @apply text-xs text-text-muted dark:text-text-dark-muted block;
+}
+
+.portal-receipt-code-value {
+  @apply font-mono font-bold text-xl text-teal-primary dark:text-mint-medium tracking-wider;
+}
+
+.portal-receipt-senior-wrap {
+  @apply text-left sm:text-right;
+}
+
+.portal-receipt-senior-pill {
+  @apply inline-block text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 px-2.5 py-0.5 rounded-md;
+}
+
+.portal-receipt-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm;
+}
+
+.portal-receipt-field-label {
+  @apply text-text-muted dark:text-text-dark-muted block text-xs;
+}
+
+.portal-receipt-field-value {
+  @apply text-text-main dark:text-white font-semibold;
+}
+
+.portal-receipt-field-mono {
+  @apply font-mono text-text-main dark:text-white font-semibold;
+}
+
+.portal-receipt-field-esp {
+  @apply text-teal-primary dark:text-teal-accent font-bold uppercase;
+}
+
+.portal-receipt-barcode-box {
+  @apply pt-3 border-t border-border-subtle dark:border-border-dark text-center overflow-hidden;
+}
+
+.portal-receipt-barcode {
+  @apply font-mono text-xs tracking-widest text-slate-400 dark:text-slate-500 uppercase select-none truncate;
+}
+
+.portal-receipt-barcode-note {
+  @apply text-[11px] text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-receipt-tip {
+  @apply print:hidden border-l-3 border-teal-primary bg-mint-pale/30 dark:bg-surface-dark-accent/30 py-2.5 px-3.5 rounded-r-lg text-xs text-teal-deep dark:text-mint-pale leading-relaxed;
+}
+
+.portal-step4-actions {
+  @apply print:hidden flex flex-col sm:flex-row items-center justify-center gap-3;
+}
+
+.portal-btn-print {
+  @apply w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-teal-deep hover:bg-teal-darker text-white px-5 py-2.5 rounded-lg font-semibold text-xs sm:text-sm transition-colors cursor-pointer;
+}
+
+.portal-btn-new-reserva {
+  @apply w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-teal-primary hover:bg-teal-hover text-white px-5 py-2.5 rounded-lg font-semibold text-xs sm:text-sm transition-colors cursor-pointer;
+}
+
+/* Vista 2: Administrar / Anular Cita */
+.portal-admin-container {
+  @apply max-w-xl mx-auto space-y-6 animate-fadeIn py-2;
+}
+
+.portal-admin-quick-row {
+  @apply flex flex-wrap items-center gap-2 text-xs;
+}
+
+.portal-admin-quick-label {
+  @apply text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-admin-quick-btn {
+  @apply px-2.5 py-1 rounded-md bg-slate-100 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle font-mono font-semibold text-teal-primary dark:text-mint-medium hover:bg-mint-pale/40 cursor-pointer;
+}
+
+.portal-admin-submit-btn {
+  @apply w-full flex items-center justify-center gap-2 bg-teal-primary hover:bg-teal-hover text-white py-3.5 rounded-lg font-semibold text-sm sm:text-base transition-colors disabled:opacity-50 cursor-pointer;
+}
+
+.portal-admin-success-msg {
+  @apply border-l-3 border-teal-primary bg-mint-pale/40 dark:bg-surface-dark-accent p-3.5 rounded-r-lg text-xs sm:text-sm text-text-main dark:text-text-dark-main font-medium animate-fadeIn;
+}
+
+.portal-admin-error-msg {
+  @apply border-l-3 border-red-600 bg-red-50/70 dark:bg-red-950/50 p-3.5 rounded-r-lg text-xs sm:text-sm text-red-800 dark:text-red-200 font-medium animate-fadeIn;
+}
+
+.portal-admin-results {
+  @apply space-y-3 pt-2;
+}
+
+.portal-admin-empty {
+  @apply text-center py-8 border-y border-border-subtle dark:border-border-dark p-6 space-y-2;
+}
+
+.portal-admin-empty-cta-wrap {
+  @apply pt-2;
+}
+
+.portal-admin-empty-cta-btn {
+  @apply inline-flex items-center gap-1.5 bg-teal-primary hover:bg-teal-hover text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer;
+}
+
+/* Lista de citas del paciente usando divisores planos en vez de cards */
+.portal-admin-list {
+  @apply divide-y divide-border-subtle dark:divide-border-dark border-t border-b border-border-subtle dark:border-border-dark;
+}
+
+.portal-admin-list-header {
+  @apply flex items-center justify-between pb-3;
+}
+
+.portal-admin-list-title {
+  @apply text-xs font-bold uppercase tracking-wider text-text-muted dark:text-mint-medium;
+}
+
+.portal-admin-list-count {
+  @apply text-xs font-mono text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-cita-card {
+  @apply py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors;
+}
+
+.portal-cita-body {
+  @apply space-y-1;
+}
+
+.portal-cita-badges {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.portal-cita-esp {
+  @apply font-bold text-sm sm:text-base text-text-main dark:text-text-dark-main;
+}
+
+.portal-cita-status-active {
+  @apply text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800;
+}
+
+.portal-cita-status-inactive {
+  @apply text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400;
+}
+
+.portal-cita-senior-badge {
+  @apply bg-amber-50 text-amber-800 border border-amber-300 text-[10px] font-semibold px-2 py-0.5 rounded;
+}
+
+.portal-cita-meta-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0.5 text-xs text-text-muted dark:text-text-dark-muted pt-1;
+}
+
+.portal-cita-code {
+  @apply font-mono font-semibold text-teal-primary dark:text-mint-medium;
+}
+
+.portal-cita-capitalize {
+  @apply capitalize;
+}
+
+.portal-cita-cancel-btn {
+  @apply w-full sm:w-auto justify-center inline-flex items-center gap-1.5 bg-white hover:bg-red-50 dark:bg-transparent dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/80 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0;
+}
+
+/* 3. Secciones Informativas (Diseño Editorial Plano, sin cards repetitivas) */
+.portal-info-sections {
+  @apply print:hidden max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-14;
+}
+
+.portal-how-section {
+  @apply space-y-2 scroll-mt-24 border-t border-border-subtle dark:border-border-dark pt-10;
+}
+
+.portal-section-title {
+  @apply text-lg sm:text-xl font-bold text-text-main dark:text-text-dark-main;
+}
+
+.portal-how-grid {
+  @apply pt-5 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-left;
+}
+
+.portal-how-card {
+  @apply border-l-2 border-teal-primary/40 dark:border-teal-accent/40 pl-4 space-y-1.5;
+}
+
+.portal-how-num {
+  @apply text-xs font-mono font-bold text-teal-primary dark:text-teal-accent;
+}
+
+.portal-how-card-title {
+  @apply font-bold text-sm sm:text-base text-text-main dark:text-text-dark-main;
+}
+
+.portal-how-card-desc {
+  @apply text-xs sm:text-sm text-text-muted dark:text-text-dark-muted leading-relaxed;
+}
+
+.portal-faq-section {
+  @apply scroll-mt-24 space-y-4 border-t border-border-subtle dark:border-border-dark pt-10;
+}
+
+.portal-faq-header {
+  @apply space-y-1;
+}
+
+.portal-faq-list {
+  @apply divide-y divide-border-subtle dark:divide-border-dark border-y border-border-subtle dark:border-border-dark mt-4;
+}
+
+.portal-faq-item {
+  @apply transition-colors;
+}
+
+.portal-faq-btn {
+  @apply w-full py-4 text-left flex items-center justify-between text-xs sm:text-sm font-semibold text-text-main dark:text-text-dark-main hover:text-teal-primary dark:hover:text-teal-accent cursor-pointer;
+}
+
+.portal-faq-chevron {
+  @apply w-4 h-4 text-slate-400 transition-transform shrink-0 ml-2;
+}
+
+.portal-faq-chevron-open {
+  @apply w-4 h-4 transition-transform shrink-0 ml-2 rotate-180 text-teal-primary dark:text-teal-accent;
+}
+
+.portal-faq-answer {
+  @apply pb-4 text-xs sm:text-sm text-text-muted dark:text-text-dark-muted leading-relaxed animate-fadeIn;
+}
+
+/* 4 & 5. Modales (NSP y Confirmación de Anulación) */
+.portal-modal-backdrop {
+  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn;
+}
+
+.portal-modal-box-nsp {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark-accent max-w-md w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 rounded-xl shadow-xl space-y-4;
+}
+
+.portal-modal-box-cancel {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark-accent max-w-md w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 rounded-xl shadow-xl space-y-4;
+}
+
+.portal-modal-header {
+  @apply flex items-center gap-3;
+}
+
+.portal-modal-icon-amber {
+  @apply w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/70 text-amber-600 flex items-center justify-center shrink-0;
+}
+
+.portal-modal-icon-red {
+  @apply w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/70 text-red-600 flex items-center justify-center shrink-0;
+}
+
+.portal-modal-tag-amber {
+  @apply text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400;
+}
+
+.portal-modal-tag-red {
+  @apply text-[10px] font-semibold uppercase tracking-wider text-red-600 dark:text-red-400;
+}
+
+.portal-modal-title {
+  @apply text-base font-bold text-text-main dark:text-text-dark-main;
+}
+
+.portal-modal-text {
+  @apply text-xs sm:text-sm text-text-muted dark:text-text-dark-muted leading-relaxed;
+}
+
+.portal-modal-amber-strong {
+  @apply text-amber-700 dark:text-amber-300 font-semibold;
+}
+
+.portal-modal-info-card {
+  @apply border-l-3 border-teal-primary bg-slate-50 dark:bg-surface-dark-bg p-3.5 rounded-r-lg text-xs space-y-1 text-text-main dark:text-mint-pale;
+}
+
+.portal-modal-info-title {
+  @apply font-semibold text-teal-primary dark:text-teal-accent;
+}
+
+.portal-modal-info-desc {
+  @apply text-xs leading-relaxed text-text-muted dark:text-text-dark-muted;
+}
+
+.portal-modal-footnote {
+  @apply text-[11px] text-slate-500;
+}
+
+.portal-modal-footer {
+  @apply pt-1;
+}
+
+.portal-modal-btn-primary {
+  @apply w-full bg-teal-primary hover:bg-teal-hover text-white py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer;
+}
+
+.portal-modal-checklist {
+  @apply border-l-3 border-slate-300 dark:border-slate-700 pl-3.5 py-1 text-xs text-text-muted dark:text-text-dark-muted space-y-1;
+}
+
+.portal-modal-actions-row {
+  @apply flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2;
+}
+
+.portal-modal-btn-danger {
+  @apply flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50;
+}
+
+.portal-modal-btn-secondary {
+  @apply px-4 py-2.5 rounded-lg border border-border-subtle dark:border-border-dark-subtle text-xs sm:text-sm font-semibold text-text-main dark:text-mint-pale hover:bg-slate-100 dark:hover:bg-surface-dark-muted transition-colors cursor-pointer text-center;
+}

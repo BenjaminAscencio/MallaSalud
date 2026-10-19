@@ -1,0 +1,121 @@
+@reference "../app/globals.css";
+
+.site-footer {
+  @apply bg-[#183833] dark:bg-[#091412] text-surface-bg dark:text-text-dark-main print:hidden font-sans border-t-4 border-teal-primary mt-auto transition-colors duration-200;
+}
+
+.site-footer-container {
+  @apply w-full max-w-[1780px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-12;
+}
+
+.site-footer-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10;
+}
+
+.site-footer-brand-col {
+  @apply space-y-4;
+}
+
+.site-footer-brand-header {
+  @apply flex items-center gap-3;
+}
+
+.site-footer-logo-box {
+  @apply w-10 h-10 bg-white rounded-xl p-1 flex items-center justify-center shadow-xs;
+}
+
+.site-footer-logo-img {
+  @apply object-contain;
+}
+
+.site-footer-brand-title {
+  @apply text-xl font-extrabold tracking-tight text-white;
+}
+
+.site-footer-brand-accent {
+  @apply text-mint-medium;
+}
+
+.site-footer-brand-subtitle {
+  @apply text-[11px] text-mint-medium uppercase font-semibold tracking-wider;
+}
+
+.site-footer-description {
+  @apply text-xs sm:text-sm text-mint-pale leading-relaxed;
+}
+
+.site-footer-heading {
+  @apply text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2;
+}
+
+.site-footer-heading-bar {
+  @apply w-1.5 h-4 bg-teal-accent rounded-full;
+}
+
+.site-footer-list {
+  @apply space-y-2.5 text-xs sm:text-sm text-mint-pale;
+}
+
+.site-footer-link-bullet {
+  @apply hover:text-white hover:underline flex items-center gap-1.5 transition-colors;
+}
+
+.site-footer-bullet {
+  @apply text-teal-accent;
+}
+
+.site-footer-link-icon {
+  @apply hover:text-white hover:underline flex items-center gap-2 transition-colors;
+}
+
+.site-footer-icon {
+  @apply w-4 h-4 text-mint-medium shrink-0;
+}
+
+.site-footer-info-col {
+  @apply space-y-3;
+}
+
+.site-footer-info-item {
+  @apply flex items-start gap-2.5 text-xs sm:text-sm text-mint-pale;
+}
+
+.site-footer-info-item-spaced {
+  @apply flex items-start gap-2.5 text-xs sm:text-sm text-mint-pale pt-1;
+}
+
+.site-footer-info-icon {
+  @apply w-4 h-4 text-mint-medium shrink-0 mt-0.5;
+}
+
+.site-footer-info-icon-sapu {
+  @apply w-4 h-4 text-emerald-300 shrink-0 mt-0.5;
+}
+
+.site-footer-info-title {
+  @apply font-semibold text-white;
+}
+
+.site-footer-info-subtext {
+  @apply text-xs text-mint-medium mt-0.5;
+}
+
+.site-footer-subfooter {
+  @apply bg-[#112824] dark:bg-[#050C0B] py-3.5 px-4 sm:px-8 lg:px-12 xl:px-16 border-t border-border-dark-subtle dark:border-surface-dark-muted text-xs text-mint-pale;
+}
+
+.site-footer-subfooter-inner {
+  @apply w-full flex items-center justify-center gap-3 text-center flex-wrap;
+}
+
+.site-footer-subfooter-brand {
+  @apply font-bold text-white tracking-wide;
+}
+
+.site-footer-subfooter-dot {
+  @apply text-teal-accent;
+}
+
+.site-footer-subfooter-authors {
+  @apply text-white font-medium;
+}

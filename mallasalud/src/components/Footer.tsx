@@ -10,70 +10,71 @@ import {
   BuildingOffice2Icon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
+import "./Footer.css";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#183833] dark:bg-[#091412] text-[#F4FAF8] dark:text-[#E8F5F2] print:hidden font-sans border-t-4 border-[#0F766E] mt-auto transition-colors duration-200">
+    <footer className="site-footer">
       {/* 1. Cuerpo Principal del Footer (4 Columnas) */}
-      <div className="w-full max-w-[1780px] mx-auto px-4 sm:px-8 lg:px-12 xl:px-16 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+      <div className="site-footer-container">
+        <div className="site-footer-grid">
 
           {/* Columna 1: Identidad y Misión */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white rounded-xl p-1 flex items-center justify-center shadow-xs">
+          <div className="site-footer-brand-col">
+            <div className="site-footer-brand-header">
+              <div className="site-footer-logo-box">
                 <Image
                   src="/logo-mallasalud.png"
                   alt="MallaSalud Logo"
                   width={40}
                   height={40}
-                  className="object-contain"
+                  className="site-footer-logo-img"
                 />
               </div>
               <div>
-                <span className="text-xl font-extrabold tracking-tight text-white">
-                  MALLA<span className="text-[#A7E3D4]">SALUD</span>
+                <span className="site-footer-brand-title">
+                  MALLA<span className="site-footer-brand-accent">SALUD</span>
                 </span>
-                <p className="text-[11px] text-[#A7E3D4] uppercase font-semibold tracking-wider">
+                <p className="site-footer-brand-subtitle">
                   Red CESFAM Pública
                 </p>
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#D9F5EF] leading-relaxed">
+            <p className="site-footer-description">
               Plataforma omnicanal diseñada para erradicar las filas de madrugada y asegurar el acceso equitativo y oportuno a la atención médica en la salud pública primaria.
             </p>
           </div>
 
           {/* Columna 2: Especialidades Clínicas */}
           <div>
-            <h5 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-[#5BB9A6] rounded-full" />
+            <h5 className="site-footer-heading">
+              <span className="site-footer-heading-bar" />
               Especialidades
             </h5>
-            <ul className="space-y-2.5 text-xs sm:text-sm text-[#D9F5EF]">
+            <ul className="site-footer-list">
               <li>
                 <Link
                   href="/#especialidades"
-                  className="hover:text-white hover:underline flex items-center gap-1.5 transition-colors"
+                  className="site-footer-link-bullet"
                 >
-                  <span className="text-[#5BB9A6]">•</span> Medicina General
+                  <span className="site-footer-bullet">•</span> Medicina General
                 </Link>
               </li>
               <li>
                 <Link
                   href="/#especialidades"
-                  className="hover:text-white hover:underline flex items-center gap-1.5 transition-colors"
+                  className="site-footer-link-bullet"
                 >
-                  <span className="text-[#5BB9A6]">•</span> Odontología
+                  <span className="site-footer-bullet">•</span> Odontología
                 </Link>
               </li>
               <li>
                 <Link
                   href="/#especialidades"
-                  className="hover:text-white hover:underline flex items-center gap-1.5 transition-colors"
+                  className="site-footer-link-bullet"
                 >
-                  <span className="text-[#5BB9A6]">•</span> Matronería
+                  <span className="site-footer-bullet">•</span> Matronería
                 </Link>
               </li>
             </ul>
@@ -81,53 +82,53 @@ export default function Footer() {
 
           {/* Columna 3: Canales y Enlaces Rápidos */}
           <div>
-            <h5 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-[#5BB9A6] rounded-full" />
+            <h5 className="site-footer-heading">
+              <span className="site-footer-heading-bar" />
               Canales de Acceso
             </h5>
-            <ul className="space-y-2.5 text-xs sm:text-sm text-[#D9F5EF]">
+            <ul className="site-footer-list">
               <li>
                 <Link
                   href="/"
-                  className="hover:text-white hover:underline flex items-center gap-2 transition-colors"
+                  className="site-footer-link-icon"
                 >
-                  <CalendarDaysIcon className="w-4 h-4 text-[#A7E3D4] flex-shrink-0" />
+                  <CalendarDaysIcon className="site-footer-icon" />
                   <span>Portal Paciente: Reservar Cita Web</span>
                 </Link>
               </li>
               <li>
                 <a
                   href="tel:800500123"
-                  className="hover:text-white hover:underline flex items-center gap-2 transition-colors"
+                  className="site-footer-link-icon"
                 >
-                  <PhoneIcon className="w-4 h-4 text-[#A7E3D4] flex-shrink-0" />
+                  <PhoneIcon className="site-footer-icon" />
                   <span>Canal Telefónico Automatizado (IVR)</span>
                 </a>
               </li>
               <li>
                 <Link
                   href="/some/ventanilla"
-                  className="hover:text-white hover:underline flex items-center gap-2 transition-colors"
+                  className="site-footer-link-icon"
                 >
-                  <BuildingOffice2Icon className="w-4 h-4 text-[#A7E3D4] flex-shrink-0" />
+                  <BuildingOffice2Icon className="site-footer-icon" />
                   <span>Ventanilla Presencial SOME</span>
                 </Link>
               </li>
               <li>
                 <Link
                   href="/some/agendas"
-                  className="hover:text-white hover:underline flex items-center gap-2 transition-colors"
+                  className="site-footer-link-icon"
                 >
-                  <BuildingOffice2Icon className="w-4 h-4 text-[#A7E3D4] flex-shrink-0" />
+                  <BuildingOffice2Icon className="site-footer-icon" />
                   <span>Consola SOME: Gestión de Agendas</span>
                 </Link>
               </li>
               <li>
                 <Link
                   href="/#faq"
-                  className="hover:text-white hover:underline flex items-center gap-2 transition-colors"
+                  className="site-footer-link-icon"
                 >
-                  <InformationCircleIcon className="w-4 h-4 text-[#A7E3D4] flex-shrink-0" />
+                  <InformationCircleIcon className="site-footer-icon" />
                   <span>Preguntas Frecuentes y Anulación</span>
                 </Link>
               </li>
@@ -135,35 +136,35 @@ export default function Footer() {
           </div>
 
           {/* Columna 4: Horarios y Ubicación */}
-          <div className="space-y-3">
-            <h5 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-[#5BB9A6] rounded-full" />
+          <div className="site-footer-info-col">
+            <h5 className="site-footer-heading">
+              <span className="site-footer-heading-bar" />
               Atención y Ubicación
             </h5>
 
-            <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#D9F5EF]">
-              <ClockIcon className="w-4 h-4 text-[#A7E3D4] flex-shrink-0 mt-0.5" />
+            <div className="site-footer-info-item">
+              <ClockIcon className="site-footer-info-icon" />
               <div>
-                <p className="font-semibold text-white">Horario de Consultas CESFAM:</p>
+                <p className="site-footer-info-title">Horario de Consultas CESFAM:</p>
                 <p>Lunes a Viernes: 08:00 a 17:00 hrs</p>
-                <p className="text-xs text-[#A7E3D4] mt-0.5">Sábados: 09:00 a 13:00 hrs</p>
+                <p className="site-footer-info-subtext">Sábados: 09:00 a 13:00 hrs</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#D9F5EF]">
-              <ClockIcon className="w-4 h-4 text-emerald-300 flex-shrink-0 mt-0.5" />
+            <div className="site-footer-info-item">
+              <ClockIcon className="site-footer-info-icon-sapu" />
               <div>
-                <p className="font-semibold text-white">Servicio de Urgencia SAPU:</p>
+                <p className="site-footer-info-title">Servicio de Urgencia SAPU:</p>
                 <p>Lunes a Domingo: 17:00 a 08:00 hrs (24 hrs fines de semana)</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#D9F5EF] pt-1">
-              <MapPinIcon className="w-4 h-4 text-[#A7E3D4] flex-shrink-0 mt-0.5" />
+            <div className="site-footer-info-item-spaced">
+              <MapPinIcon className="site-footer-info-icon" />
               <div>
-                <p className="font-semibold text-white">Red de Atención Primaria:</p>
+                <p className="site-footer-info-title">Red de Atención Primaria:</p>
                 <p>Centro de Salud Familiar (CESFAM) Comunal</p>
-                <p className="text-xs text-[#A7E3D4]">Región Metropolitana, Chile</p>
+                <p className="site-footer-info-subtext">Región Metropolitana, Chile</p>
               </div>
             </div>
           </div>
@@ -172,13 +173,13 @@ export default function Footer() {
       </div>
 
       {/* 2. Subfooter Limpio */}
-      <div className="bg-[#112824] dark:bg-[#050C0B] py-3.5 px-4 sm:px-8 lg:px-12 xl:px-16 border-t border-[#264E46] dark:border-[#17302B] text-xs text-[#D9F5EF]">
-        <div className="w-full flex items-center justify-center gap-3 text-center flex-wrap">
-          <span className="font-bold text-white tracking-wide">MALLASALUD</span>
-          <span className="text-[#5BB9A6]">•</span>
+      <div className="site-footer-subfooter">
+        <div className="site-footer-subfooter-inner">
+          <span className="site-footer-subfooter-brand">MALLASALUD</span>
+          <span className="site-footer-subfooter-dot">•</span>
           <span>2026</span>
-          <span className="text-[#5BB9A6]">•</span>
-          <span className="text-white font-medium">
+          <span className="site-footer-subfooter-dot">•</span>
+          <span className="site-footer-subfooter-authors">
             Pablo Carrasco &amp; Benjamín Ascencio
           </span>
         </div>
