@@ -3,6 +3,8 @@ services:
     image: postgres:16-alpine
     container_name: mallasalud_postgres
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-mallasalud_password}
@@ -25,6 +27,9 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - .env
+    command: sh -c "npx prisma generate && npx prisma db push && npm run dev"
     ports:
       - "${PORT:-3000}:3000"
     environment:
@@ -43,6 +48,17 @@ services:
     networks:
       - mallasalud_network
 
+  # Túnel Cloudflare para exponer automáticamente la app a Twilio vía HTTPS sin instalar nada en tu PC
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: mallasalud_tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://app:3000
+    depends_on:
+      - app
+    networks:
+      - mallasalud_network
+
   studio:
     container_name: mallasalud_studio
     build:
@@ -50,6 +66,8 @@ services:
       dockerfile: Dockerfile
     command: ["npx", "prisma", "studio", "--port", "5555", "--hostname", "0.0.0.0", "--browser", "none"]
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "${STUDIO_PORT:-5555}:5555"
     environment:

@@ -25,6 +25,11 @@ export default function DevNavbar() {
       href: "/some/ventanilla",
       badge: "Mesón",
     },
+    {
+      label: "Central Telefónica IA (VOZ_IVR)",
+      href: "/ivr",
+      badge: "Twilio + IA",
+    },
   ];
 
   return (

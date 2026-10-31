@@ -1,4 +1,4 @@
-@reference "../app/globals.css";
+@reference "../../app/globals.css";
 
 .site-header {
   @apply print:hidden sticky top-0 z-50 w-full bg-white/95 dark:bg-[#11221F]/95 backdrop-blur-md border-b border-border-subtle dark:border-surface-dark-accent shadow-xs font-sans transition-colors duration-200;

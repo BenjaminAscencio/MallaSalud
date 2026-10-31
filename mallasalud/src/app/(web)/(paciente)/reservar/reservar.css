@@ -1,4 +1,4 @@
-@reference "../globals.css";
+@reference "../../../globals.css";
 
 .reservar-redirect-wrapper {
   @apply min-h-[50vh] flex items-center justify-center;

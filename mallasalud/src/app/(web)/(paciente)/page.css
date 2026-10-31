@@ -1,4 +1,4 @@
-@reference "./globals.css";
+@reference "../../globals.css";
 
 .portal-page {
   @apply w-full font-sans transition-colors duration-200;

@@ -1,4 +1,4 @@
-@reference "../app/globals.css";
+@reference "../../app/globals.css";
 
 .dev-navbar {
   @apply print:hidden z-40 bg-neutral-900 text-white text-[11px] font-mono border-b border-neutral-800;

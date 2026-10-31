@@ -1,0 +1,56 @@
+/* src/app/(ivr)/ivr/ivr.css - Estilos del Módulo de Central Telefónica IA (VOZ_IVR) */
+
+.ivr-container {
+  min-height: 100vh;
+  background-color: #020617;
+  color: #f1f5f9;
+}
+
+.ivr-console-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 #090d16;
+}
+
+.ivr-console-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ivr-console-scroll::-webkit-scrollbar-track {
+  background: #090d16;
+  border-radius: 4px;
+}
+
+.ivr-console-scroll::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.ivr-console-scroll::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.ivr-badge-pulse {
+  animation: ivrPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes ivrPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.ivr-card-glass {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+}
+
+.ivr-terminal-header {
+  background: #090d16;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+}
+

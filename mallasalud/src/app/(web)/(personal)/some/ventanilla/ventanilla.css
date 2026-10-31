@@ -1,4 +1,4 @@
-@reference "../../globals.css";
+@reference "../../../../globals.css";
 
 .ventanilla-page {
   @apply max-w-5xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-7 font-sans space-y-5;

@@ -1,4 +1,4 @@
-@reference "../../globals.css";
+@reference "../../../../globals.css";
 
 .agendas-page {
   @apply max-w-[1540px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-7 font-sans space-y-5;

@@ -1,4 +1,4 @@
-@reference "../app/globals.css";
+@reference "../../app/globals.css";
 
 .site-footer {
   @apply bg-[#183833] dark:bg-[#091412] text-surface-bg dark:text-text-dark-main print:hidden font-sans border-t-4 border-teal-primary mt-auto transition-colors duration-200;

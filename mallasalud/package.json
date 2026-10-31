@@ -21,11 +21,14 @@
     "test:api": "prisma db seed && node scripts/test-api.mjs"
   },
   "dependencies": {
+    "@google/genai": "^2.32.0",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^5.22.0",
+    "lucide-react": "^1.65.0",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "twilio": "^6.2.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",

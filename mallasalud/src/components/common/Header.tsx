@@ -13,6 +13,7 @@ import {
   EyeIcon,
   SunIcon,
   MoonIcon,
+  PhoneIcon,
 } from "@heroicons/react/24/outline";
 import "./Header.css";
 
@@ -97,6 +98,7 @@ export default function Header() {
 
   const navLinks = [
     { label: "Inicio", href: "/" },
+    { label: "Central Telefónica (IA)", href: "/ivr" },
     { label: "Especialidades", href: "/#especialidades" },
     { label: "Cómo Funciona", href: "/#como-funciona" },
     { label: "Preguntas Frecuentes", href: "/#faq" },
@@ -215,6 +217,27 @@ export default function Header() {
                   </div>
 
                   <div className="site-header-dropdown-list">
+                    <Link
+                      href="/ivr"
+                      className={`${
+                        pathname === "/ivr"
+                          ? "site-header-dropdown-item-active"
+                          : "site-header-dropdown-item"
+                      } group`}
+                      onClick={() => setSomeDropdownAbierto(false)}
+                    >
+                      <div className="site-header-dropdown-dot-mint" />
+                      <div>
+                        <p className="site-header-dropdown-item-title flex items-center gap-1.5">
+                          <PhoneIcon className="w-3.5 h-3.5 text-emerald-500 inline" />
+                          Central Telefónica IA (VOZ_IVR)
+                        </p>
+                        <p className="site-header-dropdown-item-desc">
+                          Agendamiento por voz con Twilio y PostgreSQL
+                        </p>
+                      </div>
+                    </Link>
+
                     <Link
                       href="/some/agendas"
                       className={`${
@@ -380,9 +403,16 @@ export default function Header() {
             {/* Accesos de Funcionarios en Móvil */}
             <div className="site-header-mobile-some-wrap">
               <p className="site-header-mobile-some-label">
-                Área Funcionarios / Vistas SOME:
+                Área Funcionarios / Vistas Operativas:
               </p>
               <div className="site-header-mobile-some-grid">
+                <Link
+                  href="/ivr"
+                  onClick={() => setMenuAbierto(false)}
+                  className="site-header-mobile-some-link font-semibold text-emerald-400"
+                >
+                  Central Telefónica IA (VOZ_IVR)
+                </Link>
                 <Link
                   href="/some/agendas"
                   onClick={() => setMenuAbierto(false)}
