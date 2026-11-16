@@ -9,13 +9,11 @@ import {
   Clock,
   Calendar,
   User,
-  Bot,
   Send,
   RefreshCw,
+  RotateCcw,
   AlertCircle,
-  Sparkles,
   Volume2,
-  Terminal,
   Activity,
   ShieldCheck,
   Info,
@@ -143,6 +141,25 @@ export default function IvrPage() {
     }
   };
 
+  // Limpiar historial visual para probar otra llamada sin reiniciar la BD
+  const handleClearFlow = async () => {
+    setSessions([]);
+    setLastEngineUsed(null);
+    setCallSidActive(`sim-browser-${Date.now()}`);
+    try {
+      const res = await fetch("/api/ivr/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear_chat" }),
+      });
+      const data = await res.json();
+      if (data.slots) setSlots(data.slots);
+      if (data.activeSessions) setSessions(data.activeSessions);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Simular turno por texto (para pruebas rápidas en navegador)
   const handleSimulate = async (customText?: string) => {
     const textToSend = (customText || simText).trim();
@@ -173,40 +190,45 @@ export default function IvrPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 pb-12">
-      {/* HEADER DE CONTROL */}
-      <div className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20 px-6 py-4">
+    <div className="ivr-page">
+      {/* CABECERA INSTITUCIONAL */}
+      <div className="ivr-header-section">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <PhoneCall className="w-6 h-6 text-slate-950 font-bold" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-teal-primary text-white flex items-center justify-center shadow-xs shrink-0">
+              <PhoneCall className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-white">
-                  CENTRAL TELEFÓNICA IA • CANAL VOZ_IVR
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-teal-primary dark:text-mint-medium block">
+                Canal Telefónico Automatizado • VOZ_IVR
+              </span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-main dark:text-text-dark-main">
+                  Central Telefónica CESFAM
                 </h1>
-                <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30">
+                <span className="px-2.5 py-0.5 text-[11px] font-semibold bg-mint-pale dark:bg-surface-dark-accent text-teal-primary dark:text-mint-pale rounded-full border border-border-subtle dark:border-border-dark-accent">
                   PostgreSQL + Twilio
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
-                CESFAM MallaSalud • Reglas Padrón, Cita Única y Cuota Adulto Mayor 60+
+              <p className="text-xs text-text-muted dark:text-text-dark-muted mt-0.5">
+                Validación en Padrón CESFAM, Cita Única Diaria y Cuota Protegida Adulto Mayor 60+
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-slate-300 font-mono">BD PostgreSQL en vivo (1.5s)</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-bg dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle text-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-teal-primary dark:bg-teal-accent ivr-badge-pulse"></span>
+              <span className="text-text-main dark:text-text-dark-main font-medium">
+                BD PostgreSQL en vivo (1.5s)
+              </span>
             </div>
             <button
               onClick={handleResetSchedule}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-surface-dark-bg hover:bg-mint-lightest dark:hover:bg-surface-dark-muted text-text-main dark:text-mint-pale border border-border-subtle dark:border-border-dark-subtle transition cursor-pointer"
               title="Liberar citas y restaurar bloques de prueba en la base de datos"
             >
-              <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+              <RefreshCw className="w-3.5 h-3.5 text-teal-primary dark:text-teal-accent" />
               Reiniciar Horas en BD
             </button>
           </div>
@@ -214,25 +236,25 @@ export default function IvrPage() {
       </div>
 
       {/* CONTENEDOR PRINCIPAL */}
-      <div className="max-w-7xl mx-auto w-full p-6 space-y-6 flex-1">
-        {/* PANEL SUPERIOR: CONFIGURACIÓN DE LLAMADA REAL Y TUNEL */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6 flex-1">
+        {/* PANEL SUPERIOR: CONEXIÓN TELEFÓNICA CLOUD Y GUÍA */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
+          <div className="lg:col-span-2 ivr-card p-5 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-emerald-400" />
-                <h2 className="text-base font-semibold text-white">
-                  Disparador de Llamada Telefónica Saliente
+                <Activity className="w-5 h-5 text-teal-primary dark:text-teal-accent" />
+                <h2 className="text-base font-bold text-text-main dark:text-text-dark-main">
+                  Conexión Telefónica Saliente (Cloud)
                 </h2>
               </div>
-              <span className="text-xs text-slate-400 font-mono">Twilio Voice API</span>
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-surface-dark-bg text-text-muted dark:text-text-dark-muted border border-border-subtle dark:border-border-dark-subtle">
+                Twilio Voice API
+              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold text-text-muted dark:text-text-dark-muted mb-1.5">
                   URL Pública del Webhook (Cloudflare / Ngrok)
                 </label>
                 <input
@@ -240,15 +262,15 @@ export default function IvrPage() {
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
                   placeholder="https://xxxxx.trycloudflare.com"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 font-mono"
+                  className="w-full bg-slate-50 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle rounded-lg px-3.5 py-2.5 text-sm text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-primary/40 font-mono"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Punto de entrada para el webhook de Twilio: <code className="text-emerald-400">/api/twilio/voice</code>
+                <p className="text-[11px] text-text-subtle dark:text-text-dark-muted mt-1">
+                  Endpoint webhook de Twilio: <code className="text-teal-primary dark:text-teal-accent font-semibold">/api/twilio/voice</code>
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold text-text-muted dark:text-text-dark-muted mb-1.5">
                   Número Telefónico Destino (Chile)
                 </label>
                 <input
@@ -256,29 +278,29 @@ export default function IvrPage() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="+56937772647"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 font-mono"
+                  className="w-full bg-slate-50 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle rounded-lg px-3.5 py-2.5 text-sm text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-primary/40 font-mono"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Número verificado en la consola de Twilio (+56937772647).
+                <p className="text-[11px] text-text-subtle dark:text-text-dark-muted mt-1">
+                  Número verificado en consola Twilio (+56937772647).
                 </p>
               </div>
             </div>
 
             {/* BOTÓN DISPARAR LLAMADA */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <button
                 onClick={handleStartCall}
                 disabled={isCalling}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.99] text-slate-950 font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-3 transition shadow-lg shadow-emerald-500/20 disabled:opacity-60 disabled:cursor-not-allowed text-base cursor-pointer"
+                className="flex-1 bg-teal-primary hover:bg-teal-hover active:scale-[0.99] text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2.5 transition shadow-xs disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base cursor-pointer"
               >
                 {isCalling ? (
                   <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                     <span>Conectando con la red telefónica...</span>
                   </>
                 ) : (
                   <>
-                    <Phone className="w-5 h-5 fill-current" />
+                    <Phone className="w-4 h-4" />
                     <span>Iniciar Llamada Telefónica (VOZ_IVR)</span>
                   </>
                 )}
@@ -286,48 +308,48 @@ export default function IvrPage() {
             </div>
 
             {callStatusMessage && (
-              <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs flex items-center gap-2">
-                <Info className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-slate-300 font-mono">{callStatusMessage}</span>
+              <div className="mt-4 p-3 rounded-lg bg-mint-lightest dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle text-xs flex items-center gap-2">
+                <Info className="w-4 h-4 text-teal-primary dark:text-teal-accent shrink-0" />
+                <span className="text-text-main dark:text-text-dark-main font-mono">{callStatusMessage}</span>
               </div>
             )}
           </div>
 
           {/* TARJETA INFORMATIVA / RECORDATORIO TRIAL */}
-          <div className="bg-gradient-to-b from-amber-500/10 to-transparent border border-amber-500/30 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+          <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-5 sm:p-6 flex flex-col justify-between shadow-xs">
             <div>
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-3">
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <span>Instrucción Crucial al Contestar</span>
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-sm mb-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>Instrucción al Contestar (Cuenta Trial)</span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Al ser una cuenta de Twilio <strong className="text-amber-300">Trial</strong>,
-                al contestar la llamada escucharás un mensaje en inglés:
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                En llamadas reales con Twilio <strong className="text-amber-900 dark:text-amber-200">Trial</strong>,
+                al contestar escucharás primero el aviso:
               </p>
-              <div className="my-3 p-3 bg-amber-950/50 border border-amber-500/30 rounded-xl text-amber-200 text-xs italic">
+              <div className="my-2.5 p-2.5 bg-white dark:bg-surface-dark border border-amber-200 dark:border-amber-800/40 rounded-lg text-amber-900 dark:text-amber-200 text-xs italic">
                 &ldquo;You have a trial account. You can press any key to execute your code.&rdquo;
               </div>
-              <p className="text-xs text-amber-300 font-medium">
-                👉 <strong>Presiona la tecla &apos;1&apos;</strong> en tu celular para que la recepcionista IA comience a atenderte de inmediato.
+              <p className="text-xs text-amber-900 dark:text-amber-300 font-medium">
+                Presiona la tecla &apos;1&apos; para iniciar la atención telefónica automatizada.
               </p>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-amber-500/20 space-y-1.5 text-[11px] text-slate-400">
+            <div className="mt-4 pt-3 border-t border-amber-200/80 dark:border-amber-800/40 space-y-1.5 text-[11px] text-slate-600 dark:text-slate-300">
               <div className="flex items-center justify-between">
                 <span>Adulto Mayor 75a (Cuota 60+):</span>
-                <code className="text-emerald-300 bg-slate-900 px-2 py-0.5 rounded border border-emerald-500/30">
+                <code className="text-teal-primary dark:text-teal-accent font-semibold bg-white dark:bg-surface-dark px-2 py-0.5 rounded border border-border-subtle dark:border-border-dark-subtle">
                   5.555.555-5
                 </code>
               </div>
               <div className="flex items-center justify-between">
                 <span>Adulto Joven en padrón:</span>
-                <code className="text-slate-200 bg-slate-900 px-2 py-0.5 rounded border border-slate-700">
+                <code className="text-text-main dark:text-slate-200 font-semibold bg-white dark:bg-surface-dark px-2 py-0.5 rounded border border-border-subtle dark:border-border-dark-subtle">
                   21.111.111-1
                 </code>
               </div>
               <div className="flex items-center justify-between">
                 <span>No Inscrito (Deriva a SOME):</span>
-                <code className="text-rose-300 bg-slate-900 px-2 py-0.5 rounded border border-rose-500/30">
+                <code className="text-rose-700 dark:text-rose-300 font-semibold bg-white dark:bg-surface-dark px-2 py-0.5 rounded border border-rose-200 dark:border-rose-800/50">
                   21.222.222-2
                 </code>
               </div>
@@ -336,32 +358,32 @@ export default function IvrPage() {
         </div>
 
         {/* MONITOR DE BASE DE DATOS POSTGRESQL EN TIEMPO REAL */}
-        <section className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <section className="ivr-card p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-base font-semibold text-white">
+              <Calendar className="w-5 h-5 text-teal-primary dark:text-teal-accent" />
+              <h2 className="text-base font-bold text-text-main dark:text-text-dark-main">
                 Monitor de Base de Datos PostgreSQL • Bloques Horarios de Hoy
               </h2>
             </div>
 
             <div className="flex items-center gap-4 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500"></span>
-                <span className="text-slate-300 font-medium">DISPONIBLE</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-teal-primary"></span>
+                <span className="text-text-muted dark:text-text-dark-muted font-medium">DISPONIBLE</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-rose-500 shadow-sm shadow-rose-500"></span>
-                <span className="text-slate-300 font-medium">RESERVADO</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span className="text-text-muted dark:text-text-dark-muted font-medium">RESERVADO</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-amber-500 shadow-sm shadow-amber-500"></span>
-                <span className="text-slate-300 font-medium">Cuota 60+</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span className="text-text-muted dark:text-text-dark-muted font-medium">Cuota 60+</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
             {slots.map((slot) => {
               const isOcupado = slot.estado === "RESERVADO" || slot.estado === "BLOQUEO_TEMPORAL";
               const isVoz = slot.canalOrigen === "VOZ_IVR";
@@ -369,10 +391,10 @@ export default function IvrPage() {
               return (
                 <div
                   key={slot.id || slot.hora}
-                  className={`p-3.5 rounded-xl border transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[140px] ${
+                  className={`p-3.5 rounded-xl border transition-all duration-300 flex flex-col justify-between min-h-[140px] ${
                     isOcupado
-                      ? "bg-rose-950/20 border-rose-800/60 shadow-lg shadow-rose-950/20"
-                      : "bg-slate-950/70 border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900"
+                      ? "bg-rose-50/70 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60"
+                      : "bg-mint-lightest/70 dark:bg-surface-dark-bg border-border-subtle dark:border-border-dark hover:border-teal-primary/60"
                   }`}
                 >
                   <div>
@@ -380,24 +402,24 @@ export default function IvrPage() {
                       <div className="flex items-center gap-1.5">
                         <Clock
                           className={`w-4 h-4 ${
-                            isOcupado ? "text-rose-400" : "text-emerald-400"
+                            isOcupado ? "text-rose-600 dark:text-rose-400" : "text-teal-primary dark:text-teal-accent"
                           }`}
                         />
-                        <span className="font-mono text-base font-bold text-white">
+                        <span className="font-mono text-base font-bold text-text-main dark:text-white">
                           {slot.hora}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
                         {slot.esCuotaMayor && !isOcupado && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30">
                             60+
                           </span>
                         )}
                         <span
                           className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                             isOcupado
-                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              ? "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30"
+                              : "bg-mint-pale dark:bg-emerald-500/20 text-teal-primary dark:text-emerald-300 border border-border-subtle dark:border-emerald-500/30"
                           }`}
                         >
                           {slot.estado}
@@ -406,14 +428,14 @@ export default function IvrPage() {
                     </div>
 
                     {slot.profesionalNombre && (
-                      <div className="text-[11px] text-slate-400 flex items-center gap-1 truncate mb-1">
-                        <Stethoscope className="w-3 h-3 text-teal-400 shrink-0" />
+                      <div className="text-[11px] text-text-muted dark:text-slate-300 flex items-center gap-1 truncate mb-1">
+                        <Stethoscope className="w-3 h-3 text-teal-primary dark:text-teal-accent shrink-0" />
                         <span className="truncate">{slot.profesionalNombre}</span>
                       </div>
                     )}
 
                     {slot.boxNumero && (
-                      <div className="text-[10px] text-slate-500 flex items-center gap-1 truncate mb-2">
+                      <div className="text-[10px] text-text-subtle dark:text-slate-400 flex items-center gap-1 truncate mb-2">
                         <Building2 className="w-2.5 h-2.5 shrink-0" />
                         <span>{slot.boxNumero}</span>
                       </div>
@@ -422,20 +444,20 @@ export default function IvrPage() {
 
                   <div>
                     {isOcupado ? (
-                      <div className="pt-2 border-t border-rose-900/40 text-xs">
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                          <User className="w-3 h-3 text-rose-400" />
-                          <span className="truncate">{slot.pacienteNombre || "Paciente"}</span>
+                      <div className="pt-2 border-t border-rose-200/80 dark:border-rose-900/40 text-xs">
+                        <div className="text-[10px] text-text-muted dark:text-slate-300 flex items-center gap-1">
+                          <User className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                          <span className="truncate font-medium">{slot.pacienteNombre || "Paciente"}</span>
                         </div>
-                        <div className="font-mono text-[11px] text-slate-300 truncate mt-0.5">
+                        <div className="font-mono text-[11px] text-text-main dark:text-slate-200 truncate mt-0.5">
                           {slot.rut || "Asignado"}
                         </div>
 
                         {slot.codigoReserva && (
-                          <div className="mt-1 flex items-center justify-between text-[10px] bg-slate-900/80 px-1.5 py-0.5 rounded border border-rose-800/40">
-                            <span className="text-slate-400 font-mono">{slot.codigoReserva}</span>
+                          <div className="mt-1.5 flex items-center justify-between text-[10px] bg-white dark:bg-surface-dark px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800/40">
+                            <span className="text-text-muted dark:text-slate-300 font-mono">{slot.codigoReserva}</span>
                             {isVoz && (
-                              <span className="text-emerald-400 font-bold text-[9px] px-1 bg-emerald-500/20 rounded">
+                              <span className="text-teal-primary dark:text-teal-accent font-bold text-[9px] px-1 bg-mint-pale dark:bg-teal-primary/20 rounded">
                                 VOZ_IVR
                               </span>
                             )}
@@ -443,8 +465,8 @@ export default function IvrPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="pt-2 border-t border-slate-800/80 text-[11px] text-emerald-400/80 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <div className="pt-2 border-t border-border-subtle/80 dark:border-border-dark text-[11px] text-teal-primary dark:text-teal-accent flex items-center gap-1 font-medium">
+                        <CheckCircle2 className="w-3 h-3 shrink-0" />
                         <span>Disponible para agendar</span>
                       </div>
                     )}
@@ -455,44 +477,59 @@ export default function IvrPage() {
           </div>
         </section>
 
-        {/* CONSOLA DE TRANSCRIPCIÓN EN VIVO Y SIMULADOR */}
+        {/* REGISTRO DEL FLUJO TELEFÓNICO Y PRUEBAS DE REGLAS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* CONSOLA DE VOZ */}
-          <div className="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col h-[520px] shadow-xl overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+          {/* VENTANA DEL FLUJO DE ATENCIÓN */}
+          <div className="lg:col-span-2 ivr-card flex flex-col h-[500px] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border-subtle dark:border-border-dark bg-slate-50/90 dark:bg-surface-dark-bg flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold text-white">
-                  Consola de Transcripción Telefónica en Tiempo Real
+                <PhoneCall className="w-4 h-4 text-teal-primary dark:text-teal-accent" />
+                <h3 className="text-sm font-bold text-text-main dark:text-white">
+                  Flujo de Atención Telefónica en Vivo
                 </h3>
               </div>
-              {lastEngineUsed && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                  Motor: {lastEngineUsed === "fast_confirmation" ? "Fast Confirmation (<10ms)" : lastEngineUsed === "gemini" ? "Gemini 2.5 Flash" : "Fallback NLU (<5ms)"}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {lastEngineUsed && (
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-md bg-white dark:bg-surface-dark text-text-muted dark:text-slate-300 border border-border-subtle dark:border-border-dark-subtle">
+                    Procesamiento: {lastEngineUsed === "fast_confirmation" ? "Confirmación Directa" : lastEngineUsed === "gemini" ? "Motor Semántico" : "Reglas IVR"}
+                  </span>
+                )}
+                <button
+                  id="btn-limpiar-flujo-ivr"
+                  type="button"
+                  onClick={handleClearFlow}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white dark:bg-surface-dark hover:bg-mint-lightest dark:hover:bg-surface-dark-muted text-text-main dark:text-mint-pale border border-border-subtle dark:border-border-dark-subtle transition cursor-pointer"
+                  title="Limpia el flujo en pantalla para probar una nueva llamada manteniendo las citas en BD"
+                >
+                  <RotateCcw className="w-3 h-3 text-teal-primary dark:text-teal-accent" />
+                  Nueva Llamada / Limpiar Flujo
+                </button>
+              </div>
             </div>
 
             <div
               ref={consoleScrollRef}
-              className="flex-1 p-5 overflow-y-auto space-y-3.5 font-sans"
+              className="flex-1 p-5 overflow-y-auto space-y-3 bg-slate-50/40 dark:bg-surface-dark-bg/50 ivr-console-scroll font-sans"
             >
               {allTranscripts.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs space-y-2">
-                  <Volume2 className="w-8 h-8 text-slate-600" />
-                  <p>Esperando conexión telefónica o interacción...</p>
-                  <p className="text-[11px] text-slate-600 max-w-sm text-center">
-                    Al llamar a tu teléfono, verás aparecer aquí cada palabra que digas
-                    (transcrita por Twilio) y la respuesta generada por la recepcionista IA.
+                <div className="h-full flex flex-col items-center justify-center text-text-muted dark:text-text-dark-muted text-xs space-y-2">
+                  <div className="w-11 h-11 rounded-full bg-mint-pale dark:bg-surface-dark flex items-center justify-center">
+                    <Volume2 className="w-5 h-5 text-teal-primary dark:text-teal-accent" />
+                  </div>
+                  <p className="font-semibold text-text-main dark:text-white">
+                    Esperando interacción telefónica...
+                  </p>
+                  <p className="text-[11px] text-text-subtle dark:text-text-dark-muted max-w-md text-center">
+                    Aquí se registra paso a paso cada intervención del paciente y la respuesta del sistema de agendamiento telefónico.
                   </p>
                 </div>
               ) : (
-                allTranscripts.map((entry) => {
+                allTranscripts.map((entry, idx) => {
                   if (entry.speaker === "system") {
                     return (
                       <div
                         key={entry.id}
-                        className="text-center my-2 text-[11px] text-slate-500 font-mono italic"
+                        className="text-center my-2 text-[11px] text-text-subtle dark:text-text-dark-muted font-mono"
                       >
                         — {entry.text} —
                       </div>
@@ -503,49 +540,40 @@ export default function IvrPage() {
                   return (
                     <div
                       key={entry.id}
-                      className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+                      className={`rounded-xl border px-4 py-3 text-xs leading-relaxed transition-colors ${
+                        isUser
+                          ? "bg-mint-lightest dark:bg-surface-dark-accent border-border-subtle dark:border-border-dark-accent border-l-4 border-l-teal-primary ml-0 sm:ml-6"
+                          : "bg-white dark:bg-surface-dark border-border-subtle dark:border-border-dark border-l-4 border-l-slate-400 mr-0 sm:mr-6 shadow-2xs"
+                      }`}
                     >
-                      {!isUser && (
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                          <Bot className="w-4 h-4 text-emerald-400" />
-                        </div>
-                      )}
-
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed ${
-                          isUser
-                            ? "bg-emerald-600 text-slate-950 font-medium rounded-tr-none shadow-md shadow-emerald-600/10"
-                            : "bg-slate-800/90 text-slate-200 border border-slate-700/80 rounded-tl-none"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1 opacity-70 text-[10px]">
-                          <span className="font-semibold">
-                            {isUser ? "Paciente (Voz Celular)" : "Recepcionista MallaSalud IA"}
-                          </span>
-                          <span>
-                            {new Date(entry.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
-                            })}
+                      <div className="flex items-center justify-between gap-2 mb-1 text-[11px]">
+                        <div className="flex items-center gap-1.5 font-semibold">
+                          {isUser ? (
+                            <User className="w-3.5 h-3.5 text-teal-primary dark:text-teal-accent" />
+                          ) : (
+                            <PhoneCall className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                          )}
+                          <span className={isUser ? "text-teal-primary dark:text-mint-medium" : "text-text-main dark:text-white"}>
+                            {isUser ? `Paso ${idx + 1} • Paciente (Voz)` : `Paso ${idx + 1} • Central Telefónica MallaSalud`}
                           </span>
                         </div>
-                        <p>{entry.text}</p>
+                        <span className="text-text-subtle dark:text-slate-400 font-mono text-[10px]">
+                          {new Date(entry.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          })}
+                        </span>
                       </div>
-
-                      {isUser && (
-                        <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-                          <User className="w-4 h-4 text-slate-300" />
-                        </div>
-                      )}
+                      <p className="text-text-main dark:text-slate-200 pl-5">{entry.text}</p>
                     </div>
                   );
                 })
               )}
             </div>
 
-            {/* BARRA DE ENTRADA RÁPIDA DE VOZ SIMULADA */}
-            <div className="p-3 border-t border-slate-800 bg-slate-950/80">
+            {/* BARRA DE ENTRADA MANUAL DEL FLUJO */}
+            <div className="p-3.5 border-t border-border-subtle dark:border-border-dark bg-white dark:bg-surface-dark">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -557,13 +585,13 @@ export default function IvrPage() {
                   type="text"
                   value={simText}
                   onChange={(e) => setSimText(e.target.value)}
-                  placeholder="Escribe lo que dirías por teléfono (ej: 'Hola quiero a las 10 mi rut es 5555555-5')..."
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  placeholder="Ingresa una frase del paciente (ej: 'Hola quiero a las 10 mi rut es 5555555-5')..."
+                  className="flex-1 bg-slate-50 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle rounded-lg px-3.5 py-2 text-xs text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-primary/40"
                 />
                 <button
                   type="submit"
                   disabled={isSimulating || !simText.trim()}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                  className="bg-teal-primary hover:bg-teal-hover text-white font-semibold px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
                 >
                   {isSimulating ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -577,16 +605,16 @@ export default function IvrPage() {
           </div>
 
           {/* ACCESOS DIRECTOS Y PRUEBAS RÁPIDAS DE REGLAS */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+          <div className="ivr-card p-5 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold text-white">
+              <div className="flex items-center gap-2 mb-1.5">
+                <ShieldCheck className="w-4 h-4 text-teal-primary dark:text-teal-accent" />
+                <h3 className="text-sm font-bold text-text-main dark:text-white">
                   Pruebas Rápidas de Reglas de Negocio
                 </h3>
               </div>
-              <p className="text-[11px] text-slate-400 mb-3">
-                Simula cada regla de MallaSalud con un solo clic para comprobar el comportamiento:
+              <p className="text-[11px] text-text-muted dark:text-text-dark-muted mb-3">
+                Ejecuta cada regla del flujo telefónico con un clic para verificar el comportamiento:
               </p>
 
               <div className="space-y-2">
@@ -596,9 +624,9 @@ export default function IvrPage() {
                       "Hola quiero pedir hora para las diez de la mañana, mi RUT es 21.222.222-2"
                     )
                   }
-                  className="w-full text-left p-2 rounded-xl bg-slate-950/70 hover:bg-slate-800 border border-rose-800/40 hover:border-rose-700 text-xs text-slate-300 transition group cursor-pointer"
+                  className="w-full text-left p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
                 >
-                  <span className="text-[10px] text-rose-400 font-bold block mb-0.5">
+                  <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold block mb-0.5">
                     Regla 1: Paciente No Inscrito (Derivar a SOME)
                   </span>
                   &ldquo;Quiero a las 10:00, mi RUT es 21.222.222-2&rdquo;
@@ -607,63 +635,75 @@ export default function IvrPage() {
                 <button
                   onClick={() =>
                     handleSimulate(
+                      "Hola, quiero hora para medicina a las 11 de la mañana, mi RUT es 21.111.111-1"
+                    )
+                  }
+                  className="w-full text-left p-2.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
+                >
+                  <span className="text-[10px] text-amber-800 dark:text-amber-400 font-bold block mb-0.5">
+                    Regla 2: Hora Ocupada — Recomendar Antes y Después
+                  </span>
+                  &ldquo;Quiero a las 11:00, mi RUT es 21.111.111-1&rdquo;
+                </button>
+
+                <button
+                  onClick={() => handleSimulate("Prefiero la de después, a las 11:30")}
+                  className="w-full text-left p-2.5 rounded-lg bg-mint-lightest dark:bg-surface-dark-bg hover:bg-mint-pale/60 dark:hover:bg-surface-dark-muted border border-border-subtle dark:border-border-dark-subtle text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
+                >
+                  <span className="text-[10px] text-teal-primary dark:text-teal-accent font-bold block mb-0.5">
+                    Regla 3: Elegir Alternativa Recomendada (11:30)
+                  </span>
+                  &ldquo;Prefiero la de después, a las 11:30&rdquo;
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleSimulate(
+                      "Hola quiero pedir otra hora a las 12:00, mi RUT es 21.111.111-1"
+                    )
+                  }
+                  className="w-full text-left p-2.5 rounded-lg bg-slate-50 dark:bg-surface-dark-bg hover:bg-slate-100 dark:hover:bg-surface-dark-muted border border-amber-200 dark:border-amber-800/40 text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
+                >
+                  <span className="text-[10px] text-amber-800 dark:text-amber-400 font-bold block mb-0.5">
+                    Regla 4: Cita Duplicada (Ofrecer Reagendar 12:00)
+                  </span>
+                  &ldquo;Quiero otra hora a las 12:00, mi RUT es 21.111.111-1&rdquo;
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleSimulate("Sí, por favor anula la anterior y reagenda a las 12:00")
+                  }
+                  className="w-full text-left p-2.5 rounded-lg bg-mint-lightest dark:bg-surface-dark-bg hover:bg-mint-pale/60 dark:hover:bg-surface-dark-muted border border-border-subtle dark:border-border-dark-subtle text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
+                >
+                  <span className="text-[10px] text-teal-primary dark:text-teal-accent font-bold block mb-0.5">
+                    Regla 5: Anular Anterior y Reagendar (12:00)
+                  </span>
+                  &ldquo;Sí, anula la anterior y reagenda a las 12:00&rdquo;
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleSimulate(
                       "Hola, quiero hora a las 10 de la mañana, mi RUT es 5.555.555-5"
                     )
                   }
-                  className="w-full text-left p-2 rounded-xl bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 transition group cursor-pointer"
+                  className="w-full text-left p-2.5 rounded-lg bg-slate-50 dark:bg-surface-dark-bg hover:bg-mint-lightest dark:hover:bg-surface-dark-muted border border-border-subtle dark:border-border-dark-subtle text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
                 >
-                  <span className="text-[10px] text-amber-400 font-bold block mb-0.5">
-                    Regla 2: Adulto Mayor 75a pide hora ocupada (10:00)
+                  <span className="text-[10px] text-teal-primary dark:text-teal-accent font-bold block mb-0.5">
+                    Extra: Adulto Mayor 75a (Cuota 60+ · 10:00 Ocupada)
                   </span>
                   &ldquo;Quiero a las 10:00, mi RUT es 5.555.555-5&rdquo;
-                </button>
-
-                <button
-                  onClick={() => handleSimulate("Sí, me parece bien, la tomo")}
-                  className="w-full text-left p-2 rounded-xl bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 transition group cursor-pointer"
-                >
-                  <span className="text-[10px] text-emerald-400 font-bold block mb-0.5">
-                    Regla 3: Aceptar sugerencia (10:30)
-                  </span>
-                  &ldquo;Sí, me parece bien, la tomo&rdquo;
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleSimulate(
-                      "Hola quiero pedir otra hora a las 11:30, mi RUT es 5.555.555-5"
-                    )
-                  }
-                  className="w-full text-left p-2 rounded-xl bg-slate-950/70 hover:bg-slate-800 border border-amber-800/40 hover:border-amber-700 text-xs text-slate-300 transition group cursor-pointer"
-                >
-                  <span className="text-[10px] text-amber-400 font-bold block mb-0.5">
-                    Regla 4: Cita Duplicada (Máximo 1 hora activa al día)
-                  </span>
-                  &ldquo;Quiero otra hora a las 11:30, mi RUT es 5.555.555-5&rdquo;
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleSimulate(
-                      "Hola quiero hora para el dentista a las 10:30, mi RUT es 21.111.111-1"
-                    )
-                  }
-                  className="w-full text-left p-2 rounded-xl bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 transition group cursor-pointer"
-                >
-                  <span className="text-[10px] text-teal-400 font-bold block mb-0.5">
-                    Regla 5: Elección de Especialidad Dental
-                  </span>
-                  &ldquo;Quiero hora para el dentista a las 10:30, mi RUT es 21.111.111-1&rdquo;
                 </button>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
-              <div className="flex items-center gap-1.5 text-slate-300 font-medium">
-                <HeartHandshake className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="mt-3 pt-3 border-t border-border-subtle dark:border-border-dark text-[11px] text-text-muted dark:text-text-dark-muted space-y-1">
+              <div className="flex items-center gap-1.5 text-text-main dark:text-white font-semibold">
+                <HeartHandshake className="w-3.5 h-3.5 text-teal-primary dark:text-teal-accent" />
                 <span>Diseñado para Adultos Mayores</span>
               </div>
-              <p className="text-slate-500">
+              <p className="text-text-subtle dark:text-text-dark-muted">
                 Pausas claras, trato empático y acceso automático a cuotas protegidas 60+.
               </p>
             </div>

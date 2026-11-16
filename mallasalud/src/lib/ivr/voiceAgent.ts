@@ -8,10 +8,12 @@ import {
   nombreEspecialidadLegible,
   verificarOAgendarPorVoz,
   confirmarBloqueSugeridoPorVoz,
+  reagendarCancelandoAnteriorPorVoz,
 } from "./ivrScheduleService";
 import {
   IvrCallSession,
   IvrTranscriptEntry,
+  VerificarOAgendarResult,
   VoiceAgentResult,
 } from "./types";
 import { Especialidad } from "@prisma/client";
@@ -153,6 +155,201 @@ export function esAceptacionOConfirmacion(text: string): boolean {
   return patronesAfirmativos.some((p) => p.test(raw));
 }
 
+function seleccionarBloqueAlternativo(
+  session: IvrCallSession,
+  userSpeech: string
+): string | undefined {
+  const tienePendiente =
+    session.bloqueSugeridoId ||
+    session.bloqueSugeridoAntesId ||
+    session.bloqueSugeridoDespuesId;
+  if (!tienePendiente) return undefined;
+
+  const raw = (userSpeech || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (
+    /\b(no puedo|ninguna|rechazo|ninguno|no me sirve)\b/i.test(raw)
+  ) {
+    return undefined;
+  }
+
+  const horaDetectada = normalizarHora(userSpeech, session.rut);
+  if (horaDetectada) {
+    if (session.horaSugeridaAntes === horaDetectada && session.bloqueSugeridoAntesId) {
+      return session.bloqueSugeridoAntesId;
+    }
+    if (session.horaSugeridaDespues === horaDetectada && session.bloqueSugeridoDespuesId) {
+      return session.bloqueSugeridoDespuesId;
+    }
+  }
+
+  if (
+    /\b(antes|anterior|mas temprano|temprano|primera)\b/i.test(raw) &&
+    session.bloqueSugeridoAntesId
+  ) {
+    return session.bloqueSugeridoAntesId;
+  }
+
+  if (
+    /\b(despues|posterior|mas tarde|tarde|segunda|luego)\b/i.test(raw) &&
+    session.bloqueSugeridoDespuesId
+  ) {
+    return session.bloqueSugeridoDespuesId;
+  }
+
+  if (esAceptacionOConfirmacion(userSpeech)) {
+    return (
+      session.bloqueSugeridoId ||
+      session.bloqueSugeridoDespuesId ||
+      session.bloqueSugeridoAntesId
+    );
+  }
+
+  return undefined;
+}
+
+function construirMensajeHoraOcupada(res: {
+  pacienteNombre?: string;
+  esAdultoMayor?: boolean;
+  horaSolicitada?: string;
+  horaSugerida?: string;
+  horaSugeridaAntes?: string;
+  horaSugeridaDespues?: string;
+  profesionalNombre?: string;
+  especialidadNombre?: string;
+}): string {
+  const vocativo = res.pacienteNombre
+    ? res.esAdultoMayor
+      ? `Hola Don o Señora ${res.pacienteNombre}, `
+      : `Hola ${res.pacienteNombre}, `
+    : "";
+
+  if (res.horaSugeridaAntes && res.horaSugeridaDespues) {
+    return `${vocativo}la hora de las ${res.horaSolicitada} en ${res.especialidadNombre} ya está ocupada. Puedo ofrecerle una hora antes a las ${res.horaSugeridaAntes}, o después a las ${res.horaSugeridaDespues} con ${res.profesionalNombre}. ¿Cuál prefiere agendar?`;
+  }
+
+  const unica = res.horaSugeridaDespues || res.horaSugeridaAntes || res.horaSugerida;
+  return `${vocativo}la hora de las ${res.horaSolicitada} en ${res.especialidadNombre} ya está tomada, pero tengo disponible a las ${unica} con ${res.profesionalNombre}. ¿Desea agendarla?`;
+}
+
+function limpiarSugerenciasSession(callSid: string, codigoReserva?: string) {
+  updateIvrSession(callSid, {
+    estadoCita: "AGENDADO",
+    horaSugerida: undefined,
+    bloqueSugeridoId: undefined,
+    horaSugeridaAntes: undefined,
+    bloqueSugeridoAntesId: undefined,
+    horaSugeridaDespues: undefined,
+    bloqueSugeridoDespuesId: undefined,
+    citaExistenteId: undefined,
+    horaExistente: undefined,
+    citaExistenteCodigo: undefined,
+    bloqueReagendarId: undefined,
+    horaReagendar: undefined,
+    codigoReserva,
+  });
+}
+
+function esRechazo(text: string): boolean {
+  if (!text) return false;
+  const raw = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return /\b(no|nop|mantener|manten|prefiero mantener|dejala asi|dejarla asi|ninguna|no gracias|rechazo)\b/i.test(
+    raw
+  );
+}
+
+function construirMensajeCitaDuplicada(res: VerificarOAgendarResult): string {
+  const vocativo = res.pacienteNombre
+    ? res.esAdultoMayor
+      ? `Don o Señora ${res.pacienteNombre}`
+      : res.pacienteNombre
+    : "";
+
+  if (res.horaReagendar && res.bloqueReagendarId) {
+    return `Hola ${vocativo}, ya tiene una cita médica agendada para hoy a las ${res.horaExistente} en ${res.especialidadNombre} (código ${res.codigoReserva}), y solo se permite una por día. ¿Desea anular su hora anterior de las ${res.horaExistente} y reagendar para las ${res.horaReagendar}?`;
+  }
+
+  return `Hola ${vocativo}, ya tiene una cita agendada para hoy a las ${res.horaExistente} en ${res.especialidadNombre} con ${res.profesionalNombre}. Por normativa del CESFAM, solo se permite una cita activa al día.`;
+}
+
+function guardarPendienteReagendamientoSession(callSid: string, res: VerificarOAgendarResult) {
+  updateIvrSession(callSid, {
+    estadoCita: "CITA_DUPLICADA",
+    rut: res.rut,
+    pacienteNombre: res.pacienteNombre,
+    esAdultoMayor: res.esAdultoMayor,
+    especialidad: res.especialidad,
+    citaExistenteId: res.citaExistenteId,
+    horaExistente: res.horaExistente,
+    citaExistenteCodigo: res.codigoReserva,
+    bloqueReagendarId: res.bloqueReagendarId,
+    horaReagendar: res.horaReagendar,
+  });
+}
+
+async function resolverPendienteReagendamiento(
+  callSid: string,
+  session: IvrCallSession,
+  userSpeech: string
+): Promise<VoiceAgentResult | null> {
+  if (!session.citaExistenteId || !session.bloqueReagendarId) return null;
+
+  const vocativo = session.esAdultoMayor
+    ? `Don o Señora ${session.pacienteNombre || ""}`
+    : session.pacienteNombre || "";
+
+  if (esRechazo(userSpeech)) {
+    const horaActual = session.horaExistente;
+    const codigoActual = session.citaExistenteCodigo;
+    updateIvrSession(callSid, {
+      estadoCita: "AGENDADO",
+      citaExistenteId: undefined,
+      horaExistente: undefined,
+      citaExistenteCodigo: undefined,
+      bloqueReagendarId: undefined,
+      horaReagendar: undefined,
+    });
+    return {
+      replyText: `Entendido ${vocativo}, mantenemos entonces su cita actual de las ${horaActual} (código ${codigoActual}). ¡Que tenga un excelente día!`,
+      shouldHangup: true,
+      engineUsed: "fast_confirmation",
+    };
+  }
+
+  const raw = (userSpeech || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const quiereReagendar =
+    esAceptacionOConfirmacion(userSpeech) ||
+    /\b(anula|anular|cancela|cancelar|reagenda|reagendar|cambia|cambiar|nueva)\b/i.test(raw) ||
+    (session.horaReagendar && normalizarHora(userSpeech, session.rut) === session.horaReagendar);
+
+  if (!quiereReagendar) return null;
+
+  const rut = session.rut || "21111111-1";
+  const res = await reagendarCancelandoAnteriorPorVoz(
+    session.citaExistenteId,
+    session.bloqueReagendarId,
+    rut
+  );
+  limpiarSugerenciasSession(callSid, res.codigoReserva);
+
+  const voc = res.esAdultoMayor ? `Don o Señora ${res.pacienteNombre}` : res.pacienteNombre;
+  return {
+    replyText: `Perfecto ${voc}, anulamos su hora anterior de las ${res.horaExistente} y reagendamos su cita para las ${res.horaConfirmada} en ${res.especialidadNombre} con código ${res.codigoReserva}. ¡Que tenga un excelente día!`,
+    shouldHangup: true,
+    engineUsed: "fast_confirmation",
+    reservaData: res,
+  };
+}
+
 // ====================================================================
 // CONFIGURACIÓN DE GEMINI Y NLU LOCAL PARA ADULTO MAYOR
 // ====================================================================
@@ -165,9 +362,9 @@ REGLAS INSTITUCIONALES OBLIGATORIAS:
 1. Pide siempre el RUT del paciente y la hora que necesita.
 2. EXTRACCIÓN DE RUT CHILENO: Extrae el RUT chileno limpio (ej: 5555555-5 o 21111111-1). Si el paciente lo dicta con palabras de millones o ceros de transcripción (ej: "5 000 555 000 5555"), limpia los ceros para formar el RUT correcto 5555555-5. NUNCA mezcles los números de la hora ("a las 10") con el RUT.
 3. Si el paciente NO está inscrito en el padrón, indícale amablemente que debe acudir presencialmente a la ventanilla SOME del CESFAM con su cédula de identidad para inscribirse.
-4. Si el paciente ya tiene una cita médica agendada para hoy, recuérdale que la normativa del CESFAM solo permite una cita activa por especialidad al día.
+4. Si el paciente ya tiene una cita médica agendada para hoy, infórmale que solo se permite una cita activa por especialidad al día y pregúntale si desea anular la cita anterior para reagendar en el nuevo horario disponible.
 5. Si no especifica si busca Medicina General, Dental o Matronería, pregúntale para qué especialidad necesita la atención.
-6. Si la hora pedida está ocupada, infórmale con cariño la hora disponible más cercana y pregúntale si desea tomarla.
+6. Si la hora pedida está ocupada, infórmale las dos alternativas disponibles (una hora antes y otra después, si existen) y pregúntale cuál prefiere tomar.
 7. Al confirmar, indícale su RUT, la hora y el código de reserva de su comprobante, deseándole un excelente día.`;
 
 function getGeminiApiKeys(): string[] {
@@ -249,17 +446,13 @@ async function procesarConFallbackLocal(
   const session = getOrCreateIvrSession(callSid);
 
   // 1. Confirmación de hora sugerida pendiente (< 10ms)
-  if (esAceptacionOConfirmacion(userSpeech) && session.bloqueSugeridoId) {
+  const bloqueElegido = seleccionarBloqueAlternativo(session, userSpeech);
+  if (bloqueElegido) {
     const rut = session.rut || "21111111-1";
     try {
-      const res = await confirmarBloqueSugeridoPorVoz(session.bloqueSugeridoId, rut);
+      const res = await confirmarBloqueSugeridoPorVoz(bloqueElegido, rut);
 
-      updateIvrSession(callSid, {
-        estadoCita: "AGENDADO",
-        horaSugerida: undefined,
-        bloqueSugeridoId: undefined,
-        codigoReserva: res.codigoReserva,
-      });
+      limpiarSugerenciasSession(callSid, res.codigoReserva);
 
       const vocativo = res.esAdultoMayor ? `Don o Señora ${res.pacienteNombre}` : res.pacienteNombre;
       const replyText = `Perfecto ${vocativo}, su cita para el RUT ${res.rut} ha quedado confirmada a las ${res.horaConfirmada} en ${res.especialidadNombre} con código ${res.codigoReserva}. ¡Que tenga un muy buen día!`;
@@ -307,13 +500,12 @@ async function procesarConFallbackLocal(
       };
     }
 
-    // REGLA 2: CITA DUPLICADA -> SOLO 1 CITA ACTIVA AL DÍA POR ESPECIALIDAD
+    // REGLA 2: CITA DUPLICADA -> OFRECER ANULAR CITA ANTERIOR Y REAGENDAR EN LA NUEVA HORA
     if (res.status === "CITA_DUPLICADA") {
-      updateIvrSession(callSid, { estadoCita: "CITA_DUPLICADA" });
-      const replyText = `Hola ${res.pacienteNombre}, ya tiene una cita agendada para hoy a las ${res.horaExistente} en ${res.especialidadNombre} con el ${res.profesionalNombre}. Por normativa del CESFAM, solo se permite una cita activa por especialidad al día.`;
+      guardarPendienteReagendamientoSession(callSid, res);
       return {
-        replyText,
-        shouldHangup: true,
+        replyText: construirMensajeCitaDuplicada(res),
+        shouldHangup: !res.bloqueReagendarId,
         engineUsed: "local_fallback",
         reservaData: res,
       };
@@ -338,20 +530,23 @@ async function procesarConFallbackLocal(
       };
     }
 
-    // CASO OCUPADO -> PROPONER HORA MÁS CERCANA
-    if (res.status === "OCUPADO" && res.horaSugerida) {
+    // CASO OCUPADO -> PROPONER HORA ANTES Y HORA DESPUÉS
+    if (res.status === "OCUPADO" && (res.horaSugerida || res.horaSugeridaAntes || res.horaSugeridaDespues)) {
       updateIvrSession(callSid, {
         horaSugerida: res.horaSugerida,
-        horaSolicitada: res.horaSolicitada,
         bloqueSugeridoId: res.bloqueSugeridoId,
+        horaSugeridaAntes: res.horaSugeridaAntes,
+        bloqueSugeridoAntesId: res.bloqueSugeridoAntesId,
+        horaSugeridaDespues: res.horaSugeridaDespues,
+        bloqueSugeridoDespuesId: res.bloqueSugeridoDespuesId,
+        horaSolicitada: res.horaSolicitada,
         pacienteNombre: res.pacienteNombre,
         profesionalNombre: res.profesionalNombre,
         especialidad: res.especialidad,
         esAdultoMayor: res.esAdultoMayor,
       });
 
-      const vocativo = res.pacienteNombre ? `Hola ${res.pacienteNombre}, ` : "";
-      const replyText = `${vocativo}la hora de las ${res.horaSolicitada} en ${res.especialidadNombre} ya está tomada, pero le puedo ofrecer a las ${res.horaSugerida} con el ${res.profesionalNombre}. ¿Le parece bien esta hora?`;
+      const replyText = construirMensajeHoraOcupada(res);
 
       return {
         replyText,
@@ -387,11 +582,10 @@ async function procesarConFallbackLocal(
     }
 
     if (resVerif.status === "CITA_DUPLICADA") {
-      updateIvrSession(callSid, { estadoCita: "CITA_DUPLICADA" });
-      const replyText = `Hola ${resVerif.pacienteNombre}, ya tiene una cita agendada para hoy a las ${resVerif.horaExistente} en ${resVerif.especialidadNombre}. Solo se permite una hora médica al día.`;
+      guardarPendienteReagendamientoSession(callSid, resVerif);
       return {
-        replyText,
-        shouldHangup: true,
+        replyText: construirMensajeCitaDuplicada(resVerif),
+        shouldHangup: !resVerif.bloqueReagendarId,
         engineUsed: "local_fallback",
         reservaData: resVerif,
       };
@@ -419,6 +613,16 @@ async function procesarConFallbackLocal(
   if (horaDetectada && !rutFinal) {
     updateIvrSession(callSid, { horaSolicitada: horaDetectada });
     const replyText = `Perfecto, para las ${horaDetectada}. Por favor indíqueme su RUT para verificar su registro en el centro de salud.`;
+    return {
+      replyText,
+      shouldHangup: false,
+      engineUsed: "local_fallback",
+    };
+  }
+
+  // Si hay un reagendamiento pendiente tras cita duplicada
+  if (session.citaExistenteId && session.horaReagendar) {
+    const replyText = `Tiene una cita actual a las ${session.horaExistente}. ¿Desea anularla y reagendar para las ${session.horaReagendar}? Por favor dígame sí o no.`;
     return {
       replyText,
       shouldHangup: false,
@@ -473,6 +677,7 @@ ${session.rut ? `(RUT identificado: ${session.rut})` : ""}
 ${session.pacienteNombre ? `(Nombre paciente: ${session.pacienteNombre})` : ""}
 ${session.esAdultoMayor ? `(Es adulto mayor: Sí)` : ""}
 ${session.horaSugerida ? `(Hora sugerida pendiente: ${session.horaSugerida}, bloqueId: ${session.bloqueSugeridoId})` : ""}
+${session.citaExistenteId ? `(Tiene cita previa a las ${session.horaExistente} y reagendamiento pendiente a las ${session.horaReagendar})` : ""}
 ${session.especialidad ? `(Especialidad: ${session.especialidad})` : ""}
 `;
 
@@ -513,10 +718,10 @@ ${session.especialidad ? `(Especialidad: ${session.especialidad})` : ""}
           }
 
           if (res.status === "CITA_DUPLICADA") {
-            updateIvrSession(callSid, { estadoCita: "CITA_DUPLICADA" });
+            guardarPendienteReagendamientoSession(callSid, res);
             return {
-              replyText: `Hola ${res.pacienteNombre}, ya tiene una cita médica para hoy a las ${res.horaExistente} en ${res.especialidadNombre}. Solo se permite una cita al día por normativa del CESFAM.`,
-              shouldHangup: true,
+              replyText: construirMensajeCitaDuplicada(res),
+              shouldHangup: !res.bloqueReagendarId,
               engineUsed: "gemini",
               reservaData: res,
             };
@@ -538,20 +743,24 @@ ${session.especialidad ? `(Especialidad: ${session.especialidad})` : ""}
             };
           }
 
-          if (res.status === "OCUPADO" && res.horaSugerida) {
+          if (res.status === "OCUPADO" && (res.horaSugerida || res.horaSugeridaAntes || res.horaSugeridaDespues)) {
             updateIvrSession(callSid, {
               horaSugerida: res.horaSugerida,
-              horaSolicitada: res.horaSolicitada,
               bloqueSugeridoId: res.bloqueSugeridoId,
+              horaSugeridaAntes: res.horaSugeridaAntes,
+              bloqueSugeridoAntesId: res.bloqueSugeridoAntesId,
+              horaSugeridaDespues: res.horaSugeridaDespues,
+              bloqueSugeridoDespuesId: res.bloqueSugeridoDespuesId,
+              horaSolicitada: res.horaSolicitada,
               rut: res.rut,
               pacienteNombre: res.pacienteNombre,
               profesionalNombre: res.profesionalNombre,
               especialidad: res.especialidad,
+              esAdultoMayor: res.esAdultoMayor,
             });
 
-            const vocativo = res.esAdultoMayor ? `Don o Señora ${res.pacienteNombre}` : res.pacienteNombre;
             return {
-              replyText: `Hola ${vocativo}, la hora de las ${res.horaSolicitada} en ${res.especialidadNombre} ya está ocupada, pero tengo disponible a las ${res.horaSugerida} con el ${res.profesionalNombre}. ¿Desea agendarla?`,
+              replyText: construirMensajeHoraOcupada(res),
               shouldHangup: false,
               engineUsed: "gemini",
               reservaData: res,
@@ -561,16 +770,11 @@ ${session.especialidad ? `(Especialidad: ${session.especialidad})` : ""}
 
         if (fnName === "confirmarHoraSugerida") {
           const rut = args.rut || session.rut || "21111111-1";
-          const bloqueId = session.bloqueSugeridoId;
+          const bloqueId = seleccionarBloqueAlternativo(session, userSpeech) || session.bloqueSugeridoId;
 
           if (bloqueId) {
             const res = await confirmarBloqueSugeridoPorVoz(bloqueId, rut);
-            updateIvrSession(callSid, {
-              estadoCita: "AGENDADO",
-              horaSugerida: undefined,
-              bloqueSugeridoId: undefined,
-              codigoReserva: res.codigoReserva,
-            });
+            limpiarSugerenciasSession(callSid, res.codigoReserva);
 
             const vocativo = res.esAdultoMayor ? `Don o Señora ${res.pacienteNombre}` : res.pacienteNombre;
             return {
@@ -613,18 +817,25 @@ export async function procesarTurnoVoz(
   const session = getOrCreateIvrSession(callSid);
   addIvrTranscriptEntry(callSid, "user", userSpeech);
 
-  // 1. Confirmación afirmativa rápida (< 10ms)
-  if (esAceptacionOConfirmacion(userSpeech) && session.bloqueSugeridoId) {
+  // 0. Resolución inmediata de reagendamiento tras cita duplicada (< 10ms)
+  try {
+    const reagendado = await resolverPendienteReagendamiento(callSid, session, userSpeech);
+    if (reagendado) {
+      addIvrTranscriptEntry(callSid, "bot", reagendado.replyText);
+      return reagendado;
+    }
+  } catch (err) {
+    // Ignorar y continuar a fallback
+  }
+
+  // 1. Confirmación afirmativa o elección de hora sugerida (< 10ms)
+  const bloqueElegido = seleccionarBloqueAlternativo(session, userSpeech);
+  if (bloqueElegido) {
     const rut = session.rut || "21111111-1";
     try {
-      const res = await confirmarBloqueSugeridoPorVoz(session.bloqueSugeridoId, rut);
+      const res = await confirmarBloqueSugeridoPorVoz(bloqueElegido, rut);
 
-      updateIvrSession(callSid, {
-        estadoCita: "AGENDADO",
-        horaSugerida: undefined,
-        bloqueSugeridoId: undefined,
-        codigoReserva: res.codigoReserva,
-      });
+      limpiarSugerenciasSession(callSid, res.codigoReserva);
 
       const vocativo = res.esAdultoMayor ? `Don o Señora ${res.pacienteNombre}` : res.pacienteNombre;
       const replyText = `Perfecto ${vocativo}, su cita para el RUT ${res.rut} ha quedado confirmada a las ${res.horaConfirmada} en ${res.especialidadNombre} con código ${res.codigoReserva}. ¡Muchas gracias y que tenga un excelente día!`;

@@ -416,13 +416,13 @@ export async function ensureTodayAgendaExists(
     },
   });
 
-  // Bloques de demostración
+  // Bloques de demostración (distribuidos con horas disponibles antes y después de bloques ocupados)
   const slotConfigs = [
     { hora: "09:00", estado: EstadoBloque.RESERVADO, rut: "12345678-9", cuota: false },
-    { hora: "09:30", estado: EstadoBloque.RESERVADO, rut: "12345678-9", cuota: true },
+    { hora: "09:30", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: true },
     { hora: "10:00", estado: EstadoBloque.RESERVADO, rut: "12345678-9", cuota: false },
     { hora: "10:30", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: false },
-    { hora: "11:00", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: true },
+    { hora: "11:00", estado: EstadoBloque.RESERVADO, rut: "12345678-9", cuota: false },
     { hora: "11:30", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: false },
     { hora: "12:00", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: false },
   ];
@@ -561,11 +561,40 @@ export async function verificarOAgendarPorVoz(
   if (citaExistente) {
     const horaExistente = formatHora(citaExistente.bloque.hora_inicio);
     const profNombre = `Dr(a). ${citaExistente.profesional.nombres} ${citaExistente.profesional.apellidos}`;
+
+    await ensureTodayAgendaExists(especialidad);
+    const bloquesHoy = await prisma.bloqueHorario.findMany({
+      where: {
+        hora_inicio: { gte: startOfDay, lte: endOfDay },
+        agenda: { especialidad, activa: true },
+      },
+      include: { cita: true },
+      orderBy: { hora_inicio: "asc" },
+    });
+
+    const horaSolicitadaNorm = horaInput ? normalizarHora(horaInput, paciente.rut) || horaInput : undefined;
+    const elegibles = bloquesHoy.filter((b) => {
+      if (b.estado_bloque !== EstadoBloque.DISPONIBLE || b.cita) return false;
+      if (b.es_cuota_adulto_mayor && !paciente.es_adulto_mayor) {
+        const msRestantes = new Date(b.hora_inicio).getTime() - Date.now();
+        if (msRestantes > 30 * 60 * 1000) return false;
+      }
+      return true;
+    });
+
+    const bloqueReagendar =
+      (horaSolicitadaNorm && elegibles.find((b) => formatHora(b.hora_inicio) === horaSolicitadaNorm)) ||
+      elegibles[0];
+
     return {
       status: "CITA_DUPLICADA",
       pacienteNombre: paciente.nombres,
       rut: paciente.rut,
+      esAdultoMayor: paciente.es_adulto_mayor,
       horaExistente,
+      citaExistenteId: citaExistente.id,
+      bloqueReagendarId: bloqueReagendar?.id,
+      horaReagendar: bloqueReagendar ? formatHora(bloqueReagendar.hora_inicio) : undefined,
       profesionalNombre: profNombre,
       especialidad,
       especialidadNombre: nombreEsp,
@@ -619,7 +648,7 @@ export async function verificarOAgendarPorVoz(
   const targetSlot = bloques.find((b) => formatHora(b.hora_inicio) === horaDeseada);
 
   const esBloqueValidoParaPaciente = (b: typeof bloques[0]) => {
-    if (b.estado_bloque !== EstadoBloque.DISPONIBLE) return false;
+    if (b.estado_bloque !== EstadoBloque.DISPONIBLE || b.cita) return false;
     if (b.es_cuota_adulto_mayor && !paciente.es_adulto_mayor) {
       // Liberación dinámica si faltan <= 30 min
       const msRestantes = new Date(b.hora_inicio).getTime() - Date.now();
@@ -699,8 +728,18 @@ export async function verificarOAgendarPorVoz(
     };
   }
 
-  // Calcular bloque más cercano
+  // Calcular alternativa más cercana ANTES, DESPUÉS y global
   const targetMinutes = timeToMinutes(horaDeseada);
+  const bloquesAntes = bloquesDisponibles.filter(
+    (b) => timeToMinutes(formatHora(b.hora_inicio)) < targetMinutes
+  );
+  const bloquesDespues = bloquesDisponibles.filter(
+    (b) => timeToMinutes(formatHora(b.hora_inicio)) > targetMinutes
+  );
+
+  const bloqueAntes = bloquesAntes.length > 0 ? bloquesAntes[bloquesAntes.length - 1] : undefined;
+  const bloqueDespues = bloquesDespues.length > 0 ? bloquesDespues[0] : undefined;
+
   let closestSlot = bloquesDisponibles[0];
   let minDiff = Math.abs(timeToMinutes(formatHora(closestSlot.hora_inicio)) - targetMinutes);
 
@@ -727,6 +766,10 @@ export async function verificarOAgendarPorVoz(
     horaSolicitada: horaDeseada,
     horaSugerida,
     bloqueSugeridoId: closestSlot.id,
+    horaSugeridaAntes: bloqueAntes ? formatHora(bloqueAntes.hora_inicio) : undefined,
+    bloqueSugeridoAntesId: bloqueAntes?.id,
+    horaSugeridaDespues: bloqueDespues ? formatHora(bloqueDespues.hora_inicio) : undefined,
+    bloqueSugeridoDespuesId: bloqueDespues?.id,
     profesionalNombre,
     especialidad,
     especialidadNombre: nombreEsp,
@@ -819,6 +862,114 @@ export async function confirmarBloqueSugeridoPorVoz(
   };
 }
 
+/**
+ * Cancela la cita activa anterior (CANCELADA_OPORTUNA + libera bloque)
+ * y agenda en el nuevo bloque horario dentro de una única transacción atómica.
+ */
+export async function reagendarCancelandoAnteriorPorVoz(
+  citaAnteriorId: string,
+  bloqueNuevoId: string,
+  rutInput: string
+): Promise<VerificarOAgendarResult> {
+  const paciente = await buscarPacienteEnPadron(rutInput);
+  if (!paciente) {
+    throw new Error("El paciente no se encuentra inscrito en el padrón.");
+  }
+
+  const citaAnterior = await prisma.cita.findUnique({
+    where: { id: citaAnteriorId },
+    include: { bloque: true },
+  });
+
+  if (!citaAnterior || citaAnterior.estado_cita !== EstadoCita.AGENDADA) {
+    throw new Error("La cita anterior ya no está activa para reagendar.");
+  }
+
+  const bloqueNuevo = await prisma.bloqueHorario.findUnique({
+    where: { id: bloqueNuevoId },
+    include: {
+      agenda: {
+        include: {
+          profesional: true,
+          box: true,
+        },
+      },
+    },
+  });
+
+  if (!bloqueNuevo || bloqueNuevo.estado_bloque !== EstadoBloque.DISPONIBLE) {
+    throw new Error("El nuevo bloque horario ya no está disponible.");
+  }
+
+  const nombreEsp = nombreEspecialidadLegible(bloqueNuevo.agenda.especialidad);
+  const horaExistente = formatHora(citaAnterior.bloque.hora_inicio);
+  const horaConfirmada = formatHora(bloqueNuevo.hora_inicio);
+  const profesional = bloqueNuevo.agenda.profesional;
+  const profesionalNombre = `Dr(a). ${profesional.nombres} ${profesional.apellidos}`;
+  const codigoReserva = generarCodigoReserva();
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Marcar cita anterior como CANCELADA_OPORTUNA y liberar su bloque
+    await tx.cita.update({
+      where: { id: citaAnterior.id },
+      data: { estado_cita: EstadoCita.CANCELADA_OPORTUNA },
+    });
+    await tx.bloqueHorario.update({
+      where: { id: citaAnterior.bloque_id },
+      data: {
+        estado_bloque: EstadoBloque.DISPONIBLE,
+        bloqueado_hasta: null,
+        bloqueado_por_rut: null,
+      },
+    });
+
+    // 2. Reservar nuevo bloque y crear cita VOZ_IVR
+    await tx.bloqueHorario.update({
+      where: { id: bloqueNuevo.id },
+      data: {
+        estado_bloque: EstadoBloque.RESERVADO,
+        bloqueado_por_rut: paciente.rut,
+      },
+    });
+    const nuevaCita = await tx.cita.create({
+      data: {
+        codigo_reserva: codigoReserva,
+        paciente_id: paciente.id,
+        profesional_id: bloqueNuevo.agenda.profesional_id,
+        bloque_id: bloqueNuevo.id,
+        especialidad: bloqueNuevo.agenda.especialidad,
+        estado_cita: EstadoCita.AGENDADA,
+        canal_origen: CanalOrigen.VOZ_IVR,
+        hora_atencion: bloqueNuevo.hora_inicio,
+      },
+    });
+
+    const cuerpoSms = `Reagendamiento IVR confirmado para las ${horaConfirmada} en ${nombreEsp} con ${profesionalNombre}. Se anuló hora previa de las ${horaExistente}. Código: ${codigoReserva}.`;
+    await tx.registroSms.create({
+      data: {
+        cita_id: nuevaCita.id,
+        telefono_destino: paciente.telefono || "+56937772647",
+        cuerpo_mensaje: cuerpoSms,
+        longitud_caracteres: cuerpoSms.length,
+        estado_envio: "CONFIRMADO_REAGENDAMIENTO_IVR",
+      },
+    });
+  });
+
+  return {
+    status: "AGENDADO",
+    pacienteNombre: paciente.nombres,
+    rut: paciente.rut,
+    esAdultoMayor: paciente.es_adulto_mayor,
+    horaExistente,
+    horaConfirmada,
+    profesionalNombre,
+    especialidad: bloqueNuevo.agenda.especialidad,
+    especialidadNombre: nombreEsp,
+    codigoReserva,
+  };
+}
+
 // ====================================================================
 // SNAPSHOT Y REINICIO PARA DEMOSTRACIONES
 // ====================================================================
@@ -855,21 +1006,22 @@ export async function getIvrScheduleSnapshot() {
     const hora = formatHora(b.hora_inicio);
     const prof = b.agenda.profesional;
     const profName = prof ? `Dr(a). ${prof.nombres} ${prof.apellidos}` : null;
-    const pacName = b.cita?.paciente
-      ? `${b.cita.paciente.nombres} ${b.cita.paciente.apellidos}`
+    const citaActiva = b.cita && b.cita.estado_cita === EstadoCita.AGENDADA ? b.cita : null;
+    const pacName = citaActiva?.paciente
+      ? `${citaActiva.paciente.nombres} ${citaActiva.paciente.apellidos}`
       : null;
 
     return {
       id: b.id,
       hora,
       estado: b.estado_bloque,
-      rut: b.bloqueado_por_rut || b.cita?.paciente?.rut || null,
+      rut: b.bloqueado_por_rut || citaActiva?.paciente?.rut || null,
       pacienteNombre: pacName,
       profesionalNombre: profName,
       especialidad: b.agenda.especialidad,
       boxNumero: b.agenda.box?.numero || null,
-      codigoReserva: b.cita?.codigo_reserva || null,
-      canalOrigen: b.cita?.canal_origen || null,
+      codigoReserva: citaActiva?.codigo_reserva || null,
+      canalOrigen: citaActiva?.canal_origen || null,
       esCuotaMayor: b.es_cuota_adulto_mayor,
     };
   });
@@ -911,7 +1063,7 @@ export async function resetIvrDemoData() {
 
   for (const b of bloques) {
     const hora = formatHora(b.hora_inicio);
-    if (hora === "10:00" || hora === "09:00" || hora === "09:30") {
+    if (hora === "09:00" || hora === "10:00" || hora === "11:00") {
       await prisma.bloqueHorario.update({
         where: { id: b.id },
         data: {

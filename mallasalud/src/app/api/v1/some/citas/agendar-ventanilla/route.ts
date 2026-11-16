@@ -8,7 +8,7 @@ import { agendarCitaVentanilla, VentanillaError } from "@/lib/services/ventanill
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { paciente_id, bloque_id } = body;
+    const { paciente_id, bloque_id, canal_origen } = body;
 
     if (!paciente_id || !bloque_id) {
       return NextResponse.json(
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     const resultado = await agendarCitaVentanilla({
       paciente_id,
       bloque_id,
+      canal_origen,
     });
 
     return NextResponse.json(

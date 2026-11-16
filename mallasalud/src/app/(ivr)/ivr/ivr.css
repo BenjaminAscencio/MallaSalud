@@ -1,14 +1,21 @@
-/* src/app/(ivr)/ivr/ivr.css - Estilos del Módulo de Central Telefónica IA (VOZ_IVR) */
+/* src/app/(ivr)/ivr/ivr.css - Estilos Institucionales del Canal Telefónico (VOZ_IVR) */
+@reference "../../globals.css";
 
-.ivr-container {
-  min-height: 100vh;
-  background-color: #020617;
-  color: #f1f5f9;
+.ivr-page {
+  @apply min-h-screen bg-surface-bg dark:bg-surface-dark-bg text-text-main dark:text-text-dark-main flex flex-col font-sans pb-12 transition-colors duration-200;
+}
+
+.ivr-header-section {
+  @apply border-b border-border-subtle dark:border-border-dark bg-white dark:bg-surface-dark px-4 sm:px-6 py-5;
+}
+
+.ivr-card {
+  @apply bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark rounded-xl shadow-xs;
 }
 
 .ivr-console-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #334155 #090d16;
+  scrollbar-color: #a7e3d4 #f4faf8;
 }
 
 .ivr-console-scroll::-webkit-scrollbar {
@@ -16,17 +23,17 @@
 }
 
 .ivr-console-scroll::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #f4faf8;
   border-radius: 4px;
 }
 
 .ivr-console-scroll::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #a7e3d4;
   border-radius: 4px;
 }
 
 .ivr-console-scroll::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #5bb9a6;
 }
 
 .ivr-badge-pulse {
@@ -34,23 +41,13 @@
 }
 
 @keyframes ivrPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
-    opacity: 0.5;
+    opacity: 0.45;
   }
 }
-
-.ivr-card-glass {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-}
-
-.ivr-terminal-header {
-  background: #090d16;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
-}
-

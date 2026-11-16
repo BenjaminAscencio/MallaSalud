@@ -381,6 +381,7 @@ export default function PortalPacientePage() {
         body: JSON.stringify({
           paciente_id: pacienteActivo.id,
           bloque_id: bloqueSeleccionado.id,
+          canal_origen: "WEB",
         }),
       });
 

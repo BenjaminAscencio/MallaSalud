@@ -51,6 +51,19 @@ export async function POST(req: Request) {
       });
     }
 
+    if (action === "clear_chat") {
+      clearIvrSessions();
+      const snapshot = await getIvrScheduleSnapshot();
+
+      return NextResponse.json({
+        success: true,
+        message: "Historial de llamada limpiado. Base de datos intacta.",
+        slots: snapshot.slots,
+        activeSessions: [],
+        lastUpdated: snapshot.lastUpdated,
+      });
+    }
+
     if (action === "simulate") {
       const text = (body.text || "").trim();
       const callSid = body.callSid || "sim-browser-ivr";

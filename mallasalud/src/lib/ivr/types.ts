@@ -32,6 +32,15 @@ export interface IvrCallSession {
   esAdultoMayor?: boolean;
   bloqueSugeridoId?: string;
   horaSugerida?: string;
+  bloqueSugeridoAntesId?: string;
+  horaSugeridaAntes?: string;
+  bloqueSugeridoDespuesId?: string;
+  horaSugeridaDespues?: string;
+  citaExistenteId?: string;
+  horaExistente?: string;
+  citaExistenteCodigo?: string;
+  bloqueReagendarId?: string;
+  horaReagendar?: string;
   horaSolicitada?: string;
   profesionalNombre?: string;
   especialidad?: Especialidad;
@@ -59,10 +68,17 @@ export interface VerificarOAgendarResult {
   horaSolicitada?: string;
   horaSugerida?: string;
   bloqueSugeridoId?: string;
+  horaSugeridaAntes?: string;
+  bloqueSugeridoAntesId?: string;
+  horaSugeridaDespues?: string;
+  bloqueSugeridoDespuesId?: string;
   profesionalNombre?: string;
   especialidad?: Especialidad;
   especialidadNombre?: string;
   horaExistente?: string;
+  citaExistenteId?: string;
+  bloqueReagendarId?: string;
+  horaReagendar?: string;
   codigoReserva?: string;
   message?: string;
 }

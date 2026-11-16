@@ -27,6 +27,7 @@ export interface ListarCuposFiltros {
 export interface AgendarVentanillaDTO {
   paciente_id: string;
   bloque_id: string;
+  canal_origen?: CanalOrigen;
 }
 
 /**
@@ -246,7 +247,12 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
       });
     }
 
-    // 6. Crear la Cita médica
+    // 6. Crear la Cita médica respetando el canal de origen (WEB o VENTANILLA_SOME)
+    const canalOrigen =
+      dto.canal_origen && Object.values(CanalOrigen).includes(dto.canal_origen)
+        ? dto.canal_origen
+        : CanalOrigen.VENTANILLA_SOME;
+
     const cita = await tx.cita.create({
       data: {
         codigo_reserva: codigoReserva,
@@ -255,7 +261,8 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
         bloque_id: bloque.id,
         especialidad: bloque.agenda.especialidad,
         estado_cita: EstadoCita.AGENDADA,
-        canal_origen: CanalOrigen.VENTANILLA_SOME,
+        canal_origen: canalOrigen,
+        hora_atencion: bloque.hora_inicio,
       },
     });
 
