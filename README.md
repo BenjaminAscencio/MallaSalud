@@ -96,36 +96,38 @@ docker compose logs tunnel
 
 | Módulo / Canal | Enlace Local | Descripción y Alcance |
 | :--- | :--- | :--- |
-| **Central Telefónica IA (VOZ_IVR)** | [http://localhost:3000/ivr](http://localhost:3000/ivr) | Disparador de llamadas reales a celular, consola de transcripción en vivo, monitor PostgreSQL en tiempo real y reinicio de horas. |
-| **Portal Paciente (HU-001/002)** | [http://localhost:3000](http://localhost:3000) | Identificación por RUT (Módulo 11), detección de padrón, aviso educativo NSP y reserva web. |
+| **Central Telefónica IA (VOZ_IVR)** | [http://localhost:3000/ivr](http://localhost:3000/ivr) | Disparador de llamadas reales a celular, consola de transcripción en vivo, pruebas rápidas por regla de negocio, botón **Nueva Llamada / Limpiar Flujo**, monitor PostgreSQL en tiempo real y reinicio de horas. |
+| **Portal Paciente (HU-001/002)** | [http://localhost:3000](http://localhost:3000) | Identificación por RUT (Módulo 11), detección de padrón, aviso educativo NSP, reserva web (`canal_origen = WEB`) con comprobante `MS-XXXXXX` y anulación oportuna (`CANCELADA_OPORTUNA`) con liberación automática del cupo. |
 | **Calendario SOME (HU-005)** | [http://localhost:3000/some/agendas](http://localhost:3000/some/agendas) | Matriz diaria por boxes, horario semanal, colación y cuota 60+. |
-| **Ventanilla SOME (HU-006)** | [http://localhost:3000/some/ventanilla](http://localhost:3000/some/ventanilla) | Mesón presencial, Alta Rápida de pacientes y emisión de ticket. |
-| **Base de Datos (Prisma Studio)** | [http://localhost:5555](http://localhost:5555) | Explorador visual permanente de tablas, relaciones y citas registradas. |
+| **Ventanilla SOME (HU-006)** | [http://localhost:3000/some/ventanilla](http://localhost:3000/some/ventanilla) | Mesón presencial (`canal_origen = VENTANILLA_SOME`), Alta Rápida de pacientes y emisión de ticket. |
+| **Base de Datos (Prisma Studio)** | [http://localhost:5555](http://localhost:5555) | Explorador visual permanente de tablas, relaciones, `canal_origen` y estados de cita. |
 
 ---
 
 ## Casos de Prueba Controlados para la Demostración
 
-| Caso de Prueba | RUT de Prueba | Resultado Esperado en la Llamada |
+| Caso de Prueba | RUT de Prueba | Resultado Esperado en la Llamada / Sistema |
 | :--- | :--- | :--- |
-| **1. Adulto Mayor (75a) - Hora Ocupada y Negociación** | `5.555.555-5` | Trato con vocativo (*"Don o Señora Elena"*), detecta 10:00 ocupada, propone 10:30, confirma al decir *"sí, me parece bien"* en <15ms con código de reserva. |
-| **2. Paciente No Inscrito en Padrón** | `21.222.222-2` | Rechaza amablemente indicando que debe acercarse con su cédula de identidad a la ventanilla SOME presencial del CESFAM. |
-| **3. Regla de Cita Única** | `5.555.555-5` (repetir) | Explica que ya tiene una cita agendada hoy a las 10:30 y que solo se permite 1 cita por especialidad al día. |
-| **4. Elección de Especialidad (Dental)** | `21.111.111-1` | Detecta *"dentista"* o *"urgencia dental"*, asigna con Dr. Roberto Cárdenas en Box 201 Dental a las 11:30. |
+| **1. Paciente No Inscrito en Padrón** | `21.222.222-2` | Rechaza amablemente indicando que debe acercarse con su cédula de identidad a la ventanilla SOME presencial del CESFAM. |
+| **2. Hora Ocupada — Recomendación Antes y Después** | `21.111.111-1` (pide `11:00`) | Detecta que `11:00` está ocupada y sugiere una alternativa antes (`10:30`) y otra después (`11:30`). Al responder *"Prefiero la de después, a las 11:30"*, confirma la cita en PostgreSQL con `canal_origen = VOZ_IVR` y código `MS-XXXXXX`. |
+| **3. Regla de Cita Duplicada y Reagendamiento** | `21.111.111-1` (pide `12:00` teniendo `11:30`) | Recuerda la cita activa (`11:30`) y la norma de 1 cita por especialidad al día, ofreciendo **anular la anterior y reagendar a las `12:00`**. Al confirmar el paciente, marca la cita previa como `CANCELADA_OPORTUNA`, libera el bloque anterior (`DISPONIBLE`) y crea la nueva cita (`RESERVADO` / `VOZ_IVR`). |
+| **4. Adulto Mayor (75a) — Cuota 60+** | `5.555.555-5` (pide `10:00`) | Trato con vocativo respetuoso (*"Don o Señora Elena Rosa"*), acceso prioritario a cuotas protegidas 60+ y negociación inmediata ante bloques ocupados. |
+| **5. Elección de Especialidad (Dental / Matronería)** | `21.111.111-1` | Detecta *"dentista"*, *"urgencia dental"* o *"matronería"*, asignando en Box 201 Dental (Dr. Roberto Cárdenas) o Box 301 Matronería (Dra. Camila Fuentes). |
+| **6. Flujo Web + Anulación Oportuna (Portal Paciente)** | `16.666.666-6` | En `/` muestra advertencia educativa NSP (2 inasistencias), reserva a las `08:00` guardando `canal_origen = WEB` y `hora_atencion`, y luego permite anular en **Administrar / Anular Cita** (`CANCELADA_OPORTUNA`). |
 
 ---
 
 ## Cómo Probar el Canal Telefónico IA en Vivo
 
 1. Entra a [http://localhost:3000/ivr](http://localhost:3000/ivr) (o a la URL del túnel Cloudflare).
-2. Presiona **"Iniciar Llamada Telefónica (VOZ_IVR)"**.
+2. Presiona **"Iniciar Llamada Telefónica (VOZ_IVR)"** (o utiliza el panel **"Pruebas Rápidas de Reglas de Negocio"** para validar cada regla en el flujo en vivo).
 3. Al sonar tu celular, contesta y **presiona la tecla 1** (requerimiento de locución inicial por cuenta Trial de Twilio).
-4. Pide la hora de las 10:00:
-   - *"Hola buenas tardes, soy Elena Valenzuela, mi RUT es 5555555-5 y quiero hora para las diez de la mañana"*.
-5. La recepcionista te informará que las 10:00 ya está reservada y te sugerirá la más cercana (10:30):
-   - Di: *"Sí, me parece bien, agéndela"*.
-6. La cita se agendará al instante en PostgreSQL, verás la transcripción en vivo y el bloque pasará a `RESERVADO` con la etiqueta `VOZ_IVR` y su código de reserva.
-7. Haz clic en **"Reiniciar Horas en BD"** para repetir la prueba cuantas veces desees frente a la comisión.
+4. Prueba una solicitud, por ejemplo pidiendo hora en un bloque ocupado:
+   - *"Hola, quiero hora para medicina a las 11 de la mañana, mi RUT es 21.111.111-1"*.
+5. La central te informará que las 11:00 ya está ocupada y te sugerirá alternativas antes (`10:30`) y después (`11:30`):
+   - Di: *"Prefiero la de después, a las 11:30"*.
+6. La cita se agendará al instante en PostgreSQL, verás la transcripción paso a paso y el bloque pasará a `RESERVADO` con la etiqueta `VOZ_IVR` y su código `MS-XXXXXX`.
+7. Usa **"Nueva Llamada / Limpiar Flujo"** para comenzar una llamada nueva sin perder las citas registradas en BD (ideal para probar la regla de **Cita Duplicada y Reagendamiento** a continuación), o **"Reiniciar Horas en BD"** para restaurar toda la agenda de demostración.
 
 ---
 
@@ -139,8 +141,9 @@ Para desplegar MallaSalud de forma permanente sin depender de tu laptop ni de t�
 2. **Variables de Entorno en el Host:**
    - `DATABASE_URL`: URL provista por el PostgreSQL en la nube.
    - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`: Credenciales de Twilio.
+   - `DEFAULT_TO_NUMBER`: Teléfono destino preconfigurado (opcional).
    - `PUBLIC_WEBHOOK_BASE_URL`: Dominio público del host (ej. `https://mallasalud.up.railway.app`).
-   - `GEMINI_API_KEYS`: Claves de API de Gemini.
+   - `GEMINI_API_KEYS` (o `GEMINI_API_KEY`): Claves de API de Gemini.
 3. **Configuración en Twilio:**
    - En la consola de Twilio, configura en el número `+17372508034` la URL del webhook entrante:  
      `https://mallasalud.up.railway.app/api/twilio/voice`

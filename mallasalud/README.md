@@ -1,6 +1,6 @@
 # MallaSalud — Módulo Web, Backend y Canal Telefónico IA
 
-Sistema omnicanal de gestión y asignación de horas médicas para Centros de Salud Pública Primaria (CESFAM). Integra reserva web, mesón presencial SOME y canal telefónico autónomo con inteligencia artificial (**VOZ_IVR**) respaldado por Twilio Voice y PostgreSQL.
+Sistema omnicanal de gestión y asignación de horas médicas para Centros de Salud Pública Primaria (CESFAM). Integra reserva web (`WEB`), mesón presencial SOME (`VENTANILLA_SOME`) y canal telefónico autónomo con inteligencia artificial (**`VOZ_IVR`**) respaldado por Twilio Voice y PostgreSQL.
 
 ---
 
@@ -39,10 +39,10 @@ docker compose logs tunnel
 
 ## 2. Enlaces de Acceso y Módulos Operativos
 
-* **Portal Pacientes (HU-001/002):** [http://localhost:3000](http://localhost:3000)
-* **Central Telefónica IA (Canal VOZ_IVR):** [http://localhost:3000/ivr](http://localhost:3000/ivr)
+* **Portal Pacientes (HU-001/002):** [http://localhost:3000](http://localhost:3000) *(reservas web persistidas con `canal_origen = WEB`, `hora_atencion` y anulación oportuna con `CANCELADA_OPORTUNA`)*
+* **Central Telefónica IA (Canal VOZ_IVR):** [http://localhost:3000/ivr](http://localhost:3000/ivr) *(llamadas reales Twilio, pruebas rápidas por regla, botón `Nueva Llamada / Limpiar Flujo` y monitor PostgreSQL)*
 * **Consola de Agendas SOME (HU-005):** [http://localhost:3000/some/agendas](http://localhost:3000/some/agendas)
-* **Ventanilla Presencial SOME (HU-006):** [http://localhost:3000/some/ventanilla](http://localhost:3000/some/ventanilla)
+* **Ventanilla Presencial SOME (HU-006):** [http://localhost:3000/some/ventanilla](http://localhost:3000/some/ventanilla) *(reservas presenciales con `canal_origen = VENTANILLA_SOME`)*
 * **Prisma Studio (Explorador de Base de Datos):** [http://localhost:5555](http://localhost:5555)
 
 ---
@@ -55,34 +55,38 @@ El módulo telefónico permite a los pacientes llamar o recibir llamadas para ag
 2. **Revisa la configuración:**
    - La URL del webhook se autodetecta (`https://xxxx.trycloudflare.com`).
    - El número telefónico destino está preconfigurado (`+56937772647`).
-3. **Disparar llamada:**
-   - Haz clic en **"Iniciar Llamada Telefónica (VOZ_IVR)"**.
-   - Sonará tu teléfono celular a través de Twilio Voice.
-4. **Al contestar:**
+3. **Disparar llamada o probar reglas:**
+   - Haz clic en **"Iniciar Llamada Telefónica (VOZ_IVR)"** (sonará tu teléfono vía Twilio Voice), o utiliza el panel **"Pruebas Rápidas de Reglas de Negocio"** para ejecutar cada escenario paso a paso.
+4. **Al contestar (llamada real):**
    - Al tratarse de una cuenta Trial de Twilio, escucharás un mensaje en inglés:  
      *“You have a trial account. You can press any key to execute your code.”*
-   - **Presiona la tecla `1` en el teclado de tu teléfono** para que la recepcionista IA comience a hablarte de inmediato.
-5. **Flujos de Conversación Validados en Vivo (Casos de Demostración):**
+   - **Presiona la tecla `1` en el teclado de tu teléfono** para que la central automatizada comience a hablarte de inmediato.
+5. **Flujos de Conversación Validados en Vivo (Reglas de Negocio):**
 
-   * **Caso 1: Adulto Mayor (75a) - Negociación Inteligente y Confirmación**
-     - **Tú:** *"Hola buenas tardes, soy Elena Valenzuela, mi RUT es 5555555-5 y quiero hora para las diez de la mañana"*.
-     - **Recepcionista IA:** *"Hola Don o Señora Elena Rosa, la hora de las 10:00 en Medicina General ya está ocupada, pero tengo disponible a las 10:30 con el Dr(a). Valentina Silva Osorio. ¿Desea agendarla?"*.
-     - **Tú:** *"Sí, me parece bien, por favor agéndela"*.
-     - **Recepcionista IA:** *"Perfecto Don o Señora Elena Rosa, su cita para el RUT 5555555-5 ha quedado confirmada a las 10:30 en Medicina General con código MS-XXXXXX. ¡Muchas gracias y que tenga un excelente día!"*.
+   * **Caso 1: Paciente No Inscrito en Padrón (Derivación a Ventanilla SOME)**
+     - **Paciente:** *"Hola quiero pedir hora para las diez de la mañana, mi RUT es 21.222.222-2"*.
+     - **Central MallaSalud:** Indica amablemente que el RUT `21222222-2` no se encuentra inscrito en el centro de salud y debe acudir presencialmente a la ventanilla SOME del CESFAM con su cédula de identidad para realizar su inscripción.
 
-   * **Caso 2: Regla de Cita Única (Evitar Sobreagendamiento)**
-     - Vuelve a llamar o pide hora nuevamente para Elena hoy en Medicina General.
-     - **Recepcionista IA:** *"Hola Elena Rosa, ya tiene una cita agendada para hoy a las 10:30 en Medicina General con el Dr(a). Valentina Silva Osorio. Por normativa del CESFAM, solo se permite una cita activa por especialidad al día."*.
+   * **Caso 2: Hora Ocupada — Recomendación Antes y Después + Confirmación (`21.111.111-1`)**
+     - **Paciente:** *"Hola, quiero hora para medicina a las 11 de la mañana, mi RUT es 21.111.111-1"*.
+     - **Central MallaSalud:** *"Hola Ignacio Andrés, la hora de las 11:00 en Medicina General ya está ocupada. Puedo ofrecerle una hora antes a las 10:30, o después a las 11:30 con Dr(a). Valentina Silva Osorio. ¿Cuál prefiere agendar?"*.
+     - **Paciente:** *"Prefiero la de después, a las 11:30"*.
+     - **Central MallaSalud:** Confirma la cita al instante en PostgreSQL con código `MS-XXXXXX` y etiqueta `VOZ_IVR`.
 
-   * **Caso 3: Paciente No Inscrito en Padrón (Derivación a Ventanilla SOME)**
-     - **Tú:** *"Hola quiero hora para las 10 de la mañana, mi RUT es 21.222.222-2"*.
-     - **Recepcionista IA:** *"El RUT 21222222-2 no se encuentra inscrito en nuestro centro de salud. Para solicitar horas médicas, debe acercarse presencialmente a la ventanilla SOME del CESFAM con su cédula de identidad para realizar su inscripción."*.
+   * **Caso 3: Regla de Cita Duplicada y Reagendamiento (`21.111.111-1` / `5.555.555-5`)**
+     - Inicia una llamada limpia con **"Nueva Llamada / Limpiar Flujo"** (sin borrar las citas en BD) y pide otra hora el mismo día (ej. *"Hola quiero pedir otra hora a las 12:00, mi RUT es 21.111.111-1"*).
+     - **Central MallaSalud:** Informa la cita activa actual (`11:30`) y la norma de una cita por especialidad al día, preguntando si desea **anular la hora anterior y reagendar para las `12:00`**.
+     - **Paciente:** *"Sí, por favor anula la anterior y reagenda a las 12:00"*.
+     - **Resultado en BD:** Marca la cita previa como `CANCELADA_OPORTUNA`, libera el bloque de las `11:30` a `DISPONIBLE`, y registra la nueva cita de las `12:00` como `RESERVADO` (`canal_origen = VOZ_IVR`).
+
+   * **Caso 4: Adulto Mayor 75a — Cuota Protegida 60+ (`5.555.555-5`)**
+     - Atiende con vocativo respetuoso (*"Don o Señora Elena Rosa"*), habilita acceso prioritario a cuotas protegidas 60+ y negocia bloques disponibles ante horas ocupadas.
 
 6. **Verificación en Pantalla:**
-   - Verás la transcripción en vivo del diálogo.
-   - En la grilla de bloques de PostgreSQL, el bloque de las **10:30** cambiará automáticamente de `DISPONIBLE` a `RESERVADO`, mostrando el RUT del paciente, el código de reserva y la etiqueta verde **`VOZ_IVR`**.
-7. **Reiniciar para repetir la prueba:**
-   - Haz clic en el botón **"Reiniciar Horas en BD"** para liberar los bloques y volver al estado inicial en 1 segundo.
+   - Verás la transcripción paso a paso en **Flujo de Atención Telefónica en Vivo**.
+   - En el **Monitor de Base de Datos PostgreSQL**, los bloques cambian en tiempo real entre `DISPONIBLE` y `RESERVADO`, mostrando paciente, código `MS-XXXXXX` y la etiqueta **`VOZ_IVR`**.
+7. **Limpiar flujo o reiniciar agenda:**
+   - Usa **"Nueva Llamada / Limpiar Flujo"** para limpiar únicamente la conversación en pantalla conservando la base de datos intacta, o **"Reiniciar Horas en BD"** para restaurar los bloques y volver al estado inicial en 1 segundo.
 
 ---
 
@@ -103,7 +107,7 @@ Para tener el sistema 100% online con dominio HTTPS permanente (sin necesidad de
    - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`: Credenciales de Twilio.
    - `DEFAULT_TO_NUMBER`: Teléfono destino preconfigurado.
    - `PUBLIC_WEBHOOK_BASE_URL`: Dominio público del host (ej. `https://tu-proyecto.up.railway.app`).
-   - `GEMINI_API_KEYS`: Claves de API de Gemini separadas por coma.
+   - `GEMINI_API_KEYS` (o `GEMINI_API_KEY`): Claves de API de Gemini separadas por coma.
 6. **Configuración en Twilio:**
    - En la consola de Twilio, ve a **Phone Numbers** -> selecciona `+17372508034`.
    - En **Voice Configuration** (webhook de llamada entrante), pon:  
@@ -117,12 +121,12 @@ Para tener el sistema 100% online con dominio HTTPS permanente (sin necesidad de
 ### Pacientes de Demostración y Reglas de Negocio
 * **Adulto Mayor (Cuota 60+):** `5.555.555-5` — Elena Rosa Valenzuela Castro (75 años). Accede a cuota protegida de adulto mayor y es tratada con vocativo respetuoso (*"Don o Señora Elena"*).
 * **Adulto Joven en Padrón (0 NSP):** `21.111.111-1` — Ignacio Andrés Morales Soto (24 años).
-* **Paciente con Inasistencias (NSP = 2):** `16.666.666-6` — Matías Sebastián Rojas (38 años, abre advertencia educativa).
+* **Paciente con Inasistencias (NSP = 2):** `16.666.666-6` — Matías Sebastián Rojas Herrera (38 años, abre advertencia educativa y permite probar flujo web completo con `canal_origen = WEB` y anulación oportuna).
 * **No Inscritos (Regla de Padrón / Derivación a SOME):** `21.222.222-2` y `6.666.666-6`. Si el RUT no existe en el establecimiento, la recepcionista IA le explica amablemente que debe acudir presencialmente a la ventanilla SOME con su carnet de identidad para inscribirse.
-* **Regla de Cita Única:** Un paciente solo puede registrar 1 cita médica activa al día por especialidad. Si intenta agendar nuevamente, el sistema le recuerda su cita agendada.
+* **Regla de Cita Única con Reagendamiento:** Un paciente puede registrar 1 cita médica activa al día por especialidad. Si intenta agendar nuevamente teniendo otra hora ese día, el canal telefónico informa su cita vigente y ofrece **anular la cita anterior (`CANCELADA_OPORTUNA`, liberando el cupo) y reagendar en el nuevo horario disponible**.
 
 ### Profesionales y Boxes
-* **Box 101 (Medicina General):** Dra. Valentina Silva Osorio / Dr. Carlos Muñoz Valenzuela.
+* **Box 101 / Box 102 (Medicina General):** Dr. Carlos Muñoz Valenzuela / Dra. Valentina Silva Osorio.
 * **Box 201 (Dental):** Dr. Roberto Cárdenas Pinto.
 * **Box 301 (Matronería):** Dra. Camila Fuentes Rivas.
 
