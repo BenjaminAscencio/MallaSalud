@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listarAgendas } from "@/lib/services/agendas.service";
+import { requireRole } from "@/lib/core/authServer";
 import { Especialidad } from "@prisma/client";
 
 /**
@@ -8,6 +9,9 @@ import { Especialidad } from "@prisma/client";
  * Soporta filtros por fecha puntual, rango de fechas (semanal), especialidad, box y profesional.
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     const { searchParams } = new URL(req.url);
     const fecha = searchParams.get("fecha") ?? undefined;

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pausarAgenda, AgendaValidationError } from "@/lib/services/agendas.service";
+import { requireRole } from "@/lib/core/authServer";
 
 /**
  * PUT /api/v1/some/agendas/[id]/pausar
  * HU-005: Pausa una agenda activa, bloqueando los cupos disponibles y alertando sobre citas reservadas.
  */
 export async function PUT(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     const { id } = await context.params;
 

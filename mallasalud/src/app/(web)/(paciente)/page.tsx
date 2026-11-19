@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { formatearRut, limpiarRut } from "@/lib/utils/rut";
 import {
@@ -135,6 +135,11 @@ function formatearFechaLegible(fechaIso: string): string {
   });
 }
 
+function getFechaHoyIso(): string {
+  const now = new Date();
+  return now.toISOString().split("T")[0];
+}
+
 export default function PortalPacientePage() {
   // Pestaña principal: "RESERVAR" o "ADMINISTRAR"
   const [modoPrincipal, setModoPrincipal] = useState<"RESERVAR" | "ADMINISTRAR">("RESERVAR");
@@ -162,12 +167,14 @@ export default function PortalPacientePage() {
   const [tabFiltro, setTabFiltro] = useState<"TODAS" | "MEDICINA_GENERAL" | "DENTAL" | "MATRONERIA">("TODAS");
   const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState<"MEDICINA_GENERAL" | "DENTAL" | "MATRONERIA" | null>(null);
 
-  // Bloques horarios y reserva
-  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>("2026-10-18");
+  // Bloques horarios y reserva con retención temporal de 120 segundos
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(() => getFechaHoyIso());
   const [bloquesDisponibles, setBloquesDisponibles] = useState<CupoBloque[]>([]);
   const [cargandoBloques, setCargandoBloques] = useState(false);
   const [filtroJornada, setFiltroJornada] = useState<"TODAS" | "MANANA" | "TARDE">("TODAS");
   const [bloqueSeleccionado, setBloqueSeleccionado] = useState<CupoBloque | null>(null);
+  const [bloqueoSegundos, setBloqueoSegundos] = useState<number>(0);
+  const [reteniendoBloqueId, setReteniendoBloqueId] = useState<string | null>(null);
   const [confirmandoReserva, setConfirmandoReserva] = useState(false);
   const [errorReservaMsg, setErrorReservaMsg] = useState<string | null>(null);
   const [comprobanteGenerado, setComprobanteGenerado] = useState<ComprobanteReserva | null>(null);
@@ -188,7 +195,8 @@ export default function PortalPacientePage() {
 
   // Opciones rápidas de fechas (Hoy + próximos 3 días)
   const opcionesFechas = useMemo(() => {
-    const base = new Date("2026-10-18T12:00:00");
+    const hoyIso = getFechaHoyIso();
+    const base = new Date(`${hoyIso}T12:00:00`);
     return [0, 1, 2, 3].map((offset) => {
       const d = new Date(base);
       d.setDate(base.getDate() + offset);
@@ -226,7 +234,7 @@ export default function PortalPacientePage() {
       setCargandoCupos(true);
       try {
         const res = await fetch(
-          `/api/v1/some/cupos-disponibles?es_adulto_mayor=${esMayor}&fecha=${fecha}`
+          `/api/v1/citas/disponibles?es_adulto_mayor=${esMayor}&fecha=${fecha}`
         );
         if (!res.ok) throw new Error("No fue posible cargar cupos");
         const data = await res.json();
@@ -277,36 +285,116 @@ export default function PortalPacientePage() {
     [fechaSeleccionada]
   );
 
-  // Cargar bloques de una especialidad específica para el paso 3
-  const seleccionarEspecialidad = async (
-    codigo: "MEDICINA_GENERAL" | "DENTAL" | "MATRONERIA",
-    fecha = fechaSeleccionada
-  ) => {
-    setEspecialidadSeleccionada(codigo);
-    setBloqueSeleccionado(null);
-    setErrorReservaMsg(null);
-    setCargandoBloques(true);
-    setPasoActual(3);
+  const liberarRetencionActual = useCallback(
+    async (bloqueIdParam?: string) => {
+      const targetId = bloqueIdParam || bloqueSeleccionado?.id;
+      if (targetId && pacienteActivo?.rut) {
+        fetch("/api/v1/citas/bloqueo-temporal", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bloque_id: targetId, rut: pacienteActivo.rut }),
+        }).catch(() => {});
+      }
+      setBloqueSeleccionado(null);
+      setBloqueoSegundos(0);
+    },
+    [bloqueSeleccionado, pacienteActivo]
+  );
 
+  // Cargar bloques de una especialidad específica para el paso 3
+  const seleccionarEspecialidad = useCallback(
+    async (
+      codigo: "MEDICINA_GENERAL" | "DENTAL" | "MATRONERIA",
+      fecha = fechaSeleccionada
+    ) => {
+      setEspecialidadSeleccionada(codigo);
+      setBloqueSeleccionado(null);
+      setBloqueoSegundos(0);
+      setErrorReservaMsg(null);
+      setCargandoBloques(true);
+      setPasoActual(3);
+
+      try {
+        const esMayor = pacienteActivo?.es_adulto_mayor ?? false;
+        const res = await fetch(
+          `/api/v1/citas/disponibles?especialidad=${codigo}&es_adulto_mayor=${esMayor}&fecha=${fecha}`
+        );
+        if (!res.ok) throw new Error("Error al obtener horarios");
+        const data = await res.json();
+        setBloquesDisponibles(data.cupos || []);
+      } catch {
+        setBloquesDisponibles([]);
+      } finally {
+        setCargandoBloques(false);
+      }
+    },
+    [fechaSeleccionada, pacienteActivo]
+  );
+
+  // Adquirir retención temporal atómica de 120s al elegir un bloque en Paso 3
+  const seleccionarBloqueConRetencion = async (bloque: CupoBloque) => {
+    if (!pacienteActivo) return;
+    setErrorReservaMsg(null);
+    setReteniendoBloqueId(bloque.id);
     try {
-      const esMayor = pacienteActivo?.es_adulto_mayor ?? false;
-      const res = await fetch(
-        `/api/v1/some/cupos-disponibles?especialidad=${codigo}&es_adulto_mayor=${esMayor}&fecha=${fecha}`
-      );
-      if (!res.ok) throw new Error("Error al obtener horarios");
+      const res = await fetch("/api/v1/citas/bloqueo-temporal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bloque_id: bloque.id, rut: pacienteActivo.rut }),
+      });
       const data = await res.json();
-      setBloquesDisponibles(data.cupos || []);
+      if (!res.ok) {
+        setErrorReservaMsg(
+          data.error || data.mensaje || "El horario seleccionado acaba de ser tomado."
+        );
+        setBloqueSeleccionado(null);
+        setBloqueoSegundos(0);
+        if (especialidadSeleccionada) {
+          await seleccionarEspecialidad(especialidadSeleccionada, fechaSeleccionada);
+        }
+        return;
+      }
+      setBloqueSeleccionado(bloque);
+      setBloqueoSegundos(Number(data.ttl_segundos) || 120);
     } catch {
-      setBloquesDisponibles([]);
+      setErrorReservaMsg("No fue posible retener el horario. Intente nuevamente.");
     } finally {
-      setCargandoBloques(false);
+      setReteniendoBloqueId(null);
     }
   };
 
+  // Temporizador regresivo de retención de 120 segundos
+  useEffect(() => {
+    if (pasoActual !== 3 || !bloqueSeleccionado || bloqueoSegundos <= 0) return;
+    const timer = setTimeout(() => {
+      if (bloqueoSegundos <= 1) {
+        const idExpirado = bloqueSeleccionado.id;
+        liberarRetencionActual(idExpirado);
+        setErrorReservaMsg(
+          "La retención temporal de 2 minutos expiró y el cupo fue liberado. Por favor seleccione un horario nuevamente."
+        );
+        if (especialidadSeleccionada) {
+          seleccionarEspecialidad(especialidadSeleccionada, fechaSeleccionada);
+        }
+      } else {
+        setBloqueoSegundos((s) => s - 1);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [
+    pasoActual,
+    bloqueSeleccionado,
+    bloqueoSegundos,
+    liberarRetencionActual,
+    especialidadSeleccionada,
+    fechaSeleccionada,
+    seleccionarEspecialidad,
+  ]);
+
   // Cambiar fecha en Paso 2 o Paso 3
   const handleCambiarFecha = async (nuevaFecha: string) => {
+    await liberarRetencionActual();
     setFechaSeleccionada(nuevaFecha);
-    setBloqueSeleccionado(null);
     setErrorReservaMsg(null);
     if (pacienteActivo) {
       consultarCuposEspecialidades(pacienteActivo.es_adulto_mayor, nuevaFecha);
@@ -375,13 +463,12 @@ export default function PortalPacientePage() {
     setConfirmandoReserva(true);
     setErrorReservaMsg(null);
     try {
-      const res = await fetch("/api/v1/some/citas/agendar-ventanilla", {
+      const res = await fetch("/api/v1/citas/confirmar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           paciente_id: pacienteActivo.id,
           bloque_id: bloqueSeleccionado.id,
-          canal_origen: "WEB",
         }),
       });
 
@@ -426,7 +513,9 @@ export default function PortalPacientePage() {
     setCargandoAdmin(true);
     setAdminBuscado(true);
     try {
-      const res = await fetch(`/api/v1/some/pacientes/${encodeURIComponent(rutTarget.trim())}`);
+      const res = await fetch(
+        `/api/v1/pacientes/${encodeURIComponent(rutTarget.trim())}/citas`
+      );
       if (!res.ok) {
         setPacienteAdmin(null);
         setCitasDelPaciente([]);
@@ -480,6 +569,7 @@ export default function PortalPacientePage() {
   };
 
   const handleCerrarSesion = () => {
+    liberarRetencionActual();
     setPacienteActivo(null);
     setRutInput("");
     setNoInscrito(false);
@@ -616,6 +706,7 @@ export default function PortalPacientePage() {
                             disabled={!puedeRetroceder}
                             onClick={() => {
                               if (puedeRetroceder) {
+                                if (step.num < 3) liberarRetencionActual();
                                 setPasoActual(step.num);
                               }
                             }}
@@ -812,7 +903,7 @@ export default function PortalPacientePage() {
                             inputMode="numeric"
                             value={rutInput}
                             onChange={handleRutChange}
-                            placeholder="Ej: 5.555.555-5 o 21.111.111-1"
+                            placeholder="Ej: 5.842.319-K o 21.758.467-1"
                             className="portal-rut-input"
                             autoFocus
                           />
@@ -841,17 +932,8 @@ export default function PortalPacientePage() {
                             El RUT <strong className="portal-step4-phone">{rutInput}</strong> no registra ficha comunal activa en este establecimiento.
                           </p>
                           <p className="portal-alert-noinscrito-sub">
-                            Para agendar en línea o acceder al alta rápida inmediata, acérquese con su Cédula de Identidad al mesón SOME.
+                            Para agendar en línea o solicitar su inscripción inmediata, acérquese presencialmente con su Cédula de Identidad al mesón SOME del CESFAM.
                           </p>
-                          <div className="portal-alert-noinscrito-actions">
-                            <Link
-                              href="/some/ventanilla"
-                              className="portal-alert-noinscrito-link"
-                            >
-                              <span>Ir a Ventanilla SOME (Alta Rápida)</span>
-                              <ChevronRightIcon className="portal-icon-sm" />
-                            </Link>
-                          </div>
                         </div>
                       )}
 
@@ -898,11 +980,11 @@ export default function PortalPacientePage() {
                           <button
                             type="button"
                             id="btn-test-senior"
-                            onClick={() => seleccionarRutPrueba("5555555-5")}
+                            onClick={() => seleccionarRutPrueba("5842319-K")}
                             className="portal-demo-card-senior group"
                           >
                             <span className="portal-demo-card-title">
-                              5.555.555-5 · Elena Valenzuela
+                              5.842.319-K · Elena Valenzuela
                             </span>
                             <span className="portal-demo-card-sub-senior">
                               Adulto Mayor (75 años · Prioridad 60+)
@@ -912,11 +994,11 @@ export default function PortalPacientePage() {
                           <button
                             type="button"
                             id="btn-test-joven"
-                            onClick={() => seleccionarRutPrueba("21111111-1")}
+                            onClick={() => seleccionarRutPrueba("21758467-1")}
                             className="portal-demo-card group"
                           >
                             <span className="portal-demo-card-title">
-                              21.111.111-1 · Matías Silva
+                              21.758.467-1 · Ignacio Morales
                             </span>
                             <span className="portal-demo-card-sub">
                               Adulto (24 años · Cupos Generales)
@@ -926,11 +1008,11 @@ export default function PortalPacientePage() {
                           <button
                             type="button"
                             id="btn-test-nsp"
-                            onClick={() => seleccionarRutPrueba("16666666-6")}
+                            onClick={() => seleccionarRutPrueba("16842915-0")}
                             className="portal-demo-card group"
                           >
                             <span className="portal-demo-card-title">
-                              16.666.666-6 · Camila Rojas
+                              16.842.915-0 · Matías Rojas
                             </span>
                             <span className="portal-demo-card-sub-nsp">
                               Con inasistencias previas registradas
@@ -940,11 +1022,11 @@ export default function PortalPacientePage() {
                           <button
                             type="button"
                             id="btn-test-noinscrito"
-                            onClick={() => seleccionarRutPrueba("21222222-2")}
+                            onClick={() => seleccionarRutPrueba("21483926-1")}
                             className="portal-demo-card group"
                           >
                             <span className="portal-demo-card-title">
-                              21.222.222-2 · Sin inscripción
+                              21.483.926-1 · Sin inscripción
                             </span>
                             <span className="portal-demo-card-sub-muted">
                               Deriva a inscripción en mesón SOME
@@ -1118,7 +1200,10 @@ export default function PortalPacientePage() {
                       <button
                         type="button"
                         id="btn-volver-especialidades"
-                        onClick={() => setPasoActual(2)}
+                        onClick={() => {
+                          liberarRetencionActual();
+                          setPasoActual(2);
+                        }}
                         className="portal-back-btn"
                       >
                         <ArrowLeftIcon className="portal-icon-sm" />
@@ -1310,7 +1395,8 @@ export default function PortalPacientePage() {
                                     key={bloque.id}
                                     type="button"
                                     id={`slot-${bloque.id}`}
-                                    onClick={() => setBloqueSeleccionado(bloque)}
+                                    disabled={reteniendoBloqueId === bloque.id}
+                                    onClick={() => seleccionarBloqueConRetencion(bloque)}
                                     className={
                                       isSelected
                                         ? "portal-slot-pill-selected"
@@ -1368,6 +1454,15 @@ export default function PortalPacientePage() {
                             <span className="portal-confirm-caption">
                               Horario Seleccionado
                             </span>
+                            {bloqueoSegundos > 0 && (
+                              <span
+                                id="badge-ttl-bloqueo"
+                                className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300"
+                              >
+                                Retenido {String(Math.floor(bloqueoSegundos / 60)).padStart(2, "0")}:
+                                {String(bloqueoSegundos % 60).padStart(2, "0")}
+                              </span>
+                            )}
                             {bloqueSeleccionado.es_cuota_adulto_mayor && (
                               <span className="portal-confirm-senior-tag">
                                 ★ Cupo Protegido 60+
@@ -1568,7 +1663,7 @@ export default function PortalPacientePage() {
                           const limpio = limpiarRut(e.target.value);
                           if (limpio.length <= 9) setRutAdminInput(formatearRut(limpio));
                         }}
-                        placeholder="Ej: 5.555.555-5 o 21.111.111-1"
+                        placeholder="Ej: 5.842.319-K o 21.758.467-1"
                         className="portal-rut-input"
                       />
                     </div>
@@ -1580,24 +1675,35 @@ export default function PortalPacientePage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const r = formatearRut("5555555-5");
+                        const r = formatearRut("5842319-K");
                         setRutAdminInput(r);
                         buscarCitasPorRut(r);
                       }}
                       className="portal-admin-quick-btn"
                     >
-                      5.555.555-5 (Adulto Mayor)
+                      5.842.319-K (Adulto Mayor)
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        const r = formatearRut("21111111-1");
+                        const r = formatearRut("21758467-1");
                         setRutAdminInput(r);
                         buscarCitasPorRut(r);
                       }}
                       className="portal-admin-quick-btn"
                     >
-                      21.111.111-1 (Joven)
+                      21.758.467-1 (Joven)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const r = formatearRut("16842915-0");
+                        setRutAdminInput(r);
+                        buscarCitasPorRut(r);
+                      }}
+                      className="portal-admin-quick-btn"
+                    >
+                      16.842.915-0 (Con NSP)
                     </button>
                   </div>
 

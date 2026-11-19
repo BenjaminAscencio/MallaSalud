@@ -1,0 +1,27 @@
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Certificados y llaves privadas
+*.pem
+*.key
+
+# Archivos temporales de Office y sistema operativo
+~$*.docx
+~$*.pptx
+~$*.xlsx
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Dependencias y artefactos locales
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+**/coverage/
+**/*.tsbuildinfo

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { EstadoBloque, EstadoCita } from "@prisma/client";
+import { construirSmsCancelacion } from "@/lib/utils/sms";
+
+export const MINUTOS_ANTICIPACION_CANCELACION = 30;
 
 /**
  * POST /api/v1/citas/[id]/cancelar
- * HU-001 / HU-002: Cancelación oportuna de cita médica desde el portal del paciente o ventanilla.
- * Libera el bloque horario inmediatamente con estado DISPONIBLE y marca la cita como CANCELADA_OPORTUNA.
+ * HU-008: Cancelación oportuna (>= 30 minutos antes) desde el portal del paciente o ventanilla.
+ * Valida ventana temporal, libera el bloque horario a DISPONIBLE, marca CANCELADA_OPORTUNA y registra SMS GSM-7.
  */
 export async function POST(
   _req: NextRequest,
@@ -23,7 +26,14 @@ export async function POST(
 
     const cita = await prisma.cita.findUnique({
       where: { id },
-      include: { bloque: true, paciente: true },
+      include: {
+        bloque: {
+          include: {
+            agenda: true,
+          },
+        },
+        paciente: true,
+      },
     });
 
     if (!cita) {
@@ -42,8 +52,29 @@ export async function POST(
       );
     }
 
-    // Ejecución atómica de cancelación oportuna y liberación de cupo
-    const [citaActualizada] = await prisma.$transaction([
+    // Regla estricta HU-008: al menos 30 minutos de anticipación antes de la hora de inicio
+    const msRestantes = new Date(cita.bloque.hora_inicio).getTime() - Date.now();
+    if (msRestantes < MINUTOS_ANTICIPACION_CANCELACION * 60 * 1000) {
+      return NextResponse.json(
+        {
+          error: `Plazo expirado: solo se permite anular con al menos ${MINUTOS_ANTICIPACION_CANCELACION} minutos de anticipación. Por favor comuníquese presencialmente o por teléfono con el SOME.`,
+        },
+        { status: 422 }
+      );
+    }
+
+    const ini = new Date(cita.bloque.hora_inicio);
+    const horaStr = `${String(ini.getHours()).padStart(2, "0")}:${String(ini.getMinutes()).padStart(2, "0")}`;
+    const fechaStr = cita.bloque.agenda.fecha.toISOString().split("T")[0];
+    const cuerpoSms = construirSmsCancelacion({
+      codigoReserva: cita.codigo_reserva,
+      especialidad: cita.especialidad,
+      fechaStr,
+      horaStr,
+    });
+
+    // Ejecución atómica de cancelación oportuna, liberación de cupo y respaldo SMS GSM-7
+    const [citaActualizada, , smsCancelacion] = await prisma.$transaction([
       prisma.cita.update({
         where: { id: cita.id },
         data: {
@@ -58,12 +89,23 @@ export async function POST(
           bloqueado_por_rut: null,
         },
       }),
+      prisma.registroSms.create({
+        data: {
+          cita_id: cita.id,
+          telefono_destino: cita.paciente.telefono,
+          cuerpo_mensaje: cuerpoSms,
+          longitud_caracteres: cuerpoSms.length,
+          estado_envio: "CANCELACION_ENVIADA",
+        },
+      }),
     ]);
 
     return NextResponse.json(
       {
-        mensaje: "Cita médica cancelada oportunamente. El cupo ha sido liberado para la comunidad sin registro de inasistencia.",
+        mensaje:
+          "Cita médica cancelada oportunamente. El cupo ha sido liberado para la comunidad sin registro de inasistencia.",
         cita: citaActualizada,
+        notificacion_sms: smsCancelacion,
       },
       { status: 200 }
     );

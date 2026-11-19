@@ -1,0 +1,45 @@
+@reference "../../globals.css";
+
+.doctor-page {
+  @apply min-h-screen bg-surface-bg dark:bg-surface-dark-bg py-6 sm:py-8 px-4 sm:px-6 lg:px-8 font-sans;
+}
+
+.doctor-container {
+  @apply max-w-5xl mx-auto space-y-5;
+}
+
+.doctor-header-card {
+  @apply bg-white dark:bg-surface-dark rounded-2xl border border-border-subtle dark:border-border-dark p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4;
+}
+
+.doctor-meta-chips {
+  @apply flex flex-wrap items-center gap-2 text-xs;
+}
+
+.doctor-stat-pill {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border;
+}
+
+.doctor-roster-card {
+  @apply bg-white dark:bg-surface-dark rounded-2xl border border-border-subtle dark:border-border-dark shadow-xs overflow-hidden;
+}
+
+.doctor-row-pending {
+  @apply p-4 sm:p-5 bg-sky-50/50 dark:bg-sky-950/15 border-b border-border-subtle dark:border-border-dark flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-colors;
+}
+
+.doctor-row-atendida {
+  @apply p-4 sm:p-5 bg-emerald-50/55 dark:bg-emerald-950/15 border-b border-border-subtle dark:border-border-dark flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-colors;
+}
+
+.doctor-row-nsp {
+  @apply p-4 sm:p-5 bg-rose-50/55 dark:bg-rose-950/15 border-b border-border-subtle dark:border-border-dark flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-colors;
+}
+
+.doctor-btn-atendido {
+  @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-teal-primary hover:bg-teal-hover text-white transition disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer;
+}
+
+.doctor-btn-nsp {
+  @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white transition disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer;
+}

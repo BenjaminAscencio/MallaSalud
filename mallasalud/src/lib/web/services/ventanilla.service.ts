@@ -5,9 +5,11 @@ import {
   liberarCuotasAdultoMayorProximas,
   MINUTOS_LIBERACION_CUOTA_MAYOR,
 } from "./agendas.service";
+import { liberarBloquesTemporalesExpirados } from "./bloqueo.service";
 import { generarCodigoReserva } from "@/lib/utils/codigo-reserva";
 import { formatearRut } from "@/lib/utils/rut";
 import { esAdultoMayor } from "@/lib/utils/edad";
+import { construirSmsConfirmacion } from "@/lib/utils/sms";
 
 export class VentanillaError extends Error {
   public statusCode: number;
@@ -36,8 +38,9 @@ export interface AgendarVentanillaDTO {
  * Si el paciente no es adulto mayor, se ocultan los cupos aún protegidos por cuota.
  */
 export async function listarCuposDisponibles(filtros: ListarCuposFiltros = {}) {
-  // Liberación dinámica (Cut-off 30 min): desbloquea cupos 60+ no tomados próximos a iniciar
+  // Liberación dinámica (Cut-off 30 min) + limpieza de bloqueos temporales vencidos (TTL 120s)
   await liberarCuotasAdultoMayorProximas();
+  await liberarBloquesTemporalesExpirados();
 
   const where: Prisma.BloqueHorarioWhereInput = {
     estado_bloque: EstadoBloque.DISPONIBLE,
@@ -79,7 +82,10 @@ export async function listarCuposDisponibles(filtros: ListarCuposFiltros = {}) {
           box: true,
         },
       },
-      cita: true,
+      citas: {
+        orderBy: { created_at: "desc" },
+        take: 3,
+      },
     },
   });
 
@@ -90,7 +96,9 @@ export async function listarCuposDisponibles(filtros: ListarCuposFiltros = {}) {
     const pad = (n: number) => String(n).padStart(2, "0");
     const horaInicioStr = `${pad(inicio.getHours())}:${pad(inicio.getMinutes())}`;
     const horaFinStr = `${pad(fin.getHours())}:${pad(fin.getMinutes())}`;
-    const esCancelacionReciente = bloque.cita?.estado_cita === EstadoCita.CANCELADA_OPORTUNA;
+    const esCancelacionReciente = bloque.citas.some(
+      (c) => c.estado_cita === EstadoCita.CANCELADA_OPORTUNA
+    );
 
     return {
       id: bloque.id,
@@ -136,8 +144,9 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
   }
 
   return await prisma.$transaction(async (tx) => {
-    // 0. Liberar automáticamente cupos 60+ que estén a <= 30 min de iniciar
+    // 0. Liberar cupos 60+ <= 30 min y bloqueos temporales vencidos
     await liberarCuotasAdultoMayorProximas(tx);
+    await liberarBloquesTemporalesExpirados(tx);
 
     // 1. Validar existencia y vigencia del paciente
     const paciente = await tx.paciente.findUnique({
@@ -162,7 +171,13 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
             box: true,
           },
         },
-        cita: true,
+        citas: {
+          where: {
+            estado_cita: {
+              in: [EstadoCita.AGENDADA, EstadoCita.ATENDIDA],
+            },
+          },
+        },
       },
     });
 
@@ -174,7 +189,12 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
       throw new VentanillaError("La agenda médica asociada se encuentra pausada o inactiva.", 409);
     }
 
-    if (bloque.estado_bloque !== EstadoBloque.DISPONIBLE) {
+    const retenidoPorMismoPaciente =
+      bloque.estado_bloque === EstadoBloque.BLOQUEO_TEMPORAL &&
+      bloque.bloqueado_por_rut === paciente.rut &&
+      (!bloque.bloqueado_hasta || bloque.bloqueado_hasta >= new Date());
+
+    if ((bloque.estado_bloque !== EstadoBloque.DISPONIBLE && !retenidoPorMismoPaciente) || bloque.citas.length > 0) {
       throw new VentanillaError(
         `El bloque horario ya no se encuentra disponible (estado actual: ${bloque.estado_bloque}).`,
         409
@@ -229,9 +249,18 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
       codigoExiste = await tx.cita.findUnique({ where: { codigo_reserva: codigoReserva } });
     }
 
-    // 5. Actualizar estado del bloque a RESERVADO
-    await tx.bloqueHorario.update({
-      where: { id: bloque.id },
+    // 5. Actualizar estado del bloque a RESERVADO de forma atómica condicional
+    const lockConfirm = await tx.bloqueHorario.updateMany({
+      where: {
+        id: bloque.id,
+        OR: [
+          { estado_bloque: EstadoBloque.DISPONIBLE },
+          {
+            estado_bloque: EstadoBloque.BLOQUEO_TEMPORAL,
+            bloqueado_por_rut: paciente.rut,
+          },
+        ],
+      },
       data: {
         estado_bloque: EstadoBloque.RESERVADO,
         bloqueado_hasta: null,
@@ -239,15 +268,14 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
       },
     });
 
-    // 5.1 Si el bloque tenía una cita previa cancelada (CANCELADA_OPORTUNA), eliminarla antes de insertar la nueva
-    // para respetar la restricción @unique de bloque_id en la tabla citas
-    if (bloque.cita) {
-      await tx.cita.delete({
-        where: { id: bloque.cita.id },
-      });
+    if (lockConfirm.count === 0) {
+      throw new VentanillaError(
+        "El bloque horario acaba de ser ocupado por otro usuario. Seleccione otro horario.",
+        409
+      );
     }
 
-    // 6. Crear la Cita médica respetando el canal de origen (WEB o VENTANILLA_SOME)
+    // 6. Crear la Cita médica respetando el canal de origen (el índice único parcial preserva citas canceladas)
     const canalOrigen =
       dto.canal_origen && Object.values(CanalOrigen).includes(dto.canal_origen)
         ? dto.canal_origen
@@ -266,12 +294,19 @@ export async function agendarCitaVentanilla(dto: AgendarVentanillaDTO) {
       },
     });
 
-    // 7. Generar registro de confirmación SMS
+    // 7. Generar registro de confirmación SMS normalizado GSM-7 (<= 160 caracteres)
     const inicio = new Date(bloque.hora_inicio);
     const horaStr = `${String(inicio.getHours()).padStart(2, "0")}:${String(inicio.getMinutes()).padStart(2, "0")}`;
     const fechaStr = bloque.agenda.fecha.toISOString().split("T")[0];
 
-    const cuerpoSms = `CESFAM MALLASALUD: Su cita de ${bloque.agenda.especialidad} fue agendada para el ${fechaStr} a las ${horaStr} en ${bloque.agenda.box.numero} con ${bloque.agenda.profesional.nombres} ${bloque.agenda.profesional.apellidos}. Codigo: ${codigoReserva}.`;
+    const cuerpoSms = construirSmsConfirmacion({
+      codigoReserva,
+      especialidad: bloque.agenda.especialidad,
+      fechaStr,
+      horaStr,
+      boxNumero: bloque.agenda.box.numero,
+      profesionalNombre: `${bloque.agenda.profesional.nombres} ${bloque.agenda.profesional.apellidos}`,
+    });
 
     const sms = await tx.registroSms.create({
       data: {

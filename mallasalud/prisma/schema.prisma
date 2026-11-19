@@ -33,6 +33,27 @@ enum CanalOrigen {
   VENTANILLA_SOME
 }
 
+enum RolUsuario {
+  SOME
+  PROFESIONAL
+}
+
+model UsuarioSistema {
+  id              String       @id @default(uuid())
+  rut             String       @unique
+  email           String       @unique
+  password_hash   String       @map("password_hash")
+  nombre_completo String       @map("nombre_completo")
+  rol             RolUsuario
+  profesional_id  String?      @unique @map("profesional_id")
+  activo          Boolean      @default(true)
+  created_at      DateTime     @default(now()) @map("created_at")
+
+  profesional     Profesional? @relation(fields: [profesional_id], references: [id])
+
+  @@map("usuarios_sistema")
+}
+
 model Paciente {
   id                    String    @id @default(uuid())
   rut                   String    @unique
@@ -59,6 +80,7 @@ model Profesional {
 
   agendas      AgendaMedica[]
   citas        Cita[]
+  usuario      UsuarioSistema?
 
   @@map("profesionales")
 }
@@ -107,7 +129,7 @@ model BloqueHorario {
   bloqueado_por_rut     String?       @map("bloqueado_por_rut")
 
   agenda                AgendaMedica  @relation(fields: [agenda_id], references: [id], onDelete: Cascade)
-  cita                  Cita?
+  citas                 Cita[]
 
   @@index([agenda_id, estado_bloque])
   @@index([hora_inicio, hora_fin])
@@ -120,7 +142,7 @@ model Cita {
   codigo_reserva String        @unique @map("codigo_reserva")
   paciente_id    String        @map("paciente_id")
   profesional_id String        @map("profesional_id")
-  bloque_id      String        @unique @map("bloque_id")
+  bloque_id      String        @map("bloque_id")
   especialidad   Especialidad
   estado_cita    EstadoCita    @default(AGENDADA) @map("estado_cita")
   canal_origen   CanalOrigen   @map("canal_origen")
@@ -134,6 +156,7 @@ model Cita {
 
   @@index([paciente_id])
   @@index([profesional_id])
+  @@index([bloque_id])
   @@index([estado_cita])
   @@map("citas")
 }

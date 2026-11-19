@@ -28,6 +28,7 @@ export default function Footer() {
                   alt="MallaSalud Logo"
                   width={40}
                   height={40}
+                  style={{ width: "auto", height: "auto" }}
                   className="site-footer-logo-img"
                 />
               </div>
@@ -97,31 +98,20 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a
-                  href="tel:800500123"
-                  className="site-footer-link-icon"
-                >
-                  <PhoneIcon className="site-footer-icon" />
-                  <span>Canal Telefónico Automatizado (IVR)</span>
-                </a>
-              </li>
-              <li>
-                <Link
-                  href="/some/ventanilla"
-                  className="site-footer-link-icon"
-                >
-                  <BuildingOffice2Icon className="site-footer-icon" />
-                  <span>Ventanilla Presencial SOME</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/some/agendas"
-                  className="site-footer-link-icon"
-                >
-                  <BuildingOffice2Icon className="site-footer-icon" />
-                  <span>Consola SOME: Gestión de Agendas</span>
-                </Link>
+                {process.env.NEXT_PUBLIC_TWILIO_PHONE ? (
+                  <a
+                    href={`tel:${process.env.NEXT_PUBLIC_TWILIO_PHONE.replace(/\s+/g, "")}`}
+                    className="site-footer-link-icon"
+                  >
+                    <PhoneIcon className="site-footer-icon" />
+                    <span>Central Telefónica IA: {process.env.NEXT_PUBLIC_TWILIO_PHONE}</span>
+                  </a>
+                ) : (
+                  <span className="site-footer-link-icon">
+                    <PhoneIcon className="site-footer-icon" />
+                    <span>Central Telefónica IA 24/7 (Voz y Teclado)</span>
+                  </span>
+                )}
               </li>
               <li>
                 <Link
@@ -130,6 +120,15 @@ export default function Footer() {
                 >
                   <InformationCircleIcon className="site-footer-icon" />
                   <span>Preguntas Frecuentes y Anulación</span>
+                </Link>
+              </li>
+              <li className="pt-2 border-t border-white/10">
+                <Link
+                  href="/login"
+                  className="site-footer-link-icon opacity-85 hover:opacity-100"
+                >
+                  <BuildingOffice2Icon className="site-footer-icon" />
+                  <span>Acceso Funcionarios (SOME / Box)</span>
                 </Link>
               </li>
             </ul>

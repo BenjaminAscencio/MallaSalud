@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { Especialidad, EstadoBloque, Prisma } from "@prisma/client";
+import { Especialidad, EstadoBloque, EstadoCita, Prisma } from "@prisma/client";
 import { formatearRut } from "@/lib/utils/rut";
 
 export class AgendaConflictError extends Error {
@@ -176,7 +176,8 @@ export async function listarAgendas(filtros?: ListarAgendasFiltros) {
         bloques: {
           orderBy: { hora_inicio: "asc" },
           include: {
-            cita: {
+            citas: {
+              orderBy: { created_at: "desc" },
               include: {
                 paciente: {
                   select: {
@@ -218,6 +219,11 @@ export async function listarAgendas(filtros?: ListarAgendasFiltros) {
       const hIniStr = `${pad(ini.getHours())}:${pad(ini.getMinutes())}`;
       const hFinStr = `${pad(fin.getHours())}:${pad(fin.getMinutes())}`;
 
+      const citaActiva =
+        b.citas.find(
+          (c) => c.estado_cita === EstadoCita.AGENDADA || c.estado_cita === EstadoCita.ATENDIDA
+        ) || null;
+
       return {
         id: b.id,
         hora_inicio: hIniStr,
@@ -226,17 +232,17 @@ export async function listarAgendas(filtros?: ListarAgendasFiltros) {
         timestamp_fin: b.hora_fin,
         estado_bloque: b.estado_bloque,
         es_cuota_adulto_mayor: b.es_cuota_adulto_mayor,
-        cita: b.cita
+        cita: citaActiva
           ? {
-              codigo_reserva: b.cita.codigo_reserva,
-              estado_cita: b.cita.estado_cita,
-              paciente: b.cita.paciente
+              codigo_reserva: citaActiva.codigo_reserva,
+              estado_cita: citaActiva.estado_cita,
+              paciente: citaActiva.paciente
                 ? {
-                    id: b.cita.paciente.id,
-                    rut: b.cita.paciente.rut,
-                    rut_formateado: formatearRut(b.cita.paciente.rut),
-                    nombre_completo: `${b.cita.paciente.nombres} ${b.cita.paciente.apellidos}`,
-                    telefono: b.cita.paciente.telefono,
+                    id: citaActiva.paciente.id,
+                    rut: citaActiva.paciente.rut,
+                    rut_formateado: formatearRut(citaActiva.paciente.rut),
+                    nombre_completo: `${citaActiva.paciente.nombres} ${citaActiva.paciente.apellidos}`,
+                    telefono: citaActiva.paciente.telefono,
                   }
                 : null,
             }
@@ -457,7 +463,11 @@ export async function pausarAgenda(agendaId: string) {
     include: {
       bloques: {
         include: {
-          cita: true,
+          citas: {
+            where: {
+              estado_cita: EstadoCita.AGENDADA,
+            },
+          },
         },
       },
     },
@@ -486,7 +496,9 @@ export async function pausarAgenda(agendaId: string) {
     });
 
     // 3. Contar citas ya reservadas/agendadas
-    const citasAgendadas = agenda.bloques.filter((b) => b.cita && b.estado_bloque === EstadoBloque.RESERVADO);
+    const citasAgendadas = agenda.bloques.filter(
+      (b) => b.citas.length > 0 && b.estado_bloque === EstadoBloque.RESERVADO
+    );
 
     return {
       agenda_id: agendaId,

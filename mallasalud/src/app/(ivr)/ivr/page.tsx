@@ -21,21 +21,38 @@ import {
   Stethoscope,
   Building2,
   HeartHandshake,
+  MessageSquare,
+  PhoneIncoming,
 } from "lucide-react";
 import { IvrTimeSlot, IvrCallSession, IvrTranscriptEntry } from "@/lib/ivr/types";
 
+interface RecentSmsItem {
+  id: string;
+  telefono_destino: string;
+  cuerpo_mensaje: string;
+  longitud_caracteres: number;
+  estado_envio: string;
+  timestamp: string;
+  codigo_reserva: string | null;
+  especialidad: string | null;
+  canal_origen: string | null;
+}
+
 export default function IvrPage() {
-  const [webhookUrl, setWebhookUrl] = useState<string>(
-    "https://landscapes-ronald-donations-rights.trycloudflare.com"
-  );
-  const [phoneNumber, setPhoneNumber] = useState<string>("+56937772647");
+  const [webhookUrl, setWebhookUrl] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [isCalling, setIsCalling] = useState<boolean>(false);
   const [callStatusMessage, setCallStatusMessage] = useState<string | null>(null);
   const [callSidActive, setCallSidActive] = useState<string | null>(null);
 
   const [slots, setSlots] = useState<IvrTimeSlot[]>([]);
   const [sessions, setSessions] = useState<IvrCallSession[]>([]);
+  const [recentSms, setRecentSms] = useState<RecentSmsItem[]>([]);
+  const [twilioFromNumber, setTwilioFromNumber] = useState<string>("");
+  const [configuringInbound, setConfiguringInbound] = useState<boolean>(false);
   const [simText, setSimText] = useState<string>("");
+  const [dtmfBuffer, setDtmfBuffer] = useState<string>("");
+  const [mostrarTeclado, setMostrarTeclado] = useState<boolean>(true);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [lastEngineUsed, setLastEngineUsed] = useState<string | null>(null);
 
@@ -64,6 +81,28 @@ export default function IvrPage() {
         if (isMounted) {
           if (data.slots) setSlots(data.slots);
           if (data.activeSessions) setSessions(data.activeSessions);
+          if (data.recentSms) setRecentSms(data.recentSms);
+          if (data.twilioFromNumber) setTwilioFromNumber(data.twilioFromNumber);
+          if (data.defaultToNumber) {
+            setPhoneNumber((prev) => prev || data.defaultToNumber);
+          }
+          if (
+            data.publicWebhookBaseUrl &&
+            typeof window !== "undefined" &&
+            (window.location.origin.includes("localhost") ||
+              window.location.origin.includes("127.0.0.1"))
+          ) {
+            setWebhookUrl((prev) => {
+              if (!prev) return data.publicWebhookBaseUrl;
+              if (
+                prev.includes(".trycloudflare.com") &&
+                prev !== data.publicWebhookBaseUrl
+              ) {
+                return data.publicWebhookBaseUrl;
+              }
+              return prev;
+            });
+          }
         }
       } catch (err) {
         console.error("Error al obtener estado IVR desde PostgreSQL:", err);
@@ -126,6 +165,30 @@ export default function IvrPage() {
     }
   };
 
+  // Configurar número Twilio para recibir llamadas entrantes en este webhook
+  const handleConfigureInbound = async () => {
+    setConfiguringInbound(true);
+    setCallStatusMessage("Configurando webhook de llamadas entrantes en Twilio...");
+    try {
+      const res = await fetch("/api/ivr/configure-inbound", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhookBaseUrl: webhookUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo configurar el número entrante.");
+      }
+      setCallStatusMessage(
+        `✓ Llamadas entrantes activas: llama al ${data.phoneNumber} para probar el flujo directo.`
+      );
+    } catch (err: any) {
+      setCallStatusMessage(`Error al activar entrantes: ${err.message}`);
+    } finally {
+      setConfiguringInbound(false);
+    }
+  };
+
   // Reiniciar agenda y liberar horas en PostgreSQL
   const handleResetSchedule = async () => {
     try {
@@ -141,10 +204,23 @@ export default function IvrPage() {
     }
   };
 
+  const activeSession = sessions[0];
+  const currentStep = activeSession?.step || "INICIO";
+  const singleDigitSteps = new Set([
+    "ESPERANDO_ESPECIALIDAD",
+    "ESPERANDO_FRANJA",
+    "ELIGIENDO_HORA_FRANJA",
+    "CONFIRMANDO_SUGERENCIA",
+    "CONFIRMANDO_REAGENDAMIENTO",
+    "COMPLETADO",
+  ]);
+  const isSingleDigitStep = singleDigitSteps.has(currentStep);
+
   // Limpiar historial visual para probar otra llamada sin reiniciar la BD
   const handleClearFlow = async () => {
     setSessions([]);
     setLastEngineUsed(null);
+    setDtmfBuffer("");
     setCallSidActive(`sim-browser-${Date.now()}`);
     try {
       const res = await fetch("/api/ivr/status", {
@@ -155,15 +231,87 @@ export default function IvrPage() {
       const data = await res.json();
       if (data.slots) setSlots(data.slots);
       if (data.activeSessions) setSessions(data.activeSessions);
+      if (data.recentSms) setRecentSms(data.recentSms);
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // Mostrar mensaje inicial de bienvenida IVR sin depender de llamada entrante
+  const handleStartWelcome = async () => {
+    const targetSid = callSidActive || `sim-browser-${Date.now()}`;
+    setCallSidActive(targetSid);
+    setDtmfBuffer("");
+    setIsSimulating(true);
+    try {
+      const res = await fetch("/api/ivr/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "welcome", callSid: targetSid }),
+      });
+      const data = await res.json();
+      if (data.slots) setSlots(data.slots);
+      if (data.activeSessions) setSessions(data.activeSessions);
+      if (data.recentSms) setRecentSms(data.recentSms);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  // Enviar secuencia DTMF (solo teclado) al motor híbrido IVR
+  const handleSendDtmf = async (digitsToSend?: string) => {
+    const payload = (digitsToSend ?? dtmfBuffer).trim();
+    if (!payload) return;
+
+    const targetSid = callSidActive || "sim-browser-session";
+    if (!callSidActive) setCallSidActive(targetSid);
+
+    setIsSimulating(true);
+    try {
+      const res = await fetch("/api/ivr/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "dtmf",
+          digits: payload,
+          callSid: targetSid,
+        }),
+      });
+      const data = await res.json();
+      if (data.engineUsed) setLastEngineUsed(data.engineUsed);
+      if (data.slots) setSlots(data.slots);
+      if (data.activeSessions) setSessions(data.activeSessions);
+      if (data.recentSms) setRecentSms(data.recentSms);
+      setDtmfBuffer("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleDtmfKeyPress = (key: string) => {
+    if (isSimulating) return;
+    if (key === "#") {
+      handleSendDtmf(dtmfBuffer ? `${dtmfBuffer}#` : "#");
+      return;
+    }
+    if (isSingleDigitStep && dtmfBuffer === "") {
+      handleSendDtmf(key);
+      return;
+    }
+    setDtmfBuffer((prev) => (prev.length < 12 ? `${prev}${key}` : prev));
   };
 
   // Simular turno por texto (para pruebas rápidas en navegador)
   const handleSimulate = async (customText?: string) => {
     const textToSend = (customText || simText).trim();
     if (!textToSend) return;
+
+    const targetSid = callSidActive || "sim-browser-session";
+    if (!callSidActive) setCallSidActive(targetSid);
 
     setIsSimulating(true);
     try {
@@ -173,7 +321,7 @@ export default function IvrPage() {
         body: JSON.stringify({
           action: "simulate",
           text: textToSend,
-          callSid: callSidActive || "sim-browser-session",
+          callSid: targetSid,
         }),
       });
 
@@ -181,6 +329,7 @@ export default function IvrPage() {
       if (data.engineUsed) setLastEngineUsed(data.engineUsed);
       if (data.slots) setSlots(data.slots);
       if (data.activeSessions) setSessions(data.activeSessions);
+      if (data.recentSms) setRecentSms(data.recentSms);
       setSimText("");
     } catch (err) {
       console.error(err);
@@ -277,16 +426,39 @@ export default function IvrPage() {
                   type="text"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="+56937772647"
+                  placeholder="+569XXXXXXXX"
                   className="w-full bg-slate-50 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle rounded-lg px-3.5 py-2.5 text-sm text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-primary/40 font-mono"
                 />
                 <p className="text-[11px] text-text-subtle dark:text-text-dark-muted mt-1">
-                  Número verificado en consola Twilio (+56937772647).
+                  Número verificado en consola Twilio (<code>DEFAULT_TO_NUMBER</code> en <code>.env</code>).
                 </p>
               </div>
             </div>
 
-            {/* BOTÓN DISPARAR LLAMADA */}
+            {/* LLAMADAS ENTRANTES DIRECTAS + BOTÓN DISPARAR LLAMADA SALIENTE */}
+            <div className="mb-4 p-3 rounded-lg bg-mint-lightest/80 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <PhoneIncoming className="w-4 h-4 text-teal-primary dark:text-teal-accent shrink-0" />
+                <span>
+                  Llamadas entrantes directas al consultorio:{" "}
+                  <strong className="font-mono text-teal-deep dark:text-white">
+                    {twilioFromNumber || "Configurar TWILIO_FROM_NUMBER en .env"}
+                  </strong>
+                </span>
+              </div>
+              <button
+                type="button"
+                id="btn-activar-entrantes-twilio"
+                onClick={handleConfigureInbound}
+                disabled={configuringInbound}
+                className="px-3 py-1 rounded-md text-[11px] font-semibold bg-white dark:bg-surface-dark border border-teal-primary/40 hover:bg-mint-pale/60 text-teal-primary dark:text-teal-accent transition cursor-pointer disabled:opacity-50"
+              >
+                {configuringInbound
+                  ? "Vinculando..."
+                  : "Activar Llamadas Entrantes en este Webhook"}
+              </button>
+            </div>
+
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <button
                 onClick={handleStartCall}
@@ -338,19 +510,19 @@ export default function IvrPage() {
               <div className="flex items-center justify-between">
                 <span>Adulto Mayor 75a (Cuota 60+):</span>
                 <code className="text-teal-primary dark:text-teal-accent font-semibold bg-white dark:bg-surface-dark px-2 py-0.5 rounded border border-border-subtle dark:border-border-dark-subtle">
-                  5.555.555-5
+                  5.842.319-K
                 </code>
               </div>
               <div className="flex items-center justify-between">
                 <span>Adulto Joven en padrón:</span>
                 <code className="text-text-main dark:text-slate-200 font-semibold bg-white dark:bg-surface-dark px-2 py-0.5 rounded border border-border-subtle dark:border-border-dark-subtle">
-                  21.111.111-1
+                  21.758.467-1
                 </code>
               </div>
               <div className="flex items-center justify-between">
                 <span>No Inscrito (Deriva a SOME):</span>
                 <code className="text-rose-700 dark:text-rose-300 font-semibold bg-white dark:bg-surface-dark px-2 py-0.5 rounded border border-rose-200 dark:border-rose-800/50">
-                  21.222.222-2
+                  6.419.832-7
                 </code>
               </div>
             </div>
@@ -480,7 +652,7 @@ export default function IvrPage() {
         {/* REGISTRO DEL FLUJO TELEFÓNICO Y PRUEBAS DE REGLAS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* VENTANA DEL FLUJO DE ATENCIÓN */}
-          <div className="lg:col-span-2 ivr-card flex flex-col h-[500px] overflow-hidden">
+          <div className="lg:col-span-2 ivr-card flex flex-col min-h-[640px] max-h-[780px] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border-subtle dark:border-border-dark bg-slate-50/90 dark:bg-surface-dark-bg flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <PhoneCall className="w-4 h-4 text-teal-primary dark:text-teal-accent" />
@@ -554,7 +726,11 @@ export default function IvrPage() {
                             <PhoneCall className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                           )}
                           <span className={isUser ? "text-teal-primary dark:text-mint-medium" : "text-text-main dark:text-white"}>
-                            {isUser ? `Paso ${idx + 1} • Paciente (Voz)` : `Paso ${idx + 1} • Central Telefónica MallaSalud`}
+                            {isUser
+                              ? entry.text.startsWith("[Teclado]")
+                                ? `Paso ${idx + 1} • Paciente (Teclado DTMF)`
+                                : `Paso ${idx + 1} • Paciente (Voz)`
+                              : `Paso ${idx + 1} • Central Telefónica MallaSalud`}
                           </span>
                         </div>
                         <span className="text-text-subtle dark:text-slate-400 font-mono text-[10px]">
@@ -572,8 +748,8 @@ export default function IvrPage() {
               )}
             </div>
 
-            {/* BARRA DE ENTRADA MANUAL DEL FLUJO */}
-            <div className="p-3.5 border-t border-border-subtle dark:border-border-dark bg-white dark:bg-surface-dark">
+            {/* BARRA DE ENTRADA MANUAL Y TECLADO DTMF ACCESIBLE */}
+            <div className="p-3.5 border-t border-border-subtle dark:border-border-dark bg-white dark:bg-surface-dark space-y-2.5">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -582,10 +758,11 @@ export default function IvrPage() {
                 className="flex items-center gap-2"
               >
                 <input
+                  id="input-sim-ivr"
                   type="text"
                   value={simText}
                   onChange={(e) => setSimText(e.target.value)}
-                  placeholder="Ingresa una frase del paciente (ej: 'Hola quiero a las 10 mi rut es 5555555-5')..."
+                  placeholder="Ingresa una frase del paciente (ej: 'Hola quiero a las 10 mi rut es 5842319-K')..."
                   className="flex-1 bg-slate-50 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle rounded-lg px-3.5 py-2 text-xs text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-primary/40"
                 />
                 <button
@@ -600,7 +777,135 @@ export default function IvrPage() {
                   )}
                   <span>Probar</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setMostrarTeclado((v) => !v)}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold border border-border-subtle dark:border-border-dark-subtle bg-slate-50 dark:bg-surface-dark-bg text-text-main dark:text-slate-200 hover:bg-mint-lightest transition cursor-pointer shrink-0"
+                >
+                  {mostrarTeclado ? "Ocultar Teclado" : "Teclado DTMF"}
+                </button>
               </form>
+
+              {mostrarTeclado && (
+                <div className="p-3 rounded-xl bg-slate-50/90 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark-subtle space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-teal-primary dark:text-teal-accent">
+                        Teclado Telefónico Accesible (DTMF — Sin Voz)
+                      </span>
+                      <span className="font-mono px-2 py-0.5 rounded bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark text-[10px] text-text-muted dark:text-slate-300">
+                        Paso: {currentStep}
+                      </span>
+                    </div>
+                    <button
+                      id="btn-iniciar-bienvenida-ivr"
+                      type="button"
+                      onClick={handleStartWelcome}
+                      disabled={isSimulating}
+                      className="px-2.5 py-1 rounded-md bg-white dark:bg-surface-dark border border-teal-primary/40 text-teal-primary dark:text-teal-accent font-semibold text-[11px] hover:bg-mint-lightest transition cursor-pointer disabled:opacity-50"
+                    >
+                      Iniciar Llamada (Bienvenida)
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-stretch gap-3">
+                    <div className="grid grid-cols-4 gap-1.5 shrink-0">
+                      {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          disabled={isSimulating}
+                          onClick={() => handleDtmfKeyPress(k)}
+                          className={`h-8 min-w-[44px] px-2.5 rounded-md font-mono text-xs font-bold border transition cursor-pointer disabled:opacity-50 ${
+                            k === "#"
+                              ? "bg-teal-primary text-white border-teal-primary hover:bg-teal-hover"
+                              : "bg-white dark:bg-surface-dark text-text-main dark:text-white border-border-subtle dark:border-border-dark hover:bg-mint-pale/60"
+                          }`}
+                          title={k === "*" ? "* (equivalente a K)" : k === "#" ? "# Enviar secuencia" : `Marcar ${k}`}
+                        >
+                          {k === "*" ? "* (K)" : k}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          id="input-dtmf-buffer"
+                          type="text"
+                          value={dtmfBuffer}
+                          onChange={(e) => setDtmfBuffer(e.target.value.replace(/[^0-9*#]/g, ""))}
+                          placeholder={
+                            isSingleDigitStep
+                              ? "Paso de 1 tecla: pulsa una opción arriba (o 9 repetir)"
+                              : "Marca teclas o RUT + # (ej: 217584671#)"
+                          }
+                          className="flex-1 bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark rounded-md px-2.5 py-1.5 font-mono text-xs text-text-main dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setDtmfBuffer((p) => p.slice(0, -1))}
+                          className="px-2.5 py-1.5 rounded-md border border-border-subtle dark:border-border-dark bg-white dark:bg-surface-dark text-[11px] font-medium hover:bg-slate-100 cursor-pointer"
+                        >
+                          Borrar
+                        </button>
+                        <button
+                          id="btn-enviar-dtmf-ivr"
+                          type="button"
+                          disabled={isSimulating || !dtmfBuffer.trim()}
+                          onClick={() => handleSendDtmf()}
+                          className="px-3 py-1.5 rounded-md bg-teal-primary hover:bg-teal-hover text-white text-[11px] font-semibold disabled:opacity-50 cursor-pointer"
+                        >
+                          Enviar
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 text-[10px]">
+                        <button
+                          type="button"
+                          disabled={isSimulating}
+                          onClick={() => handleSendDtmf("1")}
+                          className="px-2 py-1 rounded bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark hover:bg-mint-lightest font-medium cursor-pointer"
+                        >
+                          1 · Pedir Hora
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSimulating}
+                          onClick={() => handleSendDtmf("2")}
+                          className="px-2 py-1 rounded bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark hover:bg-mint-lightest font-medium cursor-pointer"
+                        >
+                          2 · Anular
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSimulating}
+                          onClick={() => handleSendDtmf("217584671#")}
+                          className="px-2 py-1 rounded bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark hover:bg-mint-lightest font-mono cursor-pointer"
+                        >
+                          RUT 217584671#
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSimulating}
+                          onClick={() => handleSendDtmf("5842319*#")}
+                          className="px-2 py-1 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 hover:bg-amber-100 font-mono cursor-pointer"
+                        >
+                          60+ 5842319*#
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSimulating}
+                          onClick={() => handleSendDtmf("9")}
+                          className="px-2 py-1 rounded bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark hover:bg-mint-lightest font-medium cursor-pointer"
+                        >
+                          9 · Repetir
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -621,7 +926,7 @@ export default function IvrPage() {
                 <button
                   onClick={() =>
                     handleSimulate(
-                      "Hola quiero pedir hora para las diez de la mañana, mi RUT es 21.222.222-2"
+                      "Hola quiero pedir hora para las diez de la mañana, mi RUT es 6.419.832-7"
                     )
                   }
                   className="w-full text-left p-2.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/20 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
@@ -629,13 +934,13 @@ export default function IvrPage() {
                   <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold block mb-0.5">
                     Regla 1: Paciente No Inscrito (Derivar a SOME)
                   </span>
-                  &ldquo;Quiero a las 10:00, mi RUT es 21.222.222-2&rdquo;
+                  &ldquo;Quiero a las 10:00, mi RUT es 6.419.832-7&rdquo;
                 </button>
 
                 <button
                   onClick={() =>
                     handleSimulate(
-                      "Hola, quiero hora para medicina a las 11 de la mañana, mi RUT es 21.111.111-1"
+                      "Hola, quiero hora para medicina a las 11 de la mañana, mi RUT es 21.758.467-1"
                     )
                   }
                   className="w-full text-left p-2.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
@@ -643,23 +948,23 @@ export default function IvrPage() {
                   <span className="text-[10px] text-amber-800 dark:text-amber-400 font-bold block mb-0.5">
                     Regla 2: Hora Ocupada — Recomendar Antes y Después
                   </span>
-                  &ldquo;Quiero a las 11:00, mi RUT es 21.111.111-1&rdquo;
+                  &ldquo;Quiero a las 11:00, mi RUT es 21.758.467-1&rdquo;
                 </button>
 
                 <button
-                  onClick={() => handleSimulate("Prefiero la de después, a las 11:30")}
+                  onClick={() => handleSimulate("Prefiero la de después")}
                   className="w-full text-left p-2.5 rounded-lg bg-mint-lightest dark:bg-surface-dark-bg hover:bg-mint-pale/60 dark:hover:bg-surface-dark-muted border border-border-subtle dark:border-border-dark-subtle text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
                 >
                   <span className="text-[10px] text-teal-primary dark:text-teal-accent font-bold block mb-0.5">
-                    Regla 3: Elegir Alternativa Recomendada (11:30)
+                    Regla 3: Elegir Alternativa Recomendada (Después)
                   </span>
-                  &ldquo;Prefiero la de después, a las 11:30&rdquo;
+                  &ldquo;Prefiero la de después&rdquo;
                 </button>
 
                 <button
                   onClick={() =>
                     handleSimulate(
-                      "Hola quiero pedir otra hora a las 12:00, mi RUT es 21.111.111-1"
+                      "Hola quiero pedir otra hora a las 12:00, mi RUT es 21.758.467-1"
                     )
                   }
                   className="w-full text-left p-2.5 rounded-lg bg-slate-50 dark:bg-surface-dark-bg hover:bg-slate-100 dark:hover:bg-surface-dark-muted border border-amber-200 dark:border-amber-800/40 text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
@@ -667,7 +972,7 @@ export default function IvrPage() {
                   <span className="text-[10px] text-amber-800 dark:text-amber-400 font-bold block mb-0.5">
                     Regla 4: Cita Duplicada (Ofrecer Reagendar 12:00)
                   </span>
-                  &ldquo;Quiero otra hora a las 12:00, mi RUT es 21.111.111-1&rdquo;
+                  &ldquo;Quiero otra hora a las 12:00, mi RUT es 21.758.467-1&rdquo;
                 </button>
 
                 <button
@@ -685,7 +990,21 @@ export default function IvrPage() {
                 <button
                   onClick={() =>
                     handleSimulate(
-                      "Hola, quiero hora a las 10 de la mañana, mi RUT es 5.555.555-5"
+                      "Hola, quiero cancelar mi hora médica, mi RUT es 21.758.467-1"
+                    )
+                  }
+                  className="w-full text-left p-2.5 rounded-lg bg-slate-50 dark:bg-surface-dark-bg hover:bg-rose-50/70 dark:hover:bg-rose-950/20 border border-border-subtle dark:border-border-dark-subtle text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
+                >
+                  <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold block mb-0.5">
+                    Regla 6: Cancelación Oportuna por Voz (≥ 30 min)
+                  </span>
+                  &ldquo;Quiero cancelar mi hora médica, RUT 21.758.467-1&rdquo;
+                </button>
+
+                <button
+                  onClick={() =>
+                    handleSimulate(
+                      "Hola, quiero hora a las 10 de la mañana, mi RUT es 5.842.319-K"
                     )
                   }
                   className="w-full text-left p-2.5 rounded-lg bg-slate-50 dark:bg-surface-dark-bg hover:bg-mint-lightest dark:hover:bg-surface-dark-muted border border-border-subtle dark:border-border-dark-subtle text-xs text-text-main dark:text-slate-200 transition cursor-pointer"
@@ -693,7 +1012,7 @@ export default function IvrPage() {
                   <span className="text-[10px] text-teal-primary dark:text-teal-accent font-bold block mb-0.5">
                     Extra: Adulto Mayor 75a (Cuota 60+ · 10:00 Ocupada)
                   </span>
-                  &ldquo;Quiero a las 10:00, mi RUT es 5.555.555-5&rdquo;
+                  &ldquo;Quiero a las 10:00, mi RUT es 5.842.319-K&rdquo;
                 </button>
               </div>
             </div>
@@ -701,14 +1020,88 @@ export default function IvrPage() {
             <div className="mt-3 pt-3 border-t border-border-subtle dark:border-border-dark text-[11px] text-text-muted dark:text-text-dark-muted space-y-1">
               <div className="flex items-center gap-1.5 text-text-main dark:text-white font-semibold">
                 <HeartHandshake className="w-3.5 h-3.5 text-teal-primary dark:text-teal-accent" />
-                <span>Diseñado para Adultos Mayores</span>
+                <span>Voz Neural + Teclado DTMF</span>
               </div>
               <p className="text-text-subtle dark:text-text-dark-muted">
-                Pausas claras, trato empático y acceso automático a cuotas protegidas 60+.
+                Soporta voz natural (Polly Neural), marcación de RUT por teclado (`0`/`*` = K) y cuotas protegidas 60+.
               </p>
             </div>
           </div>
         </div>
+
+        {/* BANDEJA EN VIVO DE RESPALDOS SMS (GSM-7 <= 160 CHARS) */}
+        <section className="ivr-card p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-teal-primary dark:text-teal-accent" />
+              <h2 className="text-base font-bold text-text-main dark:text-text-dark-main">
+                Bandeja de Auditoría SMS Transaccional (GSM-7 ≤ 160 chars)
+              </h2>
+            </div>
+            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded bg-mint-pale/60 dark:bg-surface-dark-bg text-teal-primary dark:text-teal-accent border border-border-subtle dark:border-border-dark-subtle">
+              Últimos {recentSms.length} registros en PostgreSQL
+            </span>
+          </div>
+
+          {recentSms.length === 0 ? (
+            <p className="text-xs text-text-muted dark:text-text-dark-muted">
+              Aún no hay mensajes SMS registrados en la jornada actual.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {recentSms.map((sms) => (
+                <div
+                  key={sms.id}
+                  className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-surface-dark-bg border border-border-subtle dark:border-border-dark space-y-1.5 text-xs"
+                >
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-teal-deep dark:text-white">
+                        {sms.telefono_destino}
+                      </span>
+                      {sms.codigo_reserva && (
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-surface-dark border border-border-subtle dark:border-border-dark">
+                          {sms.codigo_reserva}
+                        </span>
+                      )}
+                      {sms.canal_origen && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-mint-pale dark:bg-teal-primary/20 text-teal-primary dark:text-teal-accent">
+                          {sms.canal_origen}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`font-mono text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                          sms.longitud_caracteres <= 160
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : "bg-rose-100 text-rose-800"
+                        }`}
+                      >
+                        {sms.longitud_caracteres}/160 chars
+                      </span>
+                      <span
+                        className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold ${
+                          sms.estado_envio === "ENVIADO_TWILIO_SMS" ||
+                          sms.estado_envio === "ENVIADO_TWILIO_TRIAL"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : sms.estado_envio.includes("TWILIO_")
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                            : "text-text-subtle"
+                        }`}
+                      >
+                        {sms.estado_envio}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="font-mono text-[11px] text-text-main dark:text-slate-200 leading-snug">
+                    {sms.cuerpo_mensaje}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

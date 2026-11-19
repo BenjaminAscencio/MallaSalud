@@ -4,6 +4,7 @@ import {
   AgendaConflictError,
   AgendaValidationError,
 } from "@/lib/services/agendas.service";
+import { requireRole } from "@/lib/core/authServer";
 import { Especialidad } from "@prisma/client";
 
 /**
@@ -11,6 +12,9 @@ import { Especialidad } from "@prisma/client";
  * HU-005: Apertura y generación de bloques horarios para una agenda médica SOME.
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     const body = await req.json();
     const {

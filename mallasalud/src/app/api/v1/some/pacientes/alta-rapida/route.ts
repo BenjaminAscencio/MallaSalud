@@ -4,12 +4,16 @@ import {
   RutInvalidoError,
   PacienteYaExisteError,
 } from "@/lib/services/pacientes.service";
+import { requireRole } from "@/lib/core/authServer";
 
 /**
  * POST /api/v1/some/pacientes/alta-rapida
  * HU-006: Alta rápida de paciente nuevo en ventanilla SOME.
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     const body = await req.json();
     const { rut, nombres, apellidos, fecha_nacimiento, telefono } = body;

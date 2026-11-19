@@ -2,10 +2,18 @@
 
 import { prisma } from "@/lib/prisma";
 import { Especialidad, EstadoBloque, EstadoCita, CanalOrigen } from "@prisma/client";
-import { IvrTimeSlot, VerificarOAgendarResult } from "./types";
+import {
+  IvrCallSmsContext,
+  IvrFranja,
+  IvrFranjaOption,
+  IvrTimeSlot,
+  VerificarOAgendarResult,
+} from "./types";
+import { enviarSmsTicketTwilio } from "./twilioSms";
 import { formatearRut, normalizarRut as normalizarRutOficial, validarRut } from "@/lib/utils/rut";
 import { calcularEdad, esAdultoMayor } from "@/lib/utils/edad";
 import { generarCodigoReserva } from "@/lib/utils/codigo-reserva";
+import { construirSmsConfirmacion, construirSmsCancelacion } from "@/lib/utils/sms";
 
 // ====================================================================
 // NORMALIZACIÓN DE RUT, HORAS Y ESPECIALIDADES
@@ -15,6 +23,7 @@ const SPANISH_DIGIT_WORDS: Record<string, string> = {
   cero: "0",
   uno: "1",
   un: "1",
+  una: "1",
   dos: "2",
   tres: "3",
   cuatro: "4",
@@ -30,19 +39,106 @@ const SPANISH_DIGIT_WORDS: Record<string, string> = {
   catorce: "14",
   quince: "15",
   dieciseis: "16",
-  dieciséis: "16",
   diecisiete: "17",
   dieciocho: "18",
   diecinueve: "19",
   veinte: "20",
+  veintiuno: "21",
+  veintiun: "21",
+  veintidos: "22",
+  veintitres: "23",
+  veinticuatro: "24",
+  veinticinco: "25",
+  veintiseis: "26",
+  veintisiete: "27",
+  veintiocho: "28",
+  veintinueve: "29",
+  treinta: "30",
+  cuarenta: "40",
+  cincuenta: "50",
+  sesenta: "60",
+  setenta: "70",
+  ochenta: "80",
+  noventa: "90",
+  cien: "100",
+  ciento: "100",
+  doscientos: "200",
+  trescientos: "300",
+  cuatrocientos: "400",
+  quinientos: "500",
+  seiscientos: "600",
+  setecientos: "700",
+  ochocientos: "800",
+  novecientos: "900",
   k: "K",
   ka: "K",
+  ca: "K",
 };
 
+function stripAccents(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 /**
- * Normaliza un RUT chileno limpiando palabras habladas ("router", "rut", "raya", dígitos en palabras)
+ * Si el hablante dictó un número compuesto con magnitudes en español ("veintiún millones
+ * setecientos cincuenta y ocho mil cuatrocientos sesenta y siete guión uno"), calcula el cuerpo numérico.
+ */
+function intentarParsearRutCompuestoHablado(segmentoRaw: string): string | null {
+  const norm = stripAccents(segmentoRaw);
+  if (!/\b(millon|millones|mil|ciento|doscientos|trescientos|cuatrocientos|quinientos|seiscientos|setecientos|ochocientos|novecientos|veinti|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa)\b/.test(norm)) {
+    return null;
+  }
+
+  // Separar parte cuerpo vs DV si hubo guion/raya/con o última palabra
+  const tokensAll = norm
+    .replace(/[.,]/g, " ")
+    .replace(/\b(guion|raya|menos|con|digito|verificador)\b/g, " _SEP_ ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  let bodyTokens: string[] = [];
+  let dvChar = "";
+
+  const sepIdx = tokensAll.lastIndexOf("_SEP_");
+  if (sepIdx !== -1 && sepIdx < tokensAll.length - 1) {
+    bodyTokens = tokensAll.slice(0, sepIdx);
+    const dvTok = tokensAll[sepIdx + 1];
+    dvChar = SPANISH_DIGIT_WORDS[dvTok] || dvTok.replace(/[^0-9kK]/g, "").toUpperCase();
+  } else {
+    bodyTokens = tokensAll.slice(0, -1);
+    const lastTok = tokensAll[tokensAll.length - 1] || "";
+    dvChar = SPANISH_DIGIT_WORDS[lastTok] || lastTok.replace(/[^0-9kK]/g, "").toUpperCase();
+  }
+
+  if (!/^[0-9K]$/.test(dvChar) || bodyTokens.length === 0) return null;
+
+  let total = 0;
+  let current = 0;
+  for (const tok of bodyTokens) {
+    if (tok === "y" || tok === "_SEP_") continue;
+    if (tok === "millon" || tok === "millones") {
+      total += (current || 1) * 1_000_000;
+      current = 0;
+    } else if (tok === "mil") {
+      total += (current || 1) * 1_000;
+      current = 0;
+    } else if (/^\d+$/.test(tok)) {
+      const n = parseInt(tok, 10);
+      current = current > 0 && n < 100 && current % 10 === 0 ? current + n : current + n;
+    } else if (SPANISH_DIGIT_WORDS[tok] && /^\d+$/.test(SPANISH_DIGIT_WORDS[tok])) {
+      current += parseInt(SPANISH_DIGIT_WORDS[tok], 10);
+    }
+  }
+  total += current;
+
+  if (total < 1_000_000 || total > 99_999_999) return null;
+  const candidate = `${total}-${dvChar}`;
+  return validarRut(candidate) ? candidate : null;
+}
+
+/**
+ * Normaliza un RUT chileno limpiando palabras habladas ("router", "rut", "raya", dígitos o montos en español)
  * y devuelve el formato estándar XXXXXXXX-X.
- * Previene colisiones con horarios hablados (ej: "a las 10 de la mañana") y maneja artefactos de STT (como ceros de miles).
  */
 export function normalizarRut(input: string): string {
   if (!input) return "";
@@ -53,7 +149,7 @@ export function normalizarRut(input: string): string {
     .replace(/(?:a\s+las?|para\s+las?|a\s+la|las)\s+\d{1,2}(?::\d{2})?(?:\s+(?:de\s+la\s+)?(?:mañana|tarde|noche|am|pm))?/gi, " ")
     .replace(/\b(?:a\s+las?|para\s+las?)\s+(?:una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)(?:\s+(?:y\s+)?(?:media|cuarto|treinta))?/gi, " ");
 
-  // 2. Coincidencia con formato de RUT estándar con puntos/guión (ej: 21.111.111-1, 5.555.555-5, 18765432-1)
+  // 2. Coincidencia con formato de RUT estándar con puntos/guión (ej: 21.758.467-1)
   const regexNum = /\b(\d{1,2})[.\s]?(\d{3})[.\s]?(\d{3})[-‐‑–—\s]?([0-9kK])\b/i;
   const matchNum = textSinHoras.match(regexNum);
   if (matchNum) {
@@ -62,7 +158,7 @@ export function normalizarRut(input: string): string {
     return `${cuerpo}-${dv}`;
   }
 
-  // 3. RUTs de 7 dígitos (<10M, ej: 5.555.555-5)
+  // 3. RUTs de 7 dígitos (<10M, ej: 5.842.319-K)
   const regexNum7 = /\b(\d{1})[.\s]?(\d{3})[.\s]?(\d{3})[-‐‑–—\s]?([0-9kK])\b/i;
   const matchNum7 = textSinHoras.match(regexNum7);
   if (matchNum7) {
@@ -71,11 +167,11 @@ export function normalizarRut(input: string): string {
     return `${cuerpo}-${dv}`;
   }
 
-  // 4. Búsqueda contextual: identificar mención de "rut", "router", "cedula", "carnet" que contenga números
-  const rutMatches = [...textSinHoras.matchAll(/(?:rut|router|r\.u\.t|cedula|cédula|carnet)\s*(?:es|de|:)?\s*([^\n,.;]+)/gi)];
+  // Búsqueda contextual: identificar mención de "rut", "router", "root", "lut", "cedula", "carnet"
+  const rutMatches = [...textSinHoras.matchAll(/(?:rut|router|r\.u\.t|root|ruth|lud|lut|cedula|cédula|carnet)\s*(?:es|de|:)?\s*([^\n;]+)/gi)];
   let candidateSegment = "";
   for (const m of rutMatches) {
-    if (/[0-9kK]/.test(m[1]) || /uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|cero/i.test(m[1])) {
+    if (/[0-9kK]/.test(m[1]) || /uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|cero|veinti|treinta|millon/i.test(m[1])) {
       candidateSegment = m[1];
       break;
     }
@@ -85,17 +181,21 @@ export function normalizarRut(input: string): string {
     candidateSegment = textSinHoras;
   }
 
-  // 5. Limpieza de separadores hablados y artefactos de STT
-  let cleaned = candidateSegment.toLowerCase()
-    .replace(/guion|guión|raya|menos|punto|coma/g, " ")
-    .replace(/\b000\b/g, " ") // Twilio STT coloca 000 para miles o millones hablados (ej: "5 000 555 000 5555" -> 5555555-5)
+  // 4.1 Intentar parseo compuesto en español ("veintiun millones ... guion uno")
+  const compuesto = intentarParsearRutCompuestoHablado(candidateSegment);
+  if (compuesto) return compuesto;
+
+  // 5. Limpieza de separadores hablados y artefactos de STT dígito a dígito
+  const cleaned = stripAccents(candidateSegment)
+    .replace(/\b(?:guion|raya|menos|digito\s+verificador)\s+que\b/g, " K ")
+    .replace(/guion|raya|menos|punto|coma/g, " ")
+    .replace(/\b000\b/g, " ")
     .replace(/[.\s-]/g, " ");
 
   const tokens = cleaned.split(/\s+/).filter(Boolean);
   const converted = tokens.map((t) => SPANISH_DIGIT_WORDS[t] || t).join("");
   let onlyDigitsAndK = converted.replace(/[^0-9kK]/g, "");
 
-  // Si contiene secuencias de ceros repetidos (artefacto de STT como '50005550005555' o '5 000 555...')
   if (onlyDigitsAndK.length > 9 && /0{3,}/.test(onlyDigitsAndK)) {
     const candidate = onlyDigitsAndK.replace(/0{3,}/g, "");
     if (candidate.length >= 7 && candidate.length <= 9) {
@@ -103,21 +203,58 @@ export function normalizarRut(input: string): string {
     }
   }
 
-  // Si tiene entre 7 y 9 dígitos (cuerpo 6 a 8 dígitos + DV)
+  // Si tiene > 9 caracteres, buscar primero subcadena válida por Módulo 11 (9, luego 8, luego 7)
+  if (onlyDigitsAndK.length > 9) {
+    for (const len of [9, 8, 7]) {
+      for (let start = 0; start <= onlyDigitsAndK.length - len; start++) {
+        const sub = onlyDigitsAndK.slice(start, start + len);
+        const formatted = `${sub.slice(0, -1)}-${sub.slice(-1).toUpperCase()}`;
+        if (validarRut(formatted)) return formatted;
+      }
+    }
+    const tail = onlyDigitsAndK.slice(-9);
+    return `${tail.slice(0, -1)}-${tail.slice(-1).toUpperCase()}`;
+  }
+
   if (onlyDigitsAndK.length >= 7 && onlyDigitsAndK.length <= 9) {
     const cuerpo = onlyDigitsAndK.slice(0, -1);
     const dv = onlyDigitsAndK.slice(-1).toUpperCase();
     return `${cuerpo}-${dv}`;
   }
 
-  // Si tiene más de 9 dígitos por concatenación de palabras anteriores, tomar los últimos 8 o 9 dígitos
-  if (onlyDigitsAndK.length > 9) {
-    for (const len of [8, 9, 7]) {
-      const sub = onlyDigitsAndK.slice(-len);
-      return `${sub.slice(0, -1)}-${sub.slice(-1).toUpperCase()}`;
-    }
-  }
+  return "";
+}
 
+/**
+ * Extrae fragmentos numéricos de un RUT dictado por partes cuando Twilio corta por pausa
+ * (ej: "Mi router es 21.758." -> "21758", "4671" -> "4671").
+ */
+export function extraerFragmentoNumericoRut(input: string, minDigits = 2): string {
+  if (!input) return "";
+  const sinHoras = input
+    .replace(/(?:a\s+las?|para\s+las?|a\s+la|las)\s+\d{1,2}(?::\d{2})?(?:\s+(?:de\s+la\s+)?(?:mañana|tarde|noche|am|pm))?/gi, " ")
+    .replace(/\b\d{1,2}:\d{2}\b/g, " ")
+    .trim();
+
+  const rutMatch = sinHoras.match(/(?:rut|router|r\.u\.t|root|ruth|lud|lut|cedula|cédula|carnet)\s*(?:es|de|:)?\s*([^\n;]+)/i);
+  const segmento = rutMatch ? rutMatch[1] : sinHoras;
+
+  const tokens = stripAccents(segmento)
+    .replace(/\b(?:guion|raya|menos|digito\s+verificador)\s+que\b/g, " K ")
+    .replace(/guion|raya|menos|punto|coma/g, " ")
+    .replace(/[.\s-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const soloDigitos = tokens
+    .map((t) => SPANISH_DIGIT_WORDS[t] || (/^[\dkK]+$/.test(t) ? t : ""))
+    .join("")
+    .replace(/[^0-9kK]/g, "")
+    .toUpperCase();
+
+  if (soloDigitos.length >= minDigits && soloDigitos.length <= 8) {
+    return soloDigitos;
+  }
   return "";
 }
 
@@ -160,10 +297,10 @@ export function normalizarHora(input: string, rutOpcional?: string): string {
     }
   }
 
-  // 2. Limpiar patrones genéricos de RUT chilenos (ej: 21.222.222-2, 21222222-2, rut 12345678-9)
-  text = text.replace(/\brut\s*[:\s]*[\w\s.-]{5,15}\b/gi, " ");
-  text = text.replace(/\b\d{1,2}\.?\d{3}\.?\d{3}[-kK0-9]?\b/g, " ");
-  text = text.replace(/\b\d{7,9}[-kK]?\b/g, " ");
+  // 2. Limpiar patrones genéricos o parciales de RUT (ej: 21.758.467-1, Mi router es 21.758, 4671)
+  text = text.replace(/\b(?:rut|router|r\.u\.t|root|ruth|lud|lut)\s*[:\s]*[\w\s.-]{2,20}\b/gi, " ");
+  text = text.replace(/\b\d{1,2}\.\d{3}(?:\.\d{3})?(?:[-kK0-9])?\b/g, " ");
+  text = text.replace(/\b\d{4,9}[-kK]?\b/g, " ");
   text = text.replace(/(?:\+?56)?\s*9\s*\d{4}\s*\d{4}\b/g, " "); // Teléfonos móviles
 
   // 3. Caso directo HH:mm (ej: 10:30, 09:00, 15:00)
@@ -246,25 +383,29 @@ export function normalizarHora(input: string, rutOpcional?: string): string {
  */
 export function detectarEspecialidad(raw: string): Especialidad | null {
   if (!raw) return null;
-  const text = raw.toLowerCase();
+  const text = stripAccents(raw);
 
   if (
     text.includes("dental") ||
+    text.includes("denta") ||
     text.includes("dentista") ||
     text.includes("diente") ||
     text.includes("odontol") ||
-    text.includes("muela")
+    text.includes("muela") ||
+    /\bboca\b/.test(text)
   ) {
     return Especialidad.DENTAL;
   }
 
   if (
     text.includes("matrona") ||
-    text.includes("matroneria") ||
-    text.includes("matronería") ||
+    text.includes("matlona") ||
+    text.includes("matron") ||
+    text.includes("matloneria") ||
+    text.includes("gineco") ||
     text.includes("obstet") ||
     text.includes("embarazo") ||
-    text.includes("pap")
+    /\bpap\b/.test(text)
   ) {
     return Especialidad.MATRONERIA;
   }
@@ -272,15 +413,54 @@ export function detectarEspecialidad(raw: string): Especialidad | null {
   if (
     text.includes("medicina") ||
     text.includes("general") ||
-    text.includes("médico") ||
+    text.includes("geneal") ||
+    text.includes("genelal") ||
     text.includes("medico") ||
     text.includes("doctor") ||
-    text.includes("doctora")
+    text.includes("doctora") ||
+    text.includes("doctol") ||
+    /\bconsulta\b/.test(text)
   ) {
     return Especialidad.MEDICINA_GENERAL;
   }
 
   return null;
+}
+
+export function detectarFranja(raw: string): IvrFranja | null {
+  if (!raw) return null;
+  const text = stripAccents(raw)
+    .replace(/buenos?\s+dias?/g, " ")
+    .replace(/buenas?\s+tardes?/g, " ")
+    .replace(/buenas?\s+noches?/g, " ")
+    .trim();
+
+  if (/\b(?:media\s+manana|mediodia|medio\s+dia|mitad\s+de\s+manana)\b/.test(text)) {
+    return "MEDIA_MANANA";
+  }
+  if (/\b(?:primera\s+disponible|plimera|lo\s+antes\s+posible|cualquier\s+hora|cualquiera|la\s+que\s+haya|mas\s+temprano|proxima)\b/.test(text)) {
+    return "PRIMERA_DISPONIBLE";
+  }
+  if (/\b(?:manana|temprano|templano|primera\s+hora)\b/.test(text)) {
+    return "MANANA";
+  }
+  if (/\b(?:tarde|taide|talde|despues\s+de\s+almuerzo)\b/.test(text)) {
+    return "TARDE";
+  }
+  return null;
+}
+
+export function nombreFranjaLegible(franja: IvrFranja): string {
+  switch (franja) {
+    case "MANANA":
+      return "mañana temprano";
+    case "MEDIA_MANANA":
+      return "media mañana";
+    case "TARDE":
+      return "la tarde";
+    default:
+      return "primera hora disponible";
+  }
 }
 
 export function nombreEspecialidadLegible(esp: Especialidad): string {
@@ -418,11 +598,11 @@ export async function ensureTodayAgendaExists(
 
   // Bloques de demostración (distribuidos con horas disponibles antes y después de bloques ocupados)
   const slotConfigs = [
-    { hora: "09:00", estado: EstadoBloque.RESERVADO, rut: "12345678-9", cuota: false },
+    { hora: "09:00", estado: EstadoBloque.RESERVADO, rut: "15492817-0", cuota: false },
     { hora: "09:30", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: true },
-    { hora: "10:00", estado: EstadoBloque.RESERVADO, rut: "12345678-9", cuota: false },
+    { hora: "10:00", estado: EstadoBloque.RESERVADO, rut: "15492817-0", cuota: false },
     { hora: "10:30", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: false },
-    { hora: "11:00", estado: EstadoBloque.RESERVADO, rut: "12345678-9", cuota: false },
+    { hora: "11:00", estado: EstadoBloque.RESERVADO, rut: "15492817-0", cuota: false },
     { hora: "11:30", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: false },
     { hora: "12:00", estado: EstadoBloque.DISPONIBLE, rut: null, cuota: false },
   ];
@@ -487,11 +667,11 @@ export async function buscarPacienteEnPadron(rutInput: string) {
   if (!paciente && rutInput.length > 5) {
     const lower = rutInput.toLowerCase();
     if (lower.includes("elena") || lower.includes("valenzuela")) {
-      paciente = await prisma.paciente.findFirst({ where: { rut: "5555555-5" } });
+      paciente = await prisma.paciente.findFirst({ where: { rut: "5842319-K" } });
     } else if (lower.includes("ignacio") || lower.includes("morales")) {
-      paciente = await prisma.paciente.findFirst({ where: { rut: "21111111-1" } });
+      paciente = await prisma.paciente.findFirst({ where: { rut: "21758467-1" } });
     } else if (lower.includes("matías") || lower.includes("matias") || lower.includes("rojas")) {
-      paciente = await prisma.paciente.findFirst({ where: { rut: "16666666-6" } });
+      paciente = await prisma.paciente.findFirst({ where: { rut: "16842915-0" } });
     }
   }
 
@@ -513,6 +693,258 @@ export async function buscarPacienteEnPadron(rutInput: string) {
 // MOTOR DE AGENDAMIENTO CON REGLAS DE NEGOCIO MALLASALUD
 // ====================================================================
 
+export function perteneceAFranja(horaMin: number, franja: IvrFranja): boolean {
+  switch (franja) {
+    case "MANANA":
+      return horaMin >= 480 && horaMin <= 620; // 08:00 - 10:20
+    case "MEDIA_MANANA":
+      return horaMin >= 640 && horaMin <= 760; // 10:40 - 12:40
+    case "TARDE":
+      return horaMin >= 840 && horaMin <= 1020; // 14:00 - 17:00
+    case "PRIMERA_DISPONIBLE":
+    default:
+      return true;
+  }
+}
+
+async function buscarCitaActivaHoy(pacienteId: string, especialidad: Especialidad) {
+  const { startOfDay, endOfDay } = getStartAndEndOfToday();
+  return prisma.cita.findFirst({
+    where: {
+      paciente_id: pacienteId,
+      especialidad,
+      estado_cita: EstadoCita.AGENDADA,
+      bloque: {
+        hora_inicio: { gte: startOfDay, lte: endOfDay },
+      },
+    },
+    include: {
+      bloque: true,
+      profesional: true,
+    },
+  });
+}
+
+async function cargarBloquesHoyEspecialidad(especialidad: Especialidad) {
+  const { startOfDay, endOfDay } = getStartAndEndOfToday();
+  await ensureTodayAgendaExists(especialidad);
+  return prisma.bloqueHorario.findMany({
+    where: {
+      hora_inicio: { gte: startOfDay, lte: endOfDay },
+      agenda: {
+        especialidad,
+        activa: true,
+      },
+    },
+    include: {
+      agenda: {
+        include: {
+          profesional: true,
+          box: true,
+        },
+      },
+      citas: {
+        where: { estado_cita: { in: [EstadoCita.AGENDADA, EstadoCita.ATENDIDA] } },
+      },
+    },
+    orderBy: {
+      hora_inicio: "asc",
+    },
+  });
+}
+
+function esBloqueElegiblePaciente(
+  b: Awaited<ReturnType<typeof cargarBloquesHoyEspecialidad>>[0],
+  esMayor: boolean
+): boolean {
+  if (b.estado_bloque !== EstadoBloque.DISPONIBLE || b.citas.length > 0) return false;
+  if (b.es_cuota_adulto_mayor && !esMayor) {
+    const msRestantes = new Date(b.hora_inicio).getTime() - Date.now();
+    if (msRestantes > 30 * 60 * 1000) return false;
+  }
+  return true;
+}
+
+function construirResultadoCitaDuplicada(params: {
+  citaExistente: NonNullable<Awaited<ReturnType<typeof buscarCitaActivaHoy>>>;
+  paciente: NonNullable<Awaited<ReturnType<typeof buscarPacienteEnPadron>>>;
+  especialidad: Especialidad;
+  elegibles: Awaited<ReturnType<typeof cargarBloquesHoyEspecialidad>>;
+  horaSolicitadaNorm?: string;
+}): VerificarOAgendarResult {
+  const { citaExistente, paciente, especialidad, elegibles, horaSolicitadaNorm } = params;
+  const nombreEsp = nombreEspecialidadLegible(especialidad);
+  const horaExistente = formatHora(citaExistente.bloque.hora_inicio);
+  const profNombre = `Dr(a). ${citaExistente.profesional.nombres} ${citaExistente.profesional.apellidos}`;
+  const bloqueReagendar =
+    (horaSolicitadaNorm && elegibles.find((b) => formatHora(b.hora_inicio) === horaSolicitadaNorm)) ||
+    elegibles[0];
+
+  return {
+    status: "CITA_DUPLICADA",
+    pacienteNombre: paciente.nombres,
+    rut: paciente.rut,
+    esAdultoMayor: paciente.es_adulto_mayor,
+    horaExistente,
+    citaExistenteId: citaExistente.id,
+    bloqueReagendarId: bloqueReagendar?.id,
+    horaReagendar: bloqueReagendar ? formatHora(bloqueReagendar.hora_inicio) : undefined,
+    profesionalNombre: profNombre,
+    especialidad,
+    especialidadNombre: nombreEsp,
+    codigoReserva: citaExistente.codigo_reserva,
+    message: `Ya cuentas con una cita agendada para hoy a las ${horaExistente} en ${nombreEsp} con ${profNombre}.`,
+  };
+}
+
+export interface FranjaOpcionesResult {
+  status: "OK" | "NO_INSCRITO" | "CITA_DUPLICADA" | "SIN_DISPONIBILIDAD";
+  rut: string;
+  pacienteNombre?: string;
+  esAdultoMayor?: boolean;
+  especialidad: Especialidad;
+  especialidadNombre: string;
+  franja: IvrFranja;
+  franjaNombre: string;
+  opciones: IvrFranjaOption[];
+  otrasFranjasDisponibles: IvrFranja[];
+  duplicada?: VerificarOAgendarResult;
+}
+
+/**
+ * Obtiene hasta 4 horarios disponibles en la franja solicitada (Mañana temprano,
+ * Media mañana, Tarde o Primera disponible), respetando Padrón, Cita Única y Cuota 60+.
+ */
+export async function obtenerOpcionesPorFranjaPorVoz(
+  rutInput: string,
+  especialidadInput: Especialidad | null | undefined,
+  franja: IvrFranja
+): Promise<FranjaOpcionesResult> {
+  const especialidad = especialidadInput || Especialidad.MEDICINA_GENERAL;
+  const nombreEsp = nombreEspecialidadLegible(especialidad);
+  const franjaNombre = nombreFranjaLegible(franja);
+
+  const paciente = await buscarPacienteEnPadron(rutInput);
+  if (!paciente) {
+    return {
+      status: "NO_INSCRITO",
+      rut: normalizarRut(rutInput) || rutInput,
+      especialidad,
+      especialidadNombre: nombreEsp,
+      franja,
+      franjaNombre,
+      opciones: [],
+      otrasFranjasDisponibles: [],
+    };
+  }
+
+  const [citaExistente, bloques] = await Promise.all([
+    buscarCitaActivaHoy(paciente.id, especialidad),
+    cargarBloquesHoyEspecialidad(especialidad),
+  ]);
+
+  const elegibles = bloques.filter((b) => esBloqueElegiblePaciente(b, paciente.es_adulto_mayor));
+
+  if (citaExistente) {
+    const enFranja = elegibles.filter((b) =>
+      perteneceAFranja(timeToMinutes(formatHora(b.hora_inicio)), franja)
+    );
+    const preferida = enFranja[0] ? formatHora(enFranja[0].hora_inicio) : undefined;
+    return {
+      status: "CITA_DUPLICADA",
+      rut: paciente.rut,
+      pacienteNombre: paciente.nombres,
+      esAdultoMayor: paciente.es_adulto_mayor,
+      especialidad,
+      especialidadNombre: nombreEsp,
+      franja,
+      franjaNombre,
+      opciones: [],
+      otrasFranjasDisponibles: [],
+      duplicada: construirResultadoCitaDuplicada({
+        citaExistente,
+        paciente,
+        especialidad,
+        elegibles,
+        horaSolicitadaNorm: preferida,
+      }),
+    };
+  }
+
+  const enFranja = elegibles.filter((b) =>
+    perteneceAFranja(timeToMinutes(formatHora(b.hora_inicio)), franja)
+  );
+
+  // Deduplicar por HH:mm para ofrecer horarios distintos
+  const vistos = new Set<string>();
+  const opciones: IvrFranjaOption[] = [];
+  for (const b of enFranja) {
+    const hora = formatHora(b.hora_inicio);
+    if (vistos.has(hora)) continue;
+    vistos.add(hora);
+    opciones.push({
+      bloqueId: b.id,
+      hora,
+      profesionalNombre: `Dr(a). ${b.agenda.profesional.nombres} ${b.agenda.profesional.apellidos}`,
+      boxNumero: b.agenda.box?.numero || "Box 101",
+    });
+    if (opciones.length >= 4) break;
+  }
+
+  const otrasFranjasDisponibles: IvrFranja[] = [];
+  if (opciones.length === 0 && elegibles.length > 0) {
+    for (const f of ["MANANA", "MEDIA_MANANA", "TARDE"] as IvrFranja[]) {
+      if (
+        f !== franja &&
+        elegibles.some((b) => perteneceAFranja(timeToMinutes(formatHora(b.hora_inicio)), f))
+      ) {
+        otrasFranjasDisponibles.push(f);
+      }
+    }
+  }
+
+  return {
+    status: opciones.length > 0 ? "OK" : "SIN_DISPONIBILIDAD",
+    rut: paciente.rut,
+    pacienteNombre: paciente.nombres,
+    esAdultoMayor: paciente.es_adulto_mayor,
+    especialidad,
+    especialidadNombre: nombreEsp,
+    franja,
+    franjaNombre,
+    opciones,
+    otrasFranjasDisponibles,
+  };
+}
+
+async function despacharSmsSiLlamadaReal(
+  smsId: string,
+  telefonoDestino: string,
+  cuerpoMensaje: string,
+  estadoFallback: string,
+  contexto?: IvrCallSmsContext
+): Promise<boolean> {
+  const res = await enviarSmsTicketTwilio({
+    callSid: contexto?.callSid,
+    telefonoDestino,
+    cuerpoMensaje,
+    estadoFallback,
+  });
+
+  if (res.attempted && res.estadoEnvio !== estadoFallback) {
+    try {
+      await prisma.registroSms.update({
+        where: { id: smsId },
+        data: { estado_envio: res.estadoEnvio },
+      });
+    } catch (err) {
+      console.warn("[RegistroSms] No se pudo actualizar estado de envío Twilio:", err);
+    }
+  }
+
+  return res.sent;
+}
+
 /**
  * Verifica paciente, disponibilidad y aplica las 4 reglas clave de MallaSalud:
  * 1. Padrón: Si no existe, deriva a ventanilla presencial.
@@ -523,7 +955,8 @@ export async function buscarPacienteEnPadron(rutInput: string) {
 export async function verificarOAgendarPorVoz(
   rutInput: string,
   horaInput?: string,
-  especialidadInput?: Especialidad | null
+  especialidadInput?: Especialidad | null,
+  contextoLlamada?: IvrCallSmsContext
 ): Promise<VerificarOAgendarResult> {
   const especialidad = especialidadInput || Especialidad.MEDICINA_GENERAL;
   const nombreEsp = nombreEspecialidadLegible(especialidad);
@@ -540,67 +973,21 @@ export async function verificarOAgendarPorVoz(
     };
   }
 
-  const { startOfDay, endOfDay } = getStartAndEndOfToday();
-
   // 2. REGLA DE CITA DUPLICADA: Solo 1 cita activa por especialidad al día
-  const citaExistente = await prisma.cita.findFirst({
-    where: {
-      paciente_id: paciente.id,
-      especialidad,
-      estado_cita: EstadoCita.AGENDADA,
-      bloque: {
-        hora_inicio: { gte: startOfDay, lte: endOfDay },
-      },
-    },
-    include: {
-      bloque: true,
-      profesional: true,
-    },
-  });
+  const citaExistente = await buscarCitaActivaHoy(paciente.id, especialidad);
 
   if (citaExistente) {
-    const horaExistente = formatHora(citaExistente.bloque.hora_inicio);
-    const profNombre = `Dr(a). ${citaExistente.profesional.nombres} ${citaExistente.profesional.apellidos}`;
-
-    await ensureTodayAgendaExists(especialidad);
-    const bloquesHoy = await prisma.bloqueHorario.findMany({
-      where: {
-        hora_inicio: { gte: startOfDay, lte: endOfDay },
-        agenda: { especialidad, activa: true },
-      },
-      include: { cita: true },
-      orderBy: { hora_inicio: "asc" },
-    });
-
+    const bloquesHoy = await cargarBloquesHoyEspecialidad(especialidad);
     const horaSolicitadaNorm = horaInput ? normalizarHora(horaInput, paciente.rut) || horaInput : undefined;
-    const elegibles = bloquesHoy.filter((b) => {
-      if (b.estado_bloque !== EstadoBloque.DISPONIBLE || b.cita) return false;
-      if (b.es_cuota_adulto_mayor && !paciente.es_adulto_mayor) {
-        const msRestantes = new Date(b.hora_inicio).getTime() - Date.now();
-        if (msRestantes > 30 * 60 * 1000) return false;
-      }
-      return true;
-    });
+    const elegibles = bloquesHoy.filter((b) => esBloqueElegiblePaciente(b, paciente.es_adulto_mayor));
 
-    const bloqueReagendar =
-      (horaSolicitadaNorm && elegibles.find((b) => formatHora(b.hora_inicio) === horaSolicitadaNorm)) ||
-      elegibles[0];
-
-    return {
-      status: "CITA_DUPLICADA",
-      pacienteNombre: paciente.nombres,
-      rut: paciente.rut,
-      esAdultoMayor: paciente.es_adulto_mayor,
-      horaExistente,
-      citaExistenteId: citaExistente.id,
-      bloqueReagendarId: bloqueReagendar?.id,
-      horaReagendar: bloqueReagendar ? formatHora(bloqueReagendar.hora_inicio) : undefined,
-      profesionalNombre: profNombre,
+    return construirResultadoCitaDuplicada({
+      citaExistente,
+      paciente,
       especialidad,
-      especialidadNombre: nombreEsp,
-      codigoReserva: citaExistente.codigo_reserva,
-      message: `Ya cuentas con una cita agendada para hoy a las ${horaExistente} en ${nombreEsp} con ${profNombre}.`,
-    };
+      elegibles,
+      horaSolicitadaNorm,
+    });
   }
 
   // 3. Si no indicó hora aún, solicitar la hora deseada
@@ -617,53 +1004,28 @@ export async function verificarOAgendarPorVoz(
 
   const horaDeseada = normalizarHora(horaInput, paciente.rut) || horaInput;
 
-  // 4. Asegurar agenda de hoy para la especialidad
-  await ensureTodayAgendaExists(especialidad);
-
-  // 5. Consultar bloques de hoy para la especialidad
-  const bloques = await prisma.bloqueHorario.findMany({
-    where: {
-      hora_inicio: { gte: startOfDay, lte: endOfDay },
-      agenda: {
-        especialidad,
-        activa: true,
-      },
-    },
-    include: {
-      agenda: {
-        include: {
-          profesional: true,
-          box: true,
-        },
-      },
-      cita: true,
-    },
-    orderBy: {
-      hora_inicio: "asc",
-    },
-  });
+  // 4. Consultar bloques de hoy para la especialidad
+  const bloques = await cargarBloquesHoyEspecialidad(especialidad);
 
   // Filtrar disponibilidad considerando cuota adulto mayor
-  // Si el paciente NO es adulto mayor, los bloques de cuota protegida no son elegibles
   const targetSlot = bloques.find((b) => formatHora(b.hora_inicio) === horaDeseada);
-
-  const esBloqueValidoParaPaciente = (b: typeof bloques[0]) => {
-    if (b.estado_bloque !== EstadoBloque.DISPONIBLE || b.cita) return false;
-    if (b.es_cuota_adulto_mayor && !paciente.es_adulto_mayor) {
-      // Liberación dinámica si faltan <= 30 min
-      const msRestantes = new Date(b.hora_inicio).getTime() - Date.now();
-      if (msRestantes > 30 * 60 * 1000) return false;
-    }
-    return true;
-  };
+  const esBloqueValidoParaPaciente = (b: typeof bloques[0]) =>
+    esBloqueElegiblePaciente(b, paciente.es_adulto_mayor);
 
   // CASO A: El bloque exacto existe y está DISPONIBLE
   if (targetSlot && esBloqueValidoParaPaciente(targetSlot)) {
     const profesional = targetSlot.agenda.profesional;
     const profesionalNombre = `Dr(a). ${profesional.nombres} ${profesional.apellidos}`;
     const codigoReserva = generarCodigoReserva();
+    const boxRaw = targetSlot.agenda.box?.numero || "Box 101";
+    const boxNumero = boxRaw.split("-")[0].trim();
+    const telefonoDestino =
+      contextoLlamada?.telefonoLlamada ||
+      paciente.telefono ||
+      process.env.DEFAULT_TO_NUMBER ||
+      "+56900000000";
 
-    await prisma.$transaction(async (tx) => {
+    const smsReg = await prisma.$transaction(async (tx) => {
       // 1. Bloque a RESERVADO
       await tx.bloqueHorario.update({
         where: { id: targetSlot.id },
@@ -687,18 +1049,34 @@ export async function verificarOAgendarPorVoz(
         },
       });
 
-      // 3. Crear Registro SMS
-      const cuerpoSms = `Cita confirmada telefónicamente para las ${horaDeseada} en ${nombreEsp} con ${profesionalNombre}. Código: ${codigoReserva}.`;
-      await tx.registroSms.create({
+      // 3. Crear Registro SMS GSM-7 <= 160 chars
+      const fechaStr = targetSlot.agenda.fecha.toISOString().split("T")[0];
+      const cuerpoSms = construirSmsConfirmacion({
+        codigoReserva,
+        especialidad: targetSlot.agenda.especialidad,
+        fechaStr,
+        horaStr: horaDeseada,
+        boxNumero: boxRaw,
+        profesionalNombre,
+      });
+      return tx.registroSms.create({
         data: {
           cita_id: cita.id,
-          telefono_destino: paciente.telefono || "+56937772647",
+          telefono_destino: telefonoDestino,
           cuerpo_mensaje: cuerpoSms,
           longitud_caracteres: cuerpoSms.length,
           estado_envio: "CONFIRMADO_IVR",
         },
       });
     });
+
+    const smsEnviadoTwilio = await despacharSmsSiLlamadaReal(
+      smsReg.id,
+      telefonoDestino,
+      smsReg.cuerpo_mensaje,
+      "CONFIRMADO_IVR",
+      contextoLlamada
+    );
 
     return {
       status: "AGENDADO",
@@ -709,7 +1087,9 @@ export async function verificarOAgendarPorVoz(
       profesionalNombre,
       especialidad,
       especialidadNombre: nombreEsp,
+      boxNumero,
       codigoReserva,
+      smsEnviadoTwilio,
     };
   }
 
@@ -781,7 +1161,8 @@ export async function verificarOAgendarPorVoz(
  */
 export async function confirmarBloqueSugeridoPorVoz(
   bloqueSugeridoId: string,
-  rutInput: string
+  rutInput: string,
+  contextoLlamada?: IvrCallSmsContext
 ): Promise<VerificarOAgendarResult> {
   const paciente = await buscarPacienteEnPadron(rutInput);
 
@@ -810,17 +1191,27 @@ export async function confirmarBloqueSugeridoPorVoz(
   const profesional = bloque.agenda.profesional;
   const profesionalNombre = `Dr(a). ${profesional.nombres} ${profesional.apellidos}`;
   const codigoReserva = generarCodigoReserva();
+  const boxRaw = bloque.agenda.box?.numero || "Box 101";
+  const boxNumero = boxRaw.split("-")[0].trim();
+  const telefonoDestino =
+    contextoLlamada?.telefonoLlamada ||
+    paciente.telefono ||
+    process.env.DEFAULT_TO_NUMBER ||
+    "+56900000000";
 
   // Transacción atómica
-  await prisma.$transaction(async (tx) => {
-    // 1. Pasar bloque a RESERVADO
-    await tx.bloqueHorario.update({
-      where: { id: bloque.id },
+  const smsReg = await prisma.$transaction(async (tx) => {
+    // 1. Pasar bloque a RESERVADO con guard atómico
+    const locked = await tx.bloqueHorario.updateMany({
+      where: { id: bloque.id, estado_bloque: EstadoBloque.DISPONIBLE },
       data: {
         estado_bloque: EstadoBloque.RESERVADO,
         bloqueado_por_rut: paciente.rut,
       },
     });
+    if (locked.count === 0) {
+      throw new Error("El bloque horario sugerido acaba de ser reservado por otro canal.");
+    }
 
     // 2. Crear Cita VOZ_IVR
     const cita = await tx.cita.create({
@@ -836,18 +1227,34 @@ export async function confirmarBloqueSugeridoPorVoz(
       },
     });
 
-    // 3. Crear Registro SMS
-    const cuerpoSms = `Cita confirmada telefónicamente para las ${horaConfirmada} en ${nombreEsp} con ${profesionalNombre}. Código: ${codigoReserva}.`;
-    await tx.registroSms.create({
+    // 3. Crear Registro SMS GSM-7 <= 160 chars
+    const fechaStr = bloque.agenda.fecha.toISOString().split("T")[0];
+    const cuerpoSms = construirSmsConfirmacion({
+      codigoReserva,
+      especialidad: bloque.agenda.especialidad,
+      fechaStr,
+      horaStr: horaConfirmada,
+      boxNumero: boxRaw,
+      profesionalNombre,
+    });
+    return tx.registroSms.create({
       data: {
         cita_id: cita.id,
-        telefono_destino: paciente.telefono || "+56937772647",
+        telefono_destino: telefonoDestino,
         cuerpo_mensaje: cuerpoSms,
         longitud_caracteres: cuerpoSms.length,
         estado_envio: "CONFIRMADO_IVR",
       },
     });
   });
+
+  const smsEnviadoTwilio = await despacharSmsSiLlamadaReal(
+    smsReg.id,
+    telefonoDestino,
+    smsReg.cuerpo_mensaje,
+    "CONFIRMADO_IVR",
+    contextoLlamada
+  );
 
   return {
     status: "AGENDADO",
@@ -858,7 +1265,9 @@ export async function confirmarBloqueSugeridoPorVoz(
     profesionalNombre,
     especialidad: bloque.agenda.especialidad,
     especialidadNombre: nombreEsp,
+    boxNumero,
     codigoReserva,
+    smsEnviadoTwilio,
   };
 }
 
@@ -869,7 +1278,8 @@ export async function confirmarBloqueSugeridoPorVoz(
 export async function reagendarCancelandoAnteriorPorVoz(
   citaAnteriorId: string,
   bloqueNuevoId: string,
-  rutInput: string
+  rutInput: string,
+  contextoLlamada?: IvrCallSmsContext
 ): Promise<VerificarOAgendarResult> {
   const paciente = await buscarPacienteEnPadron(rutInput);
   if (!paciente) {
@@ -907,8 +1317,15 @@ export async function reagendarCancelandoAnteriorPorVoz(
   const profesional = bloqueNuevo.agenda.profesional;
   const profesionalNombre = `Dr(a). ${profesional.nombres} ${profesional.apellidos}`;
   const codigoReserva = generarCodigoReserva();
+  const boxRaw = bloqueNuevo.agenda.box?.numero || "Box 101";
+  const boxNumero = boxRaw.split("-")[0].trim();
+  const telefonoDestino =
+    contextoLlamada?.telefonoLlamada ||
+    paciente.telefono ||
+    process.env.DEFAULT_TO_NUMBER ||
+    "+56900000000";
 
-  await prisma.$transaction(async (tx) => {
+  const smsReg = await prisma.$transaction(async (tx) => {
     // 1. Marcar cita anterior como CANCELADA_OPORTUNA y liberar su bloque
     await tx.cita.update({
       where: { id: citaAnterior.id },
@@ -944,17 +1361,33 @@ export async function reagendarCancelandoAnteriorPorVoz(
       },
     });
 
-    const cuerpoSms = `Reagendamiento IVR confirmado para las ${horaConfirmada} en ${nombreEsp} con ${profesionalNombre}. Se anuló hora previa de las ${horaExistente}. Código: ${codigoReserva}.`;
-    await tx.registroSms.create({
+    const fechaStr = bloqueNuevo.agenda.fecha.toISOString().split("T")[0];
+    const cuerpoSms = construirSmsConfirmacion({
+      codigoReserva,
+      especialidad: bloqueNuevo.agenda.especialidad,
+      fechaStr,
+      horaStr: horaConfirmada,
+      boxNumero: boxRaw,
+      profesionalNombre,
+    });
+    return tx.registroSms.create({
       data: {
         cita_id: nuevaCita.id,
-        telefono_destino: paciente.telefono || "+56937772647",
+        telefono_destino: telefonoDestino,
         cuerpo_mensaje: cuerpoSms,
         longitud_caracteres: cuerpoSms.length,
         estado_envio: "CONFIRMADO_REAGENDAMIENTO_IVR",
       },
     });
   });
+
+  const smsEnviadoTwilio = await despacharSmsSiLlamadaReal(
+    smsReg.id,
+    telefonoDestino,
+    smsReg.cuerpo_mensaje,
+    "CONFIRMADO_REAGENDAMIENTO_IVR",
+    contextoLlamada
+  );
 
   return {
     status: "AGENDADO",
@@ -966,7 +1399,154 @@ export async function reagendarCancelandoAnteriorPorVoz(
     profesionalNombre,
     especialidad: bloqueNuevo.agenda.especialidad,
     especialidadNombre: nombreEsp,
+    boxNumero,
     codigoReserva,
+    smsEnviadoTwilio,
+  };
+}
+
+/**
+ * Cancela oportunamente (>= 30 minutos antes) la cita activa del paciente por voz,
+ * libera el bloque a DISPONIBLE y registra el SMS de confirmación GSM-7.
+ */
+export async function cancelarCitaActivaPorVoz(
+  rutInput: string,
+  especialidad?: Especialidad,
+  contextoLlamada?: IvrCallSmsContext
+): Promise<VerificarOAgendarResult> {
+  const paciente = await buscarPacienteEnPadron(rutInput);
+  if (!paciente) {
+    return {
+      status: "NO_INSCRITO",
+      rut: normalizarRut(rutInput) || rutInput,
+      message: "El RUT indicado no se encuentra inscrito en el padrón del CESFAM.",
+    };
+  }
+
+  const { startOfDay } = getStartAndEndOfToday();
+  const ahora = new Date();
+  const includeCancel = {
+    bloque: {
+      include: { agenda: true },
+    },
+    profesional: true,
+  };
+
+  let cita = await prisma.cita.findFirst({
+    where: {
+      paciente_id: paciente.id,
+      estado_cita: EstadoCita.AGENDADA,
+      ...(especialidad ? { especialidad } : {}),
+      bloque: {
+        hora_inicio: { gte: ahora },
+      },
+    },
+    include: includeCancel,
+    orderBy: {
+      bloque: { hora_inicio: "asc" },
+    },
+  });
+
+  if (!cita) {
+    cita = await prisma.cita.findFirst({
+      where: {
+        paciente_id: paciente.id,
+        estado_cita: EstadoCita.AGENDADA,
+        ...(especialidad ? { especialidad } : {}),
+        bloque: {
+          hora_inicio: { gte: startOfDay },
+        },
+      },
+      include: includeCancel,
+      orderBy: {
+        bloque: { hora_inicio: "desc" },
+      },
+    });
+  }
+
+  if (!cita) {
+    return {
+      status: "SIN_DISPONIBILIDAD",
+      pacienteNombre: paciente.nombres,
+      rut: paciente.rut,
+      esAdultoMayor: paciente.es_adulto_mayor,
+      message: "No registramos citas médicas activas pendientes para su RUT.",
+    };
+  }
+
+  const nombreEsp = nombreEspecialidadLegible(cita.especialidad);
+  const horaExistente = formatHora(cita.bloque.hora_inicio);
+  const msRestantes = new Date(cita.bloque.hora_inicio).getTime() - Date.now();
+
+  if (msRestantes < 30 * 60 * 1000) {
+    return {
+      status: "CANCELACION_EXPIRADA",
+      pacienteNombre: paciente.nombres,
+      rut: paciente.rut,
+      esAdultoMayor: paciente.es_adulto_mayor,
+      especialidad: cita.especialidad,
+      especialidadNombre: nombreEsp,
+      horaExistente,
+      codigoReserva: cita.codigo_reserva,
+      message: `No es posible anular la cita de las ${horaExistente} automáticamente porque faltan menos de 30 minutos. Debe comunicarse con ventanilla SOME.`,
+    };
+  }
+
+  const fechaStr = cita.bloque.agenda.fecha.toISOString().split("T")[0];
+  const cuerpoSms = construirSmsCancelacion({
+    codigoReserva: cita.codigo_reserva,
+    especialidad: cita.especialidad,
+    fechaStr,
+    horaStr: horaExistente,
+  });
+  const telefonoDestino =
+    contextoLlamada?.telefonoLlamada ||
+    paciente.telefono ||
+    process.env.DEFAULT_TO_NUMBER ||
+    "+56900000000";
+
+  const [, , smsReg] = await prisma.$transaction([
+    prisma.cita.update({
+      where: { id: cita.id },
+      data: { estado_cita: EstadoCita.CANCELADA_OPORTUNA },
+    }),
+    prisma.bloqueHorario.update({
+      where: { id: cita.bloque_id },
+      data: {
+        estado_bloque: EstadoBloque.DISPONIBLE,
+        bloqueado_hasta: null,
+        bloqueado_por_rut: null,
+      },
+    }),
+    prisma.registroSms.create({
+      data: {
+        cita_id: cita.id,
+        telefono_destino: telefonoDestino,
+        cuerpo_mensaje: cuerpoSms,
+        longitud_caracteres: cuerpoSms.length,
+        estado_envio: "CANCELACION_IVR",
+      },
+    }),
+  ]);
+
+  const smsEnviadoTwilio = await despacharSmsSiLlamadaReal(
+    smsReg.id,
+    telefonoDestino,
+    cuerpoSms,
+    "CANCELACION_IVR",
+    contextoLlamada
+  );
+
+  return {
+    status: "CANCELADO",
+    pacienteNombre: paciente.nombres,
+    rut: paciente.rut,
+    esAdultoMayor: paciente.es_adulto_mayor,
+    especialidad: cita.especialidad,
+    especialidadNombre: nombreEsp,
+    horaExistente,
+    codigoReserva: cita.codigo_reserva,
+    smsEnviadoTwilio,
   };
 }
 
@@ -991,7 +1571,8 @@ export async function getIvrScheduleSnapshot() {
           box: true,
         },
       },
-      cita: {
+      citas: {
+        where: { estado_cita: EstadoCita.AGENDADA },
         include: {
           paciente: true,
         },
@@ -1006,7 +1587,7 @@ export async function getIvrScheduleSnapshot() {
     const hora = formatHora(b.hora_inicio);
     const prof = b.agenda.profesional;
     const profName = prof ? `Dr(a). ${prof.nombres} ${prof.apellidos}` : null;
-    const citaActiva = b.cita && b.cita.estado_cita === EstadoCita.AGENDADA ? b.cita : null;
+    const citaActiva = b.citas[0] || null;
     const pacName = citaActiva?.paciente
       ? `${citaActiva.paciente.nombres} ${citaActiva.paciente.apellidos}`
       : null;
@@ -1035,11 +1616,12 @@ export async function getIvrScheduleSnapshot() {
 export async function resetIvrDemoData() {
   const { startOfDay, endOfDay } = getStartAndEndOfToday();
 
-  // 1. Eliminar Citas con canal_origen VOZ_IVR de hoy
+  // 1. Eliminar Citas con canal_origen VOZ_IVR de hoy (conservando citas demo MS-BOX de Box Clínico)
   const citasIvr = await prisma.cita.findMany({
     where: {
       canal_origen: CanalOrigen.VOZ_IVR,
       created_at: { gte: startOfDay, lte: endOfDay },
+      NOT: { codigo_reserva: { startsWith: "MS-BOX" } },
     },
   });
 
@@ -1054,21 +1636,27 @@ export async function resetIvrDemoData() {
     });
   }
 
-  // 2. Restablecer bloques de demostración de hoy
+  // 2. Restablecer bloques de demostración de hoy (sin tocar citas activas de Portal Web / Box Clínico / Ventanilla)
   const bloques = await prisma.bloqueHorario.findMany({
     where: {
       hora_inicio: { gte: startOfDay, lte: endOfDay },
     },
+    include: {
+      citas: {
+        where: { estado_cita: EstadoCita.AGENDADA },
+      },
+    },
   });
 
   for (const b of bloques) {
+    if (b.citas.length > 0) continue;
     const hora = formatHora(b.hora_inicio);
     if (hora === "09:00" || hora === "10:00" || hora === "11:00") {
       await prisma.bloqueHorario.update({
         where: { id: b.id },
         data: {
           estado_bloque: EstadoBloque.RESERVADO,
-          bloqueado_por_rut: "12345678-9",
+          bloqueado_por_rut: "15492817-0",
         },
       });
     } else {

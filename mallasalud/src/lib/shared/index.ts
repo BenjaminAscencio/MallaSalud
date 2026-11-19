@@ -4,4 +4,5 @@
 export * from "./utils/rut";
 export * from "./utils/edad";
 export * from "./utils/codigo-reserva";
+export * from "./utils/sms";
 

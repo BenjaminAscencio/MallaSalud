@@ -3,4 +3,8 @@
 
 export * from "./prisma";
 export { default } from "./prisma";
+export * from "./ensureDbIndexes";
+export * from "./sessionToken";
+export * from "./password";
+export * from "./authServer";
 

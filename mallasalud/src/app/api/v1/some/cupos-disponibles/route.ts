@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listarCuposDisponibles } from "@/lib/services/ventanilla.service";
+import { requireRole } from "@/lib/core/authServer";
 import { Especialidad } from "@prisma/client";
 
 /**
@@ -7,6 +8,9 @@ import { Especialidad } from "@prisma/client";
  * HU-006: Consulta de cupos disponibles en tiempo real para agendamiento en ventanilla SOME.
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     const { searchParams } = new URL(req.url);
     const especialidadParam = searchParams.get("especialidad");

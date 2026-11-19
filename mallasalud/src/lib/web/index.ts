@@ -4,4 +4,6 @@
 export * from "./services/pacientes.service";
 export * from "./services/agendas.service";
 export * from "./services/ventanilla.service";
+export * from "./services/bloqueo.service";
+export * from "./services/box.service";
 

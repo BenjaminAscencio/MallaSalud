@@ -2,4 +2,5 @@
 export { default as Header } from "./Header";
 export { default as Footer } from "./Footer";
 export { default as DevNavbar } from "./DevNavbar";
+export { default as IntranetHeader } from "./IntranetHeader";
 

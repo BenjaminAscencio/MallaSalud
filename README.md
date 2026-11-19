@@ -8,16 +8,16 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)](https://www.postgresql.org/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma)](https://www.prisma.io/)
-[![Twilio Voice](https://img.shields.io/badge/Twilio-Voice_IVR-F22F46?logo=twilio)](https://www.twilio.com/)
+[![Twilio Voice](https://img.shields.io/badge/Twilio-Voice_%26_SMS-F22F46?logo=twilio)](https://www.twilio.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
 
 ---
 
 ## Descripción del Proyecto
 
-**MALLASALUD** nace como respuesta a la problemática en la salud pública chilena y la brecha digital que afecta a los adultos mayores con respecto a la reserva de horas médicas.
+**MALLASALUD** nace como respuesta a la problemática en la salud pública chilena y la brecha digital que afecta a los adultos mayores respecto a la reserva de horas médicas.
 
-El sistema proporciona una plataforma omnicanal que sincroniza en tiempo real las agendas de especialidades médicas clave (Medicina General, Urgencia Dental y Matronería), garantizando cuotas prioritarias para adultos mayores y permitiendo la reserva por **ventanilla presencial**, **portal web** y **asistente telefónico autónomo con IA (Canal VOZ_IVR)**.
+El sistema proporciona una plataforma omnicanal que sincroniza en tiempo real las agendas de especialidades médicas clave (Medicina General, Urgencia Dental y Matronería), garantizando cuotas prioritarias protegidas para adultos mayores (`60+`) y permitiendo la reserva mediante **ventanilla presencial (`VENTANILLA_SOME`)**, **portal web (`WEB`)** y **central telefónica autónoma (`VOZ_IVR`)**, además del control clínico diario en box médico.
 
 ---
 
@@ -25,82 +25,93 @@ El sistema proporciona una plataforma omnicanal que sincroniza en tiempo real la
 
 | Integrante | Rol Principal | Especialización y Responsabilidades |
 | :--- | :--- | :--- |
-| **Benjamín Ascencio** | **Backend Developer & Datos** | - Modelado relacional normalizado e integridad referencial.<br>- Persistencia con PostgreSQL y Prisma ORM.<br>- Lógica transaccional, concurrencia y módulo telefónico VOZ_IVR con Twilio.<br>- Documentación técnica y despliegue. |
+| **Benjamín Ascencio** | **Backend Developer & Datos** | - Modelado relacional normalizado e integridad referencial.<br>- Persistencia con PostgreSQL y Prisma ORM.<br>- Lógica transaccional, concurrencia, RBAC y módulo telefónico/SMS (`VOZ_IVR`) con Twilio.<br>- Documentación técnica y despliegue Docker. |
 | **Pablo Carrasco** | **Frontend Developer & Interfaces** | - Arquitectura de componentes e interfaz reactiva con Next.js y React.<br>- Sistema de diseño inclusivo y responsivo con Tailwind CSS.<br>- Accesibilidad y usabilidad orientada a adultos mayores.<br>- Desarrollo de interfaces: Portal Paciente, Consola SOME, Panel Box Médico y Monitor IVR. |
 
-* **Carrera:** Ingeniería en Informática — **Institución:** Duoc UC Alameda  
-* **Asignatura:** Proyecto Capstone (APT122) — **Docente Guía:** Felipe Krauss  
+* **Carrera:** Ingeniería en Informática — **Institución:** Duoc UC Alameda
+* **Asignatura:** Proyecto Capstone (APT122) — **Docente Guía:** Felipe Krauss
 
 ---
 
 ## Tecnologías Utilizadas
 
 ### Frontend
-* **[Next.js (App Router)](https://nextjs.org/):** Framework React para SSR, generación estática y Server Actions.
+* **[Next.js 16 (App Router)](https://nextjs.org/):** Framework React para SSR, rutas aisladas y APIs REST.
 * **[React 19](https://react.dev/):** Biblioteca para componentes reactivos y accesibles.
-* **[Tailwind CSS](https://tailwindcss.com/):** Estilos utilitarios y soporte de alto contraste accesible.
-* **[Lucide React](https://lucide.dev/):** Iconografía moderna en consola y monitores en tiempo real.
+* **[Tailwind CSS 4](https://tailwindcss.com/):** Estilos utilitarios y soporte de alto contraste accesible.
+* **[Lucide React](https://lucide.dev/):** Iconografía moderna en consola, box y monitores en tiempo real.
 
-### Backend, Telefonía y Lógica de Negocio
-* **[Node.js](https://nodejs.org/) & [TypeScript](https://www.typescriptlang.org/):** Tipado estricto en rutas de API y transacciones.
-* **[Twilio Voice](https://www.twilio.com/voice):** Telefonía programable con transcripción de voz (`es-CL`), Barge-In y TwiML dinámico.
-* **Motor Conversacional Híbrido:** Reconocimiento afirmativo ultrarrápido (<10ms), Gemini API y NLU local de respaldo inmediato ante contingencias de cuota o latencia.
+### Backend, Telefonía e IA
+* **[Node.js](https://nodejs.org/) & [TypeScript](https://www.typescriptlang.org/):** Tipado estricto en rutas de API y servicios transaccionales.
+* **[Twilio Voice & Messaging](https://www.twilio.com/):** Telefonía programable (`Polly.Mia-Neural`, captura `es-CL` y DTMF con separación estricta Voz vs. Teclado) y despacho real de tickets SMS GSM-7 (`<= 160` caracteres), con respaldo automático para cuentas Free Trial (`572006`).
+* **Motor Conversacional Híbrido:** Reglas deterministas (`<10ms`), acumulación de RUT en pausas, tolerancia fonética/rotacismo y respaldo semántico con **Google Gemini API**.
 * **Algoritmo Módulo 11:** Validación estricta de RUT chileno en backend y frontend.
-* **Transacciones Atómicas:** Bloqueo y asignación inmediata de cupos evitando sobre-agendamiento entre canales.
+* **Transacciones Atómicas & Seguridad RBAC:** Retención temporal `TTL 120s`, índice único parcial en PostgreSQL y cookies `HttpOnly` firmadas (`HMAC-SHA256` vía Web Crypto API).
 
-### Base de Datos y Persistencia
-* **[PostgreSQL 16](https://www.postgresql.org/):** Motor relacional con aislamiento ACID.
-* **[Prisma ORM](https://www.prisma.io/):** Modelado de datos, migraciones automáticas y consultas tipadas.
-
-### Infraestructura y Despliegue
-* **[Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/):** Orquestación integral de aplicación, base de datos, Prisma Studio y túnel Cloudflare.
-* **[Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/):** Conexión segura HTTPS hacia Twilio sin exponer puertos manuales.
+### Base de Datos e Infraestructura
+* **[PostgreSQL 16](https://www.postgresql.org/) & [Prisma ORM](https://www.prisma.io/):** Aislamiento ACID, índice único parcial (`idx_citas_bloque_activa_unique`) y esquema tipado.
+* **[Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/):** Levantamiento completo en **1 comando**, con auto-seed inteligente al iniciar con la BD vacía y **[Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/)** autodetectado por `http://tunnel:20241/quicktunnel`.
 
 ---
 
 ## Requisito Único en el PC
 
-Para ejecutar el proyecto solo se necesita tener instalado y abierto:
-* **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** *(Compatible con Windows, Mac y Linux)*.
+* **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** instalado y en ejecución *(Windows, macOS o Linux)*.
 
-> *No requiere instalar Node.js ni PostgreSQL directamente en la máquina anfitriona.*
+> *No requiere instalar Node.js ni PostgreSQL directamente en tu máquina anfitriona.*
 
 ---
 
-## Paso a Paso para Ejecutar en Local (1 Solo Comando)
+## Levantamiento en 1 Solo Comando (`docker compose up`)
 
-### 1. Entrar a la carpeta del proyecto
-```bash
-cd mallasalud
-```
+Puedes ejecutarlo **directamente desde la raíz `MallaSalud/`** (o dentro de `MallaSalud/mallasalud/`):
 
-### 2. Iniciar todos los contenedores con Docker
 ```bash
 docker compose up -d --build
 ```
-> *Este comando levantará automáticamente los 4 servicios integrados:*
-> 1. **`mallasalud_app`**: Servidor Next.js en el puerto `3000` con sincronización automática de esquema Prisma.
-> 2. **`mallasalud_tunnel`**: Túnel HTTPS de Cloudflare para recibir los webhooks de Twilio.
-> 3. **`mallasalud_postgres`**: Base de datos relacional PostgreSQL 16 en el puerto `5433` (interno 5432).
-> 4. **`mallasalud_studio`**: Prisma Studio (explorador visual de BD) en el puerto `5555`.
 
-### 3. Obtener la URL Pública para la Demostración Telefónica
+> *El proyecto arranca **incluso sin archivo `.env`**: si PostgreSQL está vacío, `scripts/seed-if-empty.mjs` carga automáticamente pacientes, profesionales, credenciales RBAC, boxes y agendas del día y de mañana.*
+
+### Servicios levantados automáticamente
+1. **`mallasalud_app`**: Aplicación Next.js en [http://localhost:3000](http://localhost:3000) (sincroniza esquema Prisma y ejecuta auto-seed inicial).
+2. **`mallasalud_postgres`**: Base de datos PostgreSQL 16 en el puerto `5433` (interno `5432`).
+3. **`mallasalud_studio`**: Explorador visual Prisma Studio en [http://localhost:5555](http://localhost:5555).
+4. **`mallasalud_tunnel`**: Túnel HTTPS Cloudflare autodetectado automáticamente en `/ivr` y `/api/twilio/voice`.
+
+### (Opcional) Habilitar llamadas reales y SMS vía Twilio + Gemini
+Si quieres probar llamadas telefónicas y SMS reales con tus credenciales:
+
 ```bash
-docker compose logs tunnel
+cp mallasalud/.env.example mallasalud/.env
+# Completa TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, DEFAULT_TO_NUMBER y GEMINI_API_KEYS
+docker compose up -d --force-recreate app
 ```
-> Busca la línea con tu enlace: `https://xxxx-xxxx.trycloudflare.com`
 
 ---
 
 ## Enlaces de Acceso a las Interfaces
 
-| Módulo / Canal | Enlace Local | Descripción y Alcance |
-| :--- | :--- | :--- |
-| **Central Telefónica IA (VOZ_IVR)** | [http://localhost:3000/ivr](http://localhost:3000/ivr) | Disparador de llamadas reales a celular, consola de transcripción en vivo, pruebas rápidas por regla de negocio, botón **Nueva Llamada / Limpiar Flujo**, monitor PostgreSQL en tiempo real y reinicio de horas. |
-| **Portal Paciente (HU-001/002)** | [http://localhost:3000](http://localhost:3000) | Identificación por RUT (Módulo 11), detección de padrón, aviso educativo NSP, reserva web (`canal_origen = WEB`) con comprobante `MS-XXXXXX` y anulación oportuna (`CANCELADA_OPORTUNA`) con liberación automática del cupo. |
-| **Calendario SOME (HU-005)** | [http://localhost:3000/some/agendas](http://localhost:3000/some/agendas) | Matriz diaria por boxes, horario semanal, colación y cuota 60+. |
-| **Ventanilla SOME (HU-006)** | [http://localhost:3000/some/ventanilla](http://localhost:3000/some/ventanilla) | Mesón presencial (`canal_origen = VENTANILLA_SOME`), Alta Rápida de pacientes y emisión de ticket. |
-| **Base de Datos (Prisma Studio)** | [http://localhost:5555](http://localhost:5555) | Explorador visual permanente de tablas, relaciones, `canal_origen` y estados de cita. |
+| Módulo / Canal | Enlace Local | Acceso / Rol RBAC | Descripción y Alcance |
+| :--- | :--- | :--- | :--- |
+| **Portal Paciente (HU-001/002/008)** | [http://localhost:3000](http://localhost:3000) | **Público (Pacientes)** | Identificación por RUT (Módulo 11), aviso educativo NSP en 1 clic, retención temporal atómica **TTL 120s** (`BLOQUEO_TEMPORAL`), reserva web (`WEB`) con comprobante `MS-XXXXXX`, impresión/PDF y anulación oportuna (`>= 30 min`, `CANCELADA_OPORTUNA`). |
+| **Acceso Funcionarios (RBAC)** | [http://localhost:3000/login](http://localhost:3000/login) | **Intranet** | Inicio de sesión institucional con cookie `HttpOnly` firmada (`HMAC-SHA256`) y protección en `src/proxy.ts` para separar el Portal Paciente de las vistas internas. |
+| **Calendario SOME (HU-005)** | [http://localhost:3000/some/agendas](http://localhost:3000/some/agendas) | **Rol `SOME`** | Matriz diaria por boxes, vista semanal, exclusión automática de colación (`13:00–14:00`), cuota 60+ intercalada y pausa de agendas (`BLOQUEADO_SOME`). |
+| **Ventanilla SOME (HU-006)** | [http://localhost:3000/some/ventanilla](http://localhost:3000/some/ventanilla) | **Rol `SOME`** | Mesón presencial (`VENTANILLA_SOME`), Alta Rápida de pacientes, atajos de teclado, ticket térmico 80mm (`@media print`) y prioridad de cupos `⚡ Liberado`. |
+| **Central Telefónica IA (VOZ_IVR)** | [http://localhost:3000/ivr](http://localhost:3000/ivr) | **Rol `SOME`** | Monitor en vivo, simulador de voz y teclado DTMF, detección automática de túnel HTTPS, llamadas entrantes/salientes Twilio (`Polly.Mia-Neural`) y **Bandeja de Auditoría SMS GSM-7**. |
+| **Panel Box Clínico (HU-007)** | [http://localhost:3000/doctor](http://localhost:3000/doctor) | **Rol `PROFESIONAL`** | Vista operativa **Zero Dashboard** exclusiva del tratante: registra `ATENDIDA` o `NO_ASISTE` (validando tolerancia de **15 min** e incrementando `contador_inasistencias + 1`), bloqueando citas futuras (`422`) y accesos cruzados (`403`). |
+| **Base de Datos (Prisma Studio)** | [http://localhost:5555](http://localhost:5555) | **Local / Admin** | Explorador visual de tablas, relaciones, índice único parcial (`idx_citas_bloque_activa_unique`), `canal_origen` y `registro_sms`. |
+
+---
+
+## Credenciales Institucionales de Prueba (Seed RBAC)
+
+| Rol | Correo / RUT | Contraseña | Acceso Permitido |
+| :--- | :--- | :--- | :--- |
+| **`SOME`** | `some@cesfam.cl` / `13648291-2` | `Some2026!` | `/some/agendas`, `/some/ventanilla`, `/ivr` |
+| **`PROFESIONAL` (Box 101 Med.)** | `carlos.munoz@cesfam.cl` / `14258369-0` | `Doctor2026!` | `/doctor` (nómina propia; incluye citas demo `MS-BOX001..003`) |
+| **`PROFESIONAL` (Box 102 Med.)** | `valentina.silva@cesfam.cl` / `16789456-9` | `Doctor2026!` | `/doctor` (nómina propia) |
+| **`PROFESIONAL` (Box 201 Dental)** | `roberto.cardenas@cesfam.cl` / `15321654-1` | `Doctor2026!` | `/doctor` (nómina propia) |
+| **`PROFESIONAL` (Box 301 Matrona)** | `camila.fuentes@cesfam.cl` / `17896321-K` | `Doctor2026!` | `/doctor` (nómina propia) |
 
 ---
 
@@ -108,139 +119,91 @@ docker compose logs tunnel
 
 | Caso de Prueba | RUT de Prueba | Resultado Esperado en la Llamada / Sistema |
 | :--- | :--- | :--- |
-| **1. Paciente No Inscrito en Padrón** | `21.222.222-2` | Rechaza amablemente indicando que debe acercarse con su cédula de identidad a la ventanilla SOME presencial del CESFAM. |
-| **2. Hora Ocupada — Recomendación Antes y Después** | `21.111.111-1` (pide `11:00`) | Detecta que `11:00` está ocupada y sugiere una alternativa antes (`10:30`) y otra después (`11:30`). Al responder *"Prefiero la de después, a las 11:30"*, confirma la cita en PostgreSQL con `canal_origen = VOZ_IVR` y código `MS-XXXXXX`. |
-| **3. Regla de Cita Duplicada y Reagendamiento** | `21.111.111-1` (pide `12:00` teniendo `11:30`) | Recuerda la cita activa (`11:30`) y la norma de 1 cita por especialidad al día, ofreciendo **anular la anterior y reagendar a las `12:00`**. Al confirmar el paciente, marca la cita previa como `CANCELADA_OPORTUNA`, libera el bloque anterior (`DISPONIBLE`) y crea la nueva cita (`RESERVADO` / `VOZ_IVR`). |
-| **4. Adulto Mayor (75a) — Cuota 60+** | `5.555.555-5` (pide `10:00`) | Trato con vocativo respetuoso (*"Don o Señora Elena Rosa"*), acceso prioritario a cuotas protegidas 60+ y negociación inmediata ante bloques ocupados. |
-| **5. Elección de Especialidad (Dental / Matronería)** | `21.111.111-1` | Detecta *"dentista"*, *"urgencia dental"* o *"matronería"*, asignando en Box 201 Dental (Dr. Roberto Cárdenas) o Box 301 Matronería (Dra. Camila Fuentes). |
-| **6. Flujo Web + Anulación Oportuna (Portal Paciente)** | `16.666.666-6` | En `/` muestra advertencia educativa NSP (2 inasistencias), reserva a las `08:00` guardando `canal_origen = WEB` y `hora_atencion`, y luego permite anular en **Administrar / Anular Cita** (`CANCELADA_OPORTUNA`). |
+| **1. Paciente No Inscrito en Padrón** | `6.419.832-7` / `21.483.926-1` | Rechaza amablemente indicando acercarse con su cédula de identidad a ventanilla presencial SOME. |
+| **2. Hora Ocupada — Antes y Después** | `21.758.467-1` (pide `11:00`) | Sugiere alternativa antes (`10:40`) y después (`11:20`). Confirma en PostgreSQL (`VOZ_IVR`) con ticket deletreado y SMS GSM-7 (`<= 160` chars). |
+| **3. Regla de Cita Duplicada / Reagendar** | `21.758.467-1` (pide `12:00` con cita hoy) | Recuerda la cita activa y ofrece **anular la anterior (`CANCELADA_OPORTUNA`) y reagendar a las `12:00`** sin perder historial. |
+| **4. Cancelación Oportuna (`>= 30 min`)** | `21.758.467-1` / `16.842.915-0` | Diciendo *"Quiero cancelar mi hora médica"* o por DTMF `2` verifica `>= 30 min`, libera el bloque a `DISPONIBLE` y registra SMS de anulación. |
+| **5. Adulto Mayor (75a) — Cuota 60+** | `5.842.319-K` (pide `10:00` o DTMF `5842319*#`) | Vocativo respetuoso (*"Don o Señora Elena Rosa"*), cuota protegida 60+ y modo 100% DTMF sin menciones de voz (o 100% voz sin mencionar botones). |
+| **6. Flujo Web + TTL 120s + Panel Box** | `16.842.915-0` / `MS-BOX001..003` | En `/` activa modal educativo NSP, retención **120s** (`WEB`), anulación `>= 30 min` y demostración clínica en `/doctor` (`NO_ASISTE` -> `+1 NSP`). |
 
 ---
 
-## Cómo Probar el Canal Telefónico IA en Vivo
+## Canal Telefónico Híbrido (Voz + DTMF) y Ticket SMS Real
 
-1. Entra a [http://localhost:3000/ivr](http://localhost:3000/ivr) (o a la URL del túnel Cloudflare).
-2. Presiona **"Iniciar Llamada Telefónica (VOZ_IVR)"** (o utiliza el panel **"Pruebas Rápidas de Reglas de Negocio"** para validar cada regla en el flujo en vivo).
-3. Al sonar tu celular, contesta y **presiona la tecla 1** (requerimiento de locución inicial por cuenta Trial de Twilio).
-4. Prueba una solicitud, por ejemplo pidiendo hora en un bloque ocupado:
-   - *"Hola, quiero hora para medicina a las 11 de la mañana, mi RUT es 21.111.111-1"*.
-5. La central te informará que las 11:00 ya está ocupada y te sugerirá alternativas antes (`10:30`) y después (`11:30`):
-   - Di: *"Prefiero la de después, a las 11:30"*.
-6. La cita se agendará al instante en PostgreSQL, verás la transcripción paso a paso y el bloque pasará a `RESERVADO` con la etiqueta `VOZ_IVR` y su código `MS-XXXXXX`.
-7. Usa **"Nueva Llamada / Limpiar Flujo"** para comenzar una llamada nueva sin perder las citas registradas en BD (ideal para probar la regla de **Cita Duplicada y Reagendamiento** a continuación), o **"Reiniciar Horas en BD"** para restaurar toda la agenda de demostración.
+1. Inicia sesión como **SOME** en [http://localhost:3000/login](http://localhost:3000/login) y abre [http://localhost:3000/ivr](http://localhost:3000/ivr).
+2. El sistema detecta automáticamente la URL HTTPS del túnel (`http://tunnel:20241/quicktunnel`) o usa `PUBLIC_WEBHOOK_BASE_URL` en la nube.
+3. Puedes probar sin teléfono usando el **simulador de voz** y el **teclado DTMF en pantalla**, o con llamadas reales Twilio:
+   - **Separación estricta de modalidad (`modoInteraccion`):** tras la bienvenida inicial, si el usuario habla (`VOZ`), las respuestas eliminan toda referencia a botones/teclas; si marca (`TECLADO`), el `<Gather input="dtmf">` escucha solo tonos y no menciona hablar.
+   - **Envío real de SMS (`twilioSms.ts`):** únicamente en llamadas Twilio reales (`CallSid` `CA...`) envía el ticket SMS GSM-7 (`MallaSalud Ticket MS-XXXXXX: ... Para reagendar o anular (30m antes) llame al CESFAM o use web.`). Si Twilio está en **Free Trial** (`572006`), reintenta automáticamente con la plantilla `sms_appointment_reminders` (`ENVIADO_TWILIO_TRIAL`) conservando el ticket completo en `registro_sms`.
 
 ---
 
-## Despliegue en la Nube (Hosting Permanente)
+## Despliegue en la Nube (Railway / Docker)
 
-Para desplegar MallaSalud de forma permanente sin depender de tu laptop ni de túneles:
-
-1. **Crear proyecto en [Railway](https://railway.app/):**
-   - Agrega un servicio **PostgreSQL** administrado.
-   - Agrega tu repositorio GitHub `MallaSalud` con raíz en la subcarpeta `mallasalud`.
-2. **Variables de Entorno en el Host:**
-   - `DATABASE_URL`: URL provista por el PostgreSQL en la nube.
-   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`: Credenciales de Twilio.
-   - `DEFAULT_TO_NUMBER`: Teléfono destino preconfigurado (opcional).
-   - `PUBLIC_WEBHOOK_BASE_URL`: Dominio público del host (ej. `https://mallasalud.up.railway.app`).
-   - `GEMINI_API_KEYS` (o `GEMINI_API_KEY`): Claves de API de Gemini.
-3. **Configuración en Twilio:**
-   - En la consola de Twilio, configura en el número `+17372508034` la URL del webhook entrante:  
-     `https://mallasalud.up.railway.app/api/twilio/voice`
-   - Con esto, cualquier persona puede llamar directamente al número telefónico y la central atenderá de forma autónoma.
+1. Crea un proyecto en [Railway](https://railway.app/) con un servicio **PostgreSQL** y conecta el repositorio con **Root Directory:** `mallasalud` (usará [`mallasalud/Dockerfile`](mallasalud/Dockerfile)).
+2. Configura las variables de entorno usando [`mallasalud/.env.example`](mallasalud/.env.example) como plantilla (`DATABASE_URL`, `SESSION_SECRET`, `TWILIO_*`, `PUBLIC_WEBHOOK_BASE_URL` y `GEMINI_API_KEYS`).
+3. Al arrancar por primera vez, el contenedor ejecuta `npx prisma db push && node scripts/seed-if-empty.mjs && npm run start` cargando los datos demo automáticamente.
+4. En `/ivr`, pulsa **"Activar Llamadas Entrantes en este Webhook"** para apuntar tu número Twilio a `https://<tu-dominio>/api/twilio/voice`.
 
 ---
 
-## Comandos de Mantenimiento
+## Comandos de Mantenimiento y Pruebas QA
 
-* **Ver logs de la aplicación:**
-  ```bash
-  docker compose logs -f app
-  ```
-* **Ver logs del túnel Cloudflare:**
-  ```bash
-  docker compose logs -f tunnel
-  ```
-* **Poblar la base de datos con el seed completo:**
-  ```bash
-  docker compose exec app npm run db:seed
-  ```
-* **Detener los contenedores:**
-  ```bash
-  docker compose down
-  ```
+```bash
+# Levantar todo (desde MallaSalud/ o MallaSalud/mallasalud/)
+docker compose up -d --build
+
+# Ver logs de aplicación y túnel Cloudflare
+docker compose logs -f app
+docker compose logs -f tunnel
+
+# Reiniciar seed completo manualmente en PostgreSQL
+docker compose exec app npm run db:seed
+
+# Ejecutar suite QA integral end-to-end (11 suites: RBAC, concurrencia 120s, GSM-7, Box e IVR)
+cd mallasalud && node scripts/test-api.mjs
+
+# Verificar tipos TypeScript
+cd mallasalud && npx tsc --noEmit
+
+# Detener contenedores
+docker compose down
+```
 
 ---
 
 ## Estructura del Proyecto
 
 ```text
-mallasalud/src/
-├── app/                                        # Next.js App Router (Rutas Limpias)
-│   │
-│   ├── (web)/                                  # DOMINIO WEB
-│   │   ├── (paciente)/                         # Subdominio Pacientes
-│   │   │   ├── page.tsx                        # Portal Paciente (/)
-│   │   │   ├── page.css                        # Estilos aislados del portal
-│   │   │   └── reservar/                       # Flujo de Reserva (/reservar)
-│   │   │       ├── page.tsx
-│   │   │       └── reservar.css                # Estilos aislados de reserva
-│   │   │
-│   │   ├── (personal)/                         # Subdominio Personal de Salud (SOME)
-│   │   │   └── some/
-│   │   │       ├── agendas/                    # Matriz de Agendas (/some/agendas)
-│   │   │       │   ├── page.tsx
-│   │   │       │   └── agendas.css             # Estilos de agendas
-│   │   │       └── ventanilla/                 # Mesón Presencial (/some/ventanilla)
-│   │   │           ├── page.tsx
-│   │   │           └── ventanilla.css          # Estilos de ventanilla
-│   │   │
-│   │   └── doctor/                             # Subdominio Medico (Futuro)
-│   │       └── .gitkeep                        # Preservado para ficha clinica medica
-│   │
-│   ├── (ivr)/                                  # DOMINIO TELEFONIA IA (VOZ_IVR)
-│   │   └── ivr/                                # Central Telefonica y Monitor (/ivr)
-│   │       ├── page.tsx                        # Componente React reactivo
-│   │       └── ivr.css                         # Estilos aislados, animaciones y consola
-│   │
-│   ├── api/                                    # Capa de Endpoints REST
-│   │   ├── call/start/route.ts                 # Disparo de llamada Twilio
-│   │   ├── ivr/status/route.ts                 # Monitor en tiempo real y simulacion
-│   │   ├── ivr/reset/route.ts                  # Limpieza de base de datos
-│   │   ├── twilio/voice/route.ts               # Webhook TwiML de Twilio
-│   │   └── v1/ (citas, pacientes, some)        # API REST corporativa
-│   │
-│   ├── favicon.ico
-│   ├── globals.css                             # Tokens y variables de Tailwind
-│   └── layout.tsx                              # Layout raiz con Header, Footer y DevNavbar
-│
-├── components/                                 # Componentes Visuales Reutilizables
-│   ├── common/                                 # Componentes compartidos globales
-│   │   ├── Header.tsx & Header.css
-│   │   ├── Footer.tsx & Footer.css
-│   │   └── DevNavbar.tsx & DevNavbar.css
-│   └── index.ts                                # Exportacion centralizada (@/components)
-│
-└── lib/                                        # Capa de Negocio, Servicios y Datos
-    ├── core/                                   # Nucleo de Base de Datos
-    │   ├── prisma.ts                           # PrismaClient Singleton con Connection Pooling
-    │   └── index.ts
-    │
-    ├── shared/                                 # Utilidades Compartidas
-    │   └── utils/
-    │       ├── rut.ts                          # Algoritmo Modulo 11
-    │       ├── edad.ts                         # Clasificador Adulto Mayor (60+)
-    │       └── codigo-reserva.ts               # Generador de codigos unicos (MS-XXXXXX)
-    │
-    ├── web/                                    # Servicios del Canal Web / SOME
-    │   └── services/
-    │       ├── pacientes.service.ts            # Padron y verificacion
-    │       ├── agendas.service.ts              # Generacion de bloques y colaciones
-    │       └── ventanilla.service.ts           # Emision de tickets y alta rapida
-    │
-    └── ivr/                                    # Servicios de Telefonia IVR
-        ├── ivrScheduleService.ts               # Logica de agendamiento por voz con Prisma
-        ├── voiceAgent.ts                       # Motor IA con Gemini y fallback NLU (<15ms)
-        ├── types.ts                            # Tipos TypeScript para llamadas y bloques
-        └── index.ts                            # Exportacion del modulo telefonico
+MallaSalud/
+├── .gitignore                                  # Bloquea .env, llaves *.pem/*.key y temporales
+├── docker-compose.yml                          # Punto de entrada raíz (include mallasalud/docker-compose.yml)
+├── README.md                                   # Documentación principal del repositorio
+└── mallasalud/
+    ├── .env.example                            # Plantilla documentada de variables (sin secretos)
+    ├── Dockerfile                              # Imagen producción Next.js + Prisma + auto-seed
+    ├── docker-compose.yml                      # Orquestación app + postgres + studio + tunnel
+    ├── scripts/
+    │   ├── seed-if-empty.mjs                   # Auto-seed seguro si la BD arranca vacía
+    │   └── test-api.mjs                        # Suite QA end-to-end (11 suites automatizadas)
+    └── src/
+        ├── proxy.ts                            # Protección RBAC de rutas (/some, /ivr, /doctor, /login)
+        ├── app/                                # Next.js App Router
+        │   ├── (web)/
+        │   │   ├── (paciente)/                 # Portal Paciente (/ y /reservar)
+        │   │   ├── (personal)/                 # Intranet SOME (/some/agendas y /some/ventanilla)
+        │   │   └── doctor/                     # Panel Box Clínico HU-007 (/doctor)
+        │   ├── (ivr)/ivr/                      # Central Telefónica IA VOZ_IVR (/ivr)
+        │   ├── login/                          # Autenticación Institucional RBAC (/login)
+        │   └── api/
+        │       ├── call/start/route.ts         # Inicio de llamada saliente Twilio (Rol SOME)
+        │       ├── ivr/                        # configure-inbound, status, reset (Rol SOME)
+        │       ├── twilio/voice/route.ts       # Webhook público TwiML (Voz neural + DTMF aislado)
+        │       └── v1/                         # auth, box, citas, pacientes, some
+        ├── components/common/                  # Header, IntranetHeader y Footer
+        └── lib/
+            ├── core/                           # prisma, ensureDbIndexes, sessionToken, password, authServer
+            ├── shared/utils/                   # rut, edad, codigo-reserva, sms (GSM-7 <= 160)
+            ├── web/services/                   # pacientes, agendas, bloqueo (120s), ventanilla, box
+            └── ivr/                            # ivrScheduleService, voiceAgent, twilioSms, tunnelUrl, types
 ```

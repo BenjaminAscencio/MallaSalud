@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { agendarCitaVentanilla, VentanillaError } from "@/lib/services/ventanilla.service";
+import { requireRole } from "@/lib/core/authServer";
 
 /**
  * POST /api/v1/some/citas/agendar-ventanilla
  * HU-006: Agendamiento presencial de cita médica en ventanilla SOME con emisión de comprobante y SMS.
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     const body = await req.json();
     const { paciente_id, bloque_id, canal_origen } = body;

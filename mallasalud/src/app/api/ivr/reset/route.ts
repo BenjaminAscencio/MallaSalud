@@ -1,13 +1,17 @@
 // src/app/api/ivr/reset/route.ts
 
 import { NextResponse } from "next/server";
+import { requireRole } from "@/lib/core/authServer";
 import {
   resetIvrDemoData,
   getIvrScheduleSnapshot,
 } from "@/lib/ivrScheduleService";
 import { clearIvrSessions } from "@/lib/voiceAgent";
 
-export async function POST() {
+export async function POST(req: Request) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     await resetIvrDemoData();
     clearIvrSessions();

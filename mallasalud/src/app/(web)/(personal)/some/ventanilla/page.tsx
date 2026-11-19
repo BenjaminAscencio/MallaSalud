@@ -493,7 +493,7 @@ export default function VentanillaSomePage() {
                       }
                       setErrorBusqueda(null);
                     }}
-                    placeholder="RUT: 5.555.555-5 o 21.111.111-1 [F2]"
+                    placeholder="RUT: 5.842.319-K o 21.758.467-1 [F2]"
                     className="ventanilla-search-input"
                   />
                 </div>
@@ -515,38 +515,38 @@ export default function VentanillaSomePage() {
                 <div className="ventanilla-demo-buttons">
                   <button
                     type="button"
-                    onClick={() => seleccionarRutPrueba("5555555-5")}
+                    onClick={() => seleccionarRutPrueba("5842319-K")}
                     className="ventanilla-demo-btn-senior"
                   >
-                    ★ 60+: <strong className="ventanilla-demo-rut">5.555.555-5</strong>
+                    ★ 60+: <strong className="ventanilla-demo-rut">5.842.319-K</strong>
                   </button>
                   <button
                     type="button"
-                    onClick={() => seleccionarRutPrueba("21111111-1")}
+                    onClick={() => seleccionarRutPrueba("21758467-1")}
                     className="ventanilla-demo-btn-normal"
                   >
-                    Joven: <strong className="ventanilla-demo-rut">21.111.111-1</strong>
+                    Joven: <strong className="ventanilla-demo-rut">21.758.467-1</strong>
                   </button>
                   <button
                     type="button"
-                    onClick={() => seleccionarRutPrueba("16666666-6")}
+                    onClick={() => seleccionarRutPrueba("16842915-0")}
                     className="ventanilla-demo-btn-normal"
                   >
-                    Con NSP: <strong className="ventanilla-demo-rut">16.666.666-6</strong>
+                    Con NSP: <strong className="ventanilla-demo-rut">16.842.915-0</strong>
                   </button>
                   <button
                     type="button"
-                    onClick={() => seleccionarRutPrueba("21222222-2")}
+                    onClick={() => seleccionarRutPrueba("21483926-1")}
                     className="ventanilla-demo-btn-alta"
                   >
-                    + Alta Rápida (Joven): <strong className="ventanilla-demo-rut">21.222.222-2</strong>
+                    + Alta Rápida (Joven): <strong className="ventanilla-demo-rut">21.483.926-1</strong>
                   </button>
                   <button
                     type="button"
-                    onClick={() => seleccionarRutPrueba("6666666-6")}
+                    onClick={() => seleccionarRutPrueba("6419832-7")}
                     className="ventanilla-demo-btn-alta"
                   >
-                    + Alta Rápida (60+): <strong className="ventanilla-demo-rut">6.666.666-6</strong>
+                    + Alta Rápida (60+): <strong className="ventanilla-demo-rut">6.419.832-7</strong>
                   </button>
                 </div>
               </div>

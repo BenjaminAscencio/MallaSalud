@@ -2,25 +2,28 @@
 
 import { NextResponse } from "next/server";
 import twilio from "twilio";
+import { requireRole } from "@/lib/core/authServer";
+import { resolvePublicWebhookBaseUrl } from "@/lib/ivr/tunnelUrl";
 
 export async function POST(req: Request) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     const body = await req.json().catch(() => ({}));
-    const toNumber = (body.toNumber || process.env.DEFAULT_TO_NUMBER || "+56937772647").trim();
-    const webhookBaseUrl = (
-      body.webhookBaseUrl ||
-      process.env.PUBLIC_WEBHOOK_BASE_URL ||
-      "http://localhost:3000"
-    ).trim();
+    const toNumber = (body.toNumber || process.env.DEFAULT_TO_NUMBER || "").trim();
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const fromNumber = process.env.TWILIO_FROM_NUMBER || "+17372508034";
+    const fromNumber = (process.env.TWILIO_FROM_NUMBER || "").trim();
 
-    if (!accountSid || !authToken) {
+    if (!accountSid || !authToken || !fromNumber) {
       return NextResponse.json(
-        { error: "Credenciales de Twilio faltantes en variables de entorno (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN)." },
-        { status: 500 }
+        {
+          error:
+            "Credenciales de Twilio faltantes en .env (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN y TWILIO_FROM_NUMBER).",
+        },
+        { status: 400 }
       );
     }
 
@@ -31,13 +34,28 @@ export async function POST(req: Request) {
       );
     }
 
-    const cleanBaseUrl = webhookBaseUrl.replace(/\/+$/, "");
+    const cleanBaseUrl = await resolvePublicWebhookBaseUrl(body.webhookBaseUrl);
+    if (
+      !cleanBaseUrl ||
+      cleanBaseUrl.includes("localhost") ||
+      cleanBaseUrl.includes("127.0.0.1")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Twilio requiere una URL pública HTTPS (túnel Cloudflare o dominio en la nube) para responder la llamada; localhost no es alcanzable.",
+        },
+        { status: 400 }
+      );
+    }
+
     const client = twilio(accountSid, authToken);
+    const webhookUrl = `${cleanBaseUrl}/api/twilio/voice`;
 
     const call = await client.calls.create({
       to: toNumber,
       from: fromNumber,
-      url: `${cleanBaseUrl}/api/twilio/voice`,
+      url: webhookUrl,
     });
 
     return NextResponse.json({
@@ -45,6 +63,7 @@ export async function POST(req: Request) {
       callSid: call.sid,
       to: toNumber,
       from: fromNumber,
+      webhookUrl,
       status: call.status,
     });
   } catch (error: any) {

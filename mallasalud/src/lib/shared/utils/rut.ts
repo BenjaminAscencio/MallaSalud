@@ -3,19 +3,6 @@
  * utilizando el algoritmo Módulo 11 oficial.
  */
 
-// RUTs de prueba autorizados para el entorno de desarrollo y pruebas de historias de usuario
-const RUTS_PRUEBA_AUTORIZADOS = new Set([
-  "21111111-1", // Caso 1: Adulto Joven
-  "5555555-5",  // Caso 2: Adulto Mayor (5.555.555-5)
-  "16666666-6", // Caso 3: Paciente con Inasistencias NSP
-  "21222222-2", // Caso 4: Joven No Inscrito (404)
-  "6666666-6",  // Caso 4: Adulto Mayor No Inscrito (404)
-  "11111111-1",
-  "22222222-2",
-  "33333333-3",
-  "44444444-4",
-]);
-
 /**
  * Limpia el RUT quitando puntos, espacios y guiones, dejando solo dígitos y K en mayúscula.
  * Ejemplo: " 12.345.678-k " -> "12345678K"
@@ -49,7 +36,6 @@ export function calcularDV(cuerpo: number | string): string {
 
 /**
  * Normaliza el RUT a formato estándar sin puntos y con guion: "12345678-9" o "12345678-K".
- * Si no es un RUT válido, retorna el string limpio o null si es irrecuperable.
  */
 export function normalizarRut(rut: string): string {
   const limpio = limpiarRut(rut);
@@ -62,22 +48,18 @@ export function normalizarRut(rut: string): string {
 }
 
 /**
- * Valida si un RUT es formalmente válido según el algoritmo Módulo 11 o si es un RUT de prueba del sistema.
- * Admite formatos como "12345678-9", "12.345.678-9", "123456789".
+ * Valida si un RUT es formalmente válido según el algoritmo Módulo 11 chileno.
+ * Admite formatos como "21.758.467-1", "5842319-K", "217584671".
  */
 export function validarRut(rut: string): boolean {
   const limpio = limpiarRut(rut);
   if (limpio.length < 7 || limpio.length > 9) return false;
 
-  const norm = normalizarRut(rut);
-  if (RUTS_PRUEBA_AUTORIZADOS.has(norm)) {
-    return true;
-  }
-
   const cuerpo = limpio.slice(0, -1);
   const dvIngresado = limpio.slice(-1);
 
-  // El cuerpo debe ser estrictamente numérico y mayor a 1.000.000
+  if (!/^\d+$/.test(cuerpo)) return false;
+
   const cuerpoNum = parseInt(cuerpo, 10);
   if (isNaN(cuerpoNum) || cuerpoNum < 1000000 || cuerpoNum > 99999999) {
     return false;
@@ -88,7 +70,7 @@ export function validarRut(rut: string): boolean {
 }
 
 /**
- * Formatea el RUT con separadores de miles y guion: "12.345.678-9" o "5.555.555-5"
+ * Formatea el RUT con separadores de miles y guion: "21.758.467-1" o "5.842.319-K"
  */
 export function formatearRut(rut: string): string {
   const norm = normalizarRut(rut);

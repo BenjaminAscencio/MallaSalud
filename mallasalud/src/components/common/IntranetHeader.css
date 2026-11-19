@@ -1,0 +1,65 @@
+@reference "../../app/globals.css";
+
+.intranet-header {
+  @apply print:hidden sticky top-0 z-50 w-full bg-white/95 dark:bg-[#0E1E1B]/95 backdrop-blur-md border-b border-border-subtle dark:border-border-dark shadow-xs font-sans transition-colors duration-200;
+}
+
+.intranet-header-container {
+  @apply w-full max-w-[1780px] mx-auto px-3 sm:px-6 lg:px-8;
+}
+
+.intranet-header-row {
+  @apply flex items-center justify-between min-h-16 py-2 gap-3 flex-wrap;
+}
+
+.intranet-brand {
+  @apply flex items-center gap-2.5 min-w-0;
+}
+
+.intranet-logo-box {
+  @apply w-9 h-9 shrink-0 rounded-lg bg-surface-bg dark:bg-surface-dark-elevated border border-border-subtle dark:border-border-dark-accent p-1 flex items-center justify-center;
+}
+
+.intranet-title {
+  @apply font-bold text-base sm:text-lg tracking-tight text-teal-deep dark:text-white;
+}
+
+.intranet-badge {
+  @apply text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-teal-primary/10 text-teal-primary dark:bg-teal-accent/15 dark:text-teal-accent border border-teal-primary/20 dark:border-teal-accent/30;
+}
+
+.intranet-nav {
+  @apply flex items-center gap-1.5 flex-wrap;
+}
+
+.intranet-nav-link {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-muted dark:text-text-dark-muted hover:text-teal-deep dark:hover:text-white hover:bg-slate-100 dark:hover:bg-surface-dark-muted transition-colors whitespace-nowrap;
+}
+
+.intranet-nav-link-active {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-teal-primary dark:text-white bg-mint-pale/70 dark:bg-surface-dark-accent border border-border-subtle dark:border-border-dark-accent whitespace-nowrap;
+}
+
+.intranet-actions {
+  @apply flex items-center gap-2 flex-wrap;
+}
+
+.intranet-user-chip {
+  @apply hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-surface-dark-elevated border border-border-subtle dark:border-border-dark text-xs;
+}
+
+.intranet-role-tag {
+  @apply text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-teal-primary text-white;
+}
+
+.intranet-theme-btn {
+  @apply inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-surface-dark-elevated border border-border-subtle/70 dark:border-border-dark-accent hover:bg-slate-200/70 dark:hover:bg-surface-dark-accent transition-colors cursor-pointer;
+}
+
+.intranet-portal-link {
+  @apply px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-text-subtle dark:text-text-dark-muted hover:text-teal-primary dark:hover:text-white border border-transparent hover:border-border-subtle transition-colors whitespace-nowrap;
+}
+
+.intranet-logout-btn {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40 hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-colors cursor-pointer;
+}

@@ -4,15 +4,19 @@ import {
   RutInvalidoError,
   PacienteNotFoundError,
 } from "@/lib/services/pacientes.service";
+import { requireRole } from "@/lib/core/authServer";
 
 /**
  * GET /api/v1/some/pacientes/[rut]
  * HU-006: Consulta de paciente por RUT para atención en ventanilla/mesón SOME.
  */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ rut: string }> }
 ) {
+  const auth = await requireRole(req, ["SOME"]);
+  if (auth.errorResponse) return auth.errorResponse;
+
   try {
     const { rut } = await context.params;
 
